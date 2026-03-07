@@ -30,7 +30,8 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
+# Keep Papyrus.spec for build configuration
+# *.spec
 
 # Installer logs
 pip-log.txt
@@ -205,3 +206,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Papyrus specific
+# User data and backups (should not be in version control)
+data/
+backup/
+
+# Build artifacts are already covered by dist/ and build/ above
+# Keep assets/ for icon and resources

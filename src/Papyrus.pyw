@@ -5,35 +5,48 @@ import os
 import time
 import shutil
 import sys
+import traceback
 
-DATA_FILE = "Papyrusdata.json"
+# 获取项目根目录
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+BACKUP_DIR = os.path.join(BASE_DIR, "backup")
+ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+
+# 确保目录存在
+for directory in [DATA_DIR, BACKUP_DIR, ASSETS_DIR]:
+    os.makedirs(directory, exist_ok=True)
+
+DATA_FILE = os.path.join(DATA_DIR, "Papyrusdata.json")
+BACKUP_FILE = os.path.join(BACKUP_DIR, "Papyrusdata.json.bak")
 
 def resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
-    return relative_path
+    return os.path.join(ASSETS_DIR, relative_path)
 
 class PapyrusApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Papyrus")
-        self.root.iconbitmap(resource_path("icon.ico"))
+        
+        # 图标容错处理
+        try:
+            self.root.iconbitmap(resource_path("icon.ico"))
+        except:
+            pass  # 图标文件不存在时静默跳过
+        
         self.root.geometry("600x600")
         
         self.cards = []
         self.current_card_index = -1
         self.is_showing_answer = False
+        self.check_timer = None
+        self.last_backup_time = 0  # 记录上次备份时间
         
         self.load_data()
         self.setup_ui()
         self.next_card()
-        
-
-    def resource_path(relative_path):
-        if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, relative_path)
-        return relative_path
-
 
     def setup_ui(self):
         # 1. 顶部状态栏
@@ -93,7 +106,6 @@ class PapyrusApp:
         data_menu.add_command(label="[危险] 重置所有进度", command=self.reset_data)
         data_menu.add_command(label="创建备份", command=self.create_backup)
         data_menu.add_command(label="从备份恢复", command=self.restore_backup)
-        # 搜 重置所有进度，在它下面加
         data_menu.add_separator()
         data_menu.add_command(label="关于", command=self.show_about)
 
@@ -104,10 +116,10 @@ class PapyrusApp:
         self.root.bind("3", lambda e: self.rate_card(3) if self.is_showing_answer else None)
 
     def set_text(self, text_content):
-        self.content_text.config(state="normal")  # 解锁
-        self.content_text.delete(1.0, "end")      # 清空
-        self.content_text.insert("end", text_content, "center") # 写入
-        self.content_text.config(state="disabled") # 上锁
+        self.content_text.config(state="normal")
+        self.content_text.delete(1.0, "end")
+        self.content_text.insert("end", text_content, "center")
+        self.content_text.config(state="disabled")
 
     def load_data(self):
         if os.path.exists(DATA_FILE):
@@ -116,29 +128,42 @@ class PapyrusApp:
                     self.cards = json.load(f)
             except (json.JSONDecodeError, ValueError):
                 self.cards = []
-        if not self.cards: return
 
     def create_backup(self):
         if not os.path.exists(DATA_FILE):
             messagebox.showinfo("", "没有数据文件可备份")
             return
-        shutil.copy(DATA_FILE, DATA_FILE + ".bak")
-        messagebox.showinfo("", "备份成功")
-
+        try:
+            shutil.copy(DATA_FILE, BACKUP_FILE)
+            self.last_backup_time = time.time()
+            messagebox.showinfo("", "备份成功")
+        except Exception as e:
+            messagebox.showerror("备份失败", f"错误详情：{e}")
 
     def save_data(self):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(self.cards, f, ensure_ascii=False, indent=2)
+        
+        # 智能备份：只有距离上次备份超过1小时才自动备份
         if self.cards:
-            shutil.copy(DATA_FILE, DATA_FILE + ".bak")
-
+            now = time.time()
+            if now - self.last_backup_time > 3600:  # 3600秒 = 1小时
+                try:
+                    shutil.copy(DATA_FILE, BACKUP_FILE)
+                    self.last_backup_time = now
+                except:
+                    pass  # 备份失败时静默跳过
 
     def get_due_cards(self):
-        # 核心修复：只筛选时间到了的卡片
         now = time.time()
         return [c for c in self.cards if c.get("next_review", 0) <= now]
 
     def next_card(self):
+        # 取消之前的定时检查
+        if self.check_timer:
+            self.root.after_cancel(self.check_timer)
+            self.check_timer = None
+        
         # 切换界面状态：显示 [查看答案] 按钮
         self.is_showing_answer = False
         self.grading_frame.pack_forget()
@@ -148,13 +173,12 @@ class PapyrusApp:
         self.update_status(len(due_cards))
         
         if not due_cards:
-          display_text = "\n\n🎉 今日任务已完成！\n\n"
-          self.set_text(display_text)
-          self.show_btn_frame.pack_forget()
-          self.current_card_index = -1
-          self.root.after(5000, self.next_card)  # 每5秒检查一次
-          return
-
+            display_text = "\n\n🎉 今日任务已完成！\n\n"
+            self.set_text(display_text)
+            self.show_btn_frame.pack_forget()
+            self.current_card_index = -1
+            self.check_timer = self.root.after(5000, self.next_card)
+            return
 
         # 取第一个到期的卡片
         target_card = due_cards[0]
@@ -164,8 +188,9 @@ class PapyrusApp:
         self.show_btn.focus_set()
 
     def show_answer(self):
-        if self.current_card_index == -1 or self.is_showing_answer: return
-        self.answer_shown_time = time.time()  # 加这一行
+        if self.current_card_index == -1 or self.is_showing_answer:
+            return
+        self.answer_shown_time = time.time()
         card = self.cards[self.current_card_index]
         full_text = f"\n\n【卷头】\n\n{card['q']}\n\n" + "-"*35 + f"\n\n【卷尾】\n\n{card['a']}\n\n"
         self.set_text(full_text)
@@ -176,96 +201,153 @@ class PapyrusApp:
         self.grading_frame.pack(fill="both", expand=True)
 
     def rate_card(self, grade):
-        if self.current_card_index == -1: return
-        if time.time() - getattr(self, 'answer_shown_time', 0) < 0.5: return 
+        if self.current_card_index == -1:
+            return
+        if time.time() - getattr(self, 'answer_shown_time', 0) < 0.5:
+            return
+        
         card = self.cards[self.current_card_index]
         now = time.time()
         
         # 极简算法参数 (秒)
-        if grade == 1: interval = 30
-        elif grade == 2: interval = 600
+        if grade == 1:
+            interval = 30
+        elif grade == 2:
+            interval = 600
         else:
-          current = card.get("interval", 0)
-          if current < 86400: interval = 86400
-          else: interval = current * 2
-
+            current = card.get("interval", 0)
+            if current < 86400:
+                interval = 86400
+            else:
+                interval = current * 2
             
         card["next_review"] = now + interval
-        card["interval"] = interval 
+        card["interval"] = interval
         
         self.save_data()
-        self.next_card() # 自动切题
+        self.next_card()
 
-    # --- 功能模块 ---
     def add_new_model_dialog(self):
-        top = tk.Toplevel(self.root); top.title("添加新卷轴"); top.geometry("400x300")
+        top = tk.Toplevel(self.root)
+        top.title("添加新卷轴")
+        top.geometry("400x300")
+        
         tk.Label(top, text="题目:").pack(anchor="w", padx=10)
-        q = tk.Text(top, height=4); q.pack(fill="x", padx=10)
+        q = tk.Text(top, height=4)
+        q.pack(fill="x", padx=10)
+        
         tk.Label(top, text="答案:").pack(anchor="w", padx=10)
-        a = tk.Text(top, height=4); a.pack(fill="x", padx=10)
+        a = tk.Text(top, height=4)
+        a.pack(fill="x", padx=10)
+        
         def save():
-            self.cards.append({"q":q.get("1.0","end").strip(), "a":a.get("1.0","end").strip(), "next_review":0, "interval":0})
-            self.save_data(); top.destroy(); self.next_card()
+            question = q.get("1.0", "end").strip()
+            answer = a.get("1.0", "end").strip()
+            if not question or not answer:
+                messagebox.showwarning("输入不完整", "题目和答案都不能为空")
+                return
+            self.cards.append({"q": question, "a": answer, "next_review": 0, "interval": 0})
+            self.save_data()
+            top.destroy()
+            self.next_card()
+        
         tk.Button(top, text="保存", command=save, bg="#c8e6c9").pack(pady=10)
 
     def import_from_txt(self):
-        path = filedialog.askopenfilename(filetypes=[("Text","*.txt")])
-        if path:
-          try:
-            with open(path,"r",encoding="utf-8") as f: c=f.read()
+        path = filedialog.askopenfilename(filetypes=[("Text", "*.txt")])
+        if not path:
+            return
+        
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
             count = 0
-            for b in c.split("\n\n"):
-                if "===" in b:
-                    p=b.split("===")
-                    if len(p)>=2: self.cards.append({"q":p[0].strip(),"a":p[1].strip(),"next_review":0,"interval":0}); count+=1
-            self.save_data(); self.next_card()
+            for block in content.split("\n\n"):
+                if "===" in block:
+                    parts = block.split("===", 1)
+                    if len(parts) >= 2:
+                        question = parts[0].strip()
+                        answer = parts[1].strip()
+                        if question and answer:
+                            self.cards.append({
+                                "q": question,
+                                "a": answer,
+                                "next_review": 0,
+                                "interval": 0
+                            })
+                            count += 1
+            
             if count == 0:
-                messagebox.showwarning("", "未找到有效卡片，请确认格式为：\n题目===答案")
+                messagebox.showwarning("导入失败", "未找到有效卡片，请确认格式为：\n题目===答案")
                 return
+            
+            self.save_data()
+            self.next_card()
+            
+            # 显示导入结果
             top = tk.Toplevel(self.root)
-
             top.title(f"导入成功，共 {count} 张")
             top.geometry("400x400")
+            
             scrollbar = tk.Scrollbar(top)
             scrollbar.pack(side="right", fill="y")
-            text = tk.Text(top, font=("微软雅黑", 11), wrap="word", yscrollcommand=scrollbar.set, padx=10, pady=10)
+            
+            text = tk.Text(top, font=("微软雅黑", 11), wrap="word", 
+                          yscrollcommand=scrollbar.set, padx=10, pady=10)
             scrollbar.config(command=text.yview)
+            
             for card in self.cards[-count:]:
                 text.insert("end", f"【卷头】{card['q']}\n【卷尾】{card['a']}\n\n")
+            
             text.config(state="disabled")
             text.pack(fill="both", expand=True)
-          except Exception as e:
-            messagebox.showerror("", f"导入失败：{e}")
-
+            
+        except Exception as e:
+            messagebox.showerror("导入失败", f"错误详情：{e}")
 
     def delete_current_card(self):
-        if self.current_card_index != -1 and messagebox.askyesno("","删除此卡片？"):
-            del self.cards[self.current_card_index]; self.save_data(); self.current_card_index=-1; self.next_card()
-
-    def reset_data(self):
-        if messagebox.askyesno("","清空所有数据？"): 
-            self.cards=[]
-            self.save_data()  # 这里 save_data 会自动覆盖备份
+        if self.current_card_index == -1:
+            messagebox.showinfo("提示", "当前没有选中的卡片")
+            return
+        
+        if messagebox.askyesno("确认删除", "确定要删除当前卡片吗？"):
+            del self.cards[self.current_card_index]
+            self.save_data()
+            self.current_card_index = -1
             self.next_card()
 
+    def reset_data(self):
+        if messagebox.askyesno("危险操作", "确定要清空所有数据吗？\n建议先创建备份！"):
+            # 重置前强制备份
+            if self.cards and os.path.exists(DATA_FILE):
+                try:
+                    shutil.copy(DATA_FILE, BACKUP_FILE)
+                    self.last_backup_time = time.time()
+                except:
+                    pass
+            
+            self.cards = []
+            self.save_data()
+            self.next_card()
+            messagebox.showinfo("完成", "所有数据已清空")
+
     def show_about(self):
-        messagebox.showinfo("关于 Papyrus", "Papyrus v1.0.0\n一款极简的卷轴式学习工具\n\n开发者：[ALPACA LI]\n© 2026 Papyrus")
+        messagebox.showinfo("关于 Papyrus", "Papyrus v1.0.1\n一款极简的卷轴式学习工具\n\n开发者：[ALPACA LI]\n© 2026 Papyrus")
 
     def update_status(self, count):
         self.status_var.set(f"待复习: {count} | 总卡片: {len(self.cards)}")
+
     def restore_backup(self):
-        bak_file = DATA_FILE + ".bak"
-        if not os.path.exists(bak_file):
+        if not os.path.exists(BACKUP_FILE):
             messagebox.showinfo("", "没有找到备份文件")
             return
         if messagebox.askyesno("", "确认从备份恢复？当前数据将被覆盖。"):
-            shutil.copy(bak_file, DATA_FILE)
+            shutil.copy(BACKUP_FILE, DATA_FILE)
             self.load_data()
             self.next_card()
             messagebox.showinfo("", "恢复成功")
 
-
-import traceback
 
 if __name__ == "__main__":
     try:
@@ -274,17 +356,12 @@ if __name__ == "__main__":
         root.mainloop()
 
     except Exception as e:
-        # 捕捉到错误后的处理逻辑
         error_msg = traceback.format_exc()
         print("控制台报错信息：\n", error_msg)
         
         try:
-            # 创建一个隐藏的临时窗口来弹窗
-            # 避免因为主窗口 root 未建立导致弹窗失败
             temp_root = tk.Tk()
             temp_root.withdraw()
             messagebox.showerror("程序崩溃 Crash", f"错误详情：\n{error_msg}")
         except:
-            # 如果连弹窗都弹不出来，就彻底没办法了
             print("严重错误：无法创建弹窗！")
-
