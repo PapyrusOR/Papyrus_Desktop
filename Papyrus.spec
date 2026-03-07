@@ -5,7 +5,7 @@ a = Analysis(
     ['src\\Papyrus.pyw'],
     pathex=[],
     binaries=[],
-    datas=[('assets/icon.ico', 'assets')],
+    datas=[('assets', 'assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
