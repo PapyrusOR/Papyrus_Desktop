@@ -47,7 +47,7 @@
 ## 🚀 下载与使用 (Download & Usage)
 
 ### 1. 获取程序
-前往 [Releases](https://github.com/Alpaca233114514/Papyrus/releases) 页面，下载最新的 `Papyrus_v1.0.0.zip` 压缩包。
+前往 [Releases](https://github.com/Alpaca233114514/Papyrus/releases) 页面，下载最新版本。
 
 ### 2. 运行说明
 1. 解压下载的 `.zip` 文件到任意文件夹。
@@ -83,4 +83,15 @@
 
 就当是拜个晚年吧。
 **祝你在新的一年，手持知识之利刃，刺破黑夜之墟，直捣黎明之境。**
+
+---
+
+## 📚 文档导航
+
+- [快速启动指南](docs/guides/QUICKSTART.md) - 5分钟上手
+- [版本信息](docs/guides/VERSION.md) - 当前版本和更新内容
+- [更新日志](docs/guides/CHANGELOG.md) - 完整的版本历史
+- [项目结构](docs/PROJECT_STRUCTURE.md) - 代码组织说明
+- [AI功能说明](docs/AI_README.md) - AI助手使用指南
+- [AI工具演示](docs/AI_TOOLS_DEMO.md) - 实际使用案例
 

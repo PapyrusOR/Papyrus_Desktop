@@ -7,6 +7,32 @@ import shutil
 import sys
 import traceback
 
+# 导入AI模块（安全隔离）
+AI_AVAILABLE = False
+AI_IMPORT_ERROR = None
+try:
+    import requests
+    print("[DEBUG] requests导入成功")
+    from ai.config import AIConfig
+    print("[DEBUG] AIConfig导入成功")
+    from ai.provider import AIManager
+    print("[DEBUG] AIManager导入成功")
+    from ai.sidebar_v3 import AISidebar
+    print("[DEBUG] AISidebar导入成功")
+    from ai.tools import CardTools
+    print("[DEBUG] CardTools导入成功")
+    AI_AVAILABLE = True
+except ImportError as e:
+    AI_AVAILABLE = False
+    AI_IMPORT_ERROR = str(e)
+    print(f"[ERROR] 导入失败(ImportError): {e}")
+except Exception as e:
+    AI_AVAILABLE = False
+    AI_IMPORT_ERROR = str(e)
+    print(f"[ERROR] 导入失败(Exception): {e}")
+    import traceback
+    traceback.print_exc()
+
 # 获取项目根目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -38,7 +64,7 @@ class PapyrusApp:
         except:
             pass  # 图标文件不存在时静默跳过
         
-        self.root.geometry("600x600")
+        self.root.geometry("1180x680")  # 左侧主学习区 + 右侧AI侧栏
         
         self.cards = []
         self.current_card_index = -1
@@ -47,16 +73,24 @@ class PapyrusApp:
         self.last_backup_time = 0  # 记录上次备份时间
         
         self.load_data()
-        self.setup_ui()
+        self.setup_ui()  # 先初始化主界面容器
+        self.setup_ai()  # 再初始化AI侧边栏
         self.next_card()
 
     def setup_ui(self):
+        # 主体区域：左侧主学习区 + 右侧AI侧栏
+        self.content_area = tk.Frame(self.root)
+        self.content_area.pack(side="top", fill="both", expand=True)
+
+        self.main_panel = tk.Frame(self.content_area)
+        self.main_panel.pack(side="left", fill="both", expand=True)
+
         # 1. 顶部状态栏
         self.status_var = tk.StringVar()
-        tk.Label(self.root, textvariable=self.status_var, fg="gray").pack(side="top", pady=5)
+        tk.Label(self.main_panel, textvariable=self.status_var, fg="gray").pack(side="top", pady=5)
 
         # 2. 底部按钮容器 (固定高度80，防止按钮切换时界面跳动)
-        self.btn_frame = tk.Frame(self.root, height=80) 
+        self.btn_frame = tk.Frame(self.main_panel, height=80)
         self.btn_frame.pack(side="bottom", fill="x", pady=10, padx=20)
         self.btn_frame.pack_propagate(False) 
 
@@ -79,7 +113,7 @@ class PapyrusApp:
                       font=("微软雅黑", 10)).pack(side="left", fill="both", expand=True, padx=5)
 
         # 3. 中间卡片区 (带滚动条的文本)
-        self.card_frame = tk.Frame(self.root, relief="groove", bd=2)
+        self.card_frame = tk.Frame(self.main_panel, relief="groove", bd=2)
         self.card_frame.pack(side="top", fill="both", expand=True, padx=20, pady=5)
 
         scrollbar = tk.Scrollbar(self.card_frame)
@@ -116,6 +150,106 @@ class PapyrusApp:
         self.root.bind("1", lambda e: self.rate_card(1) if self.is_showing_answer else None)
         self.root.bind("2", lambda e: self.rate_card(2) if self.is_showing_answer else None)
         self.root.bind("3", lambda e: self.rate_card(3) if self.is_showing_answer else None)
+    
+    def setup_ai(self):
+        """初始化AI侧边栏"""
+        print(f"[DEBUG] AI_AVAILABLE = {AI_AVAILABLE}")
+        
+        if AI_AVAILABLE:
+            try:
+                print("[DEBUG] 开始初始化AI组件...")
+                self.ai_config = AIConfig(DATA_DIR)
+                print("[DEBUG] AIConfig初始化成功")
+                self.ai_manager = AIManager(self.ai_config)
+                print("[DEBUG] AIManager初始化成功")
+                self.card_tools = CardTools(self)
+                print("[DEBUG] CardTools初始化成功")
+                self.ai_sidebar = AISidebar(self.content_area, self.ai_manager, self.get_current_card_context, self.card_tools)
+                print("[OK] AI功能已启用")
+            except Exception as e:
+                print(f"[ERROR] AI初始化失败: {e}")
+                import traceback
+                traceback.print_exc()
+                self.ai_sidebar = None
+                self.show_ai_placeholder()
+        else:
+            print("[INFO] AI_AVAILABLE=False, 显示占位面板")
+            self.ai_sidebar = None
+            self.show_ai_placeholder()
+    
+    def show_ai_placeholder(self):
+        """显示AI功能占位提示"""
+        placeholder = tk.Frame(self.content_area, width=350, bg="#f8f9fa", relief="groove", bd=1)
+        placeholder.pack(side="right", fill="y")
+        placeholder.pack_propagate(False)
+        
+        # 标题
+        tk.Label(placeholder, text="🤖 AI 助手", 
+                font=("微软雅黑", 14, "bold"), 
+                bg="#f8f9fa", fg="#333").pack(pady=30)
+        
+        # 提示信息
+        info_frame = tk.Frame(placeholder, bg="#fff3cd", relief="solid", bd=1)
+        info_frame.pack(fill="x", padx=20, pady=10)
+        
+        tk.Label(info_frame, text="⚠️ AI功能未启用", 
+                font=("微软雅黑", 10, "bold"),
+                bg="#fff3cd", fg="#856404").pack(pady=10)
+        
+        tk.Label(info_frame, text="需要安装依赖库", 
+                font=("微软雅黑", 9),
+                bg="#fff3cd", fg="#856404").pack()
+        
+        # 安装命令
+        cmd_frame = tk.Frame(placeholder, bg="#e9ecef", relief="solid", bd=1)
+        cmd_frame.pack(fill="x", padx=20, pady=20)
+        
+        tk.Label(cmd_frame, text="在终端运行：", 
+                font=("微软雅黑", 9),
+                bg="#e9ecef", fg="#666").pack(pady=(10, 5))
+        
+        cmd_text = tk.Text(cmd_frame, height=2, font=("Consolas", 9),
+                          bg="#2d2d2d", fg="#00ff00", relief="flat",
+                          padx=10, pady=5)
+        cmd_text.pack(fill="x", padx=10, pady=(0, 10))
+        cmd_text.insert("1.0", "pip install requests")
+        cmd_text.config(state="disabled")
+        
+        # 功能预览
+        features_frame = tk.LabelFrame(placeholder, text="功能预览", 
+                                      font=("微软雅黑", 9, "bold"),
+                                      bg="#f8f9fa", fg="#666")
+        features_frame.pack(fill="x", padx=20, pady=20)
+        
+        features = [
+            "💡 智能提示",
+            "📖 解释答案",
+            "🔄 生成相关题",
+            "💬 自由对话",
+            "🎯 学习分析"
+        ]
+        
+        for feature in features:
+            tk.Label(features_frame, text=feature, 
+                    font=("微软雅黑", 9),
+                    bg="#f8f9fa", fg="#999",
+                    anchor="w").pack(fill="x", padx=10, pady=3)
+        
+        # 底部说明
+        tk.Label(placeholder, text="安装后重启程序即可使用", 
+                font=("微软雅黑", 8),
+                bg="#f8f9fa", fg="#999").pack(side="bottom", pady=20)
+    
+    def get_current_card_context(self):
+        """获取当前卡片上下文供AI使用"""
+        if self.current_card_index == -1:
+            return None
+        card = self.cards[self.current_card_index]
+        return {
+            "q": card["q"],
+            "a": card["a"],
+            "is_showing_answer": self.is_showing_answer
+        }
 
     def set_text(self, text_content):
         self.content_text.config(state="normal")
@@ -203,28 +337,51 @@ class PapyrusApp:
         self.grading_frame.pack(fill="both", expand=True)
 
     def rate_card(self, grade):
+        """SM-2算法实现 - 科学的间隔重复算法"""
         if self.current_card_index == -1:
             return
         if time.time() - getattr(self, 'answer_shown_time', 0) < 0.5:
             return
         
         card = self.cards[self.current_card_index]
-        now = time.time()
         
-        # 极简算法参数 (秒)
-        if grade == 1:
-            interval = 30
-        elif grade == 2:
-            interval = 600
-        else:
-            current = card.get("interval", 0)
-            if current < 86400:
-                interval = 86400
+        # 初始化SM-2参数（向后兼容旧数据）
+        ef = card.get("ef", 2.5)  # easiness factor，默认2.5
+        repetitions = card.get("repetitions", 0)  # 连续正确次数
+        
+        # 将3级评分映射到SM-2的质量评分（0-5）
+        # 1=忘记 → quality 1 (差)
+        # 2=模糊 → quality 3 (一般)
+        # 3=秒杀 → quality 5 (完美)
+        quality_map = {1: 1, 2: 3, 3: 5}
+        quality = quality_map[grade]
+        
+        # SM-2算法核心逻辑
+        if quality >= 3:  # 回答正确（模糊或秒杀）
+            if repetitions == 0:
+                interval_days = 1
+            elif repetitions == 1:
+                interval_days = 6
             else:
-                interval = current * 2
+                # 使用EF计算新间隔
+                interval_days = (card.get("interval", 86400) / 86400) * ef
             
-        card["next_review"] = now + interval
-        card["interval"] = interval
+            repetitions += 1
+        else:  # 回答错误（忘记）
+            repetitions = 0
+            interval_days = 1
+        
+        # 更新EF值（easiness factor）
+        # 公式：EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
+        ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+        ef = max(1.3, ef)  # EF最小值为1.3，防止间隔过短
+        
+        # 转换为秒并设置下次复习时间
+        interval_seconds = interval_days * 86400
+        card["next_review"] = time.time() + interval_seconds
+        card["interval"] = interval_seconds
+        card["ef"] = round(ef, 2)  # 保留2位小数
+        card["repetitions"] = repetitions
         
         self.save_data()
         self.next_card()
@@ -335,7 +492,7 @@ class PapyrusApp:
             messagebox.showinfo("完成", "所有数据已清空")
 
     def show_about(self):
-        messagebox.showinfo("关于 Papyrus", "Papyrus v1.1.0\n一款极简的卷轴式学习工具\n\n开发者：[ALPACA LI]\n© 2026 Papyrus")
+        messagebox.showinfo("关于 Papyrus", "Papyrus v1.2.0-beta\n一款极简的卷轴式学习工具\n\n新功能：\n• SM-2 科学记忆算法\n• AI 智能助手（全新界面）\n• 多模型支持\n\n开发者：[ALPACA LI]\n© 2026 Papyrus")
 
     def update_status(self, count):
         self.status_var.set(f"待复习: {count} | 总卡片: {len(self.cards)}")
