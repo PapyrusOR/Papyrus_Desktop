@@ -11,8 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  APP_NAME: "MyApp"
-  PYTHON_ENTRY: "main.py"
+  APP_NAME: "Papyrus"
 
 jobs:
   build:
@@ -67,9 +66,9 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
 
-      - name: Build Application
+            - name: Build Application
         run: |
-          pyinstaller --onefile ${{ env.PYTHON_ENTRY }} --name "${{ env.APP_NAME }}-${{ matrix.artifact_name }}"
+          pyinstaller Papyrus.spec
         shell: bash
 
       # 总是上传到 Artifacts（无论是否修改了 src/）
