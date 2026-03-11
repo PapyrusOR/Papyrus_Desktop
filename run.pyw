@@ -14,6 +14,6 @@ if __name__ == "__main__":
     import importlib.util
     
     papyrus_path = os.path.join(src_dir, "Papyrus.pyw")
-    spec = importlib.util.spec_from_file_location("papyrus_main", papyrus_path)
+    spec = importlib.util.spec_from_file_location("__main__", papyrus_path)
     papyrus_main = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(papyrus_main)
