@@ -1,8 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
+import sys
 
 
 a = Analysis(
-    ['src\\Papyrus.pyw'],
+    ['src/Papyrus.pyw'],
     pathex=[],
     binaries=[],
     datas=[('assets', 'assets')],
@@ -35,5 +36,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets\\icon.ico'],
+    icon=['assets/icon.ico'] if sys.platform == 'win32' else None,
 )
