@@ -27,6 +27,9 @@ jobs:
           - platform: "macOS Apple Silicon"
             os: macos-latest  # 默认是 ARM64 (M1/M2/M3)
             artifact_name: "macos-arm64"
+          - platform: "Linux x86_64"
+            os: ubuntu-latest
+            artifact_name: "linux-x86_64"
 
     steps:
       - name: Checkout Code
@@ -135,13 +138,15 @@ jobs:
             
             **支持平台：**
             - ✅ Windows x86_64
-            - ✅ macOS Apple Silicon (M1/M2/M3)
+                        - ✅ macOS Apple Silicon (M1/M2/M3)
+            - ✅ Linux x86_64
             
             **下载说明：**
             选择对应平台的文件下载即可直接运行
           files: |
             artifacts/windows-x86_64/*
             artifacts/macos-arm64/*
+            artifacts/linux-x86_64/*
           draft: false
           prerelease: false  # 改为正式版本
         env:
