@@ -86,7 +86,14 @@ class MCPServer:
 
     def start(self):
         """在守护线程中启动 HTTP 服务器"""
-        self._httpd = HTTPServer((self.host, self.port), _MCPHandler)
+
+        if self._httpd is not None:
+            return
+
+        class _ReusableHTTPServer(HTTPServer):
+            allow_reuse_address = True
+
+        self._httpd = _ReusableHTTPServer((self.host, self.port), _MCPHandler)
         # 把依赖挂到 HTTPServer 实例上，Handler 通过 self.server 访问
         self._httpd.mcp_logger = self.logger
         self._httpd.mcp_card_tools = self.card_tools
@@ -99,7 +106,19 @@ class MCPServer:
 
     def stop(self):
         """关闭服务器"""
-        if self._httpd:
+
+        if self._httpd is None:
+            return
+
+        try:
             self._httpd.shutdown()
-            if self.logger:
-                self.logger.info("MCP 服务器已停止")
+            self._httpd.server_close()
+        finally:
+            self._httpd = None
+
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+            self._thread = None
+
+        if self.logger:
+            self.logger.info("MCP 服务器已停止")

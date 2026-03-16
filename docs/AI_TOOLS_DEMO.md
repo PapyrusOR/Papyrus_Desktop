@@ -182,6 +182,8 @@ AI会生成3个create_card调用，每个都会加入待审批队列。
 2. **启动程序**
    ```bash
    python src/Papyrus.pyw
+   # 或
+   python src/Papyrus.py
    ```
 
 3. **配置API**

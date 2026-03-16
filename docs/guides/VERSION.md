@@ -38,7 +38,10 @@ pip install requests
 #### 1. 启动程序
 ```bash
 python src/Papyrus.pyw
+# 或
+python src/Papyrus.py
 ```
+
 
 #### 2. 配置 AI（可选）
 1. 点击右侧 AI 助手的 "⚙" 按钮
@@ -73,7 +76,9 @@ python src/Papyrus.pyw
 ```
 Papyrus/
 ├── src/
-│   ├── Papyrus.pyw          # 主程序（集成 SM-2 + AI）
+│   ├── Papyrus.pyw          # 兼容入口（推荐运行：python src/Papyrus.pyw）
+│   ├── Papyrus.py           # 兼容入口（旧导入支持：from Papyrus import ...）
+│   ├── papyrus/             # 新版主程序包（模块化实现）
 │   └── ai/                  # AI 模块
 │       ├── config.py        # 配置管理
 │       ├── provider.py      # AI 提供商接口
@@ -84,9 +89,10 @@ Papyrus/
 │   └── ai_config.json       # AI 配置
 ├── backup/                  # 自动备份
 ├── requirements.txt         # Python 依赖
-├── CHANGELOG.md            # 详细更新日志
-└── README.md               # 项目说明
+├── CHANGELOG.md             # 详细更新日志
+└── README.md                # 项目说明
 ```
+
 
 ### 🐛 已知问题
 

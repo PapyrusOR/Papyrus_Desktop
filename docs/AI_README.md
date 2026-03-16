@@ -96,7 +96,9 @@ AI配置保存在 `data/ai_config.json`，包含：
 
 ```
 src/
-├── Papyrus.pyw          # 主程序（已集成AI）
+├── Papyrus.pyw          # 兼容入口（推荐运行：python src/Papyrus.pyw）
+├── Papyrus.py           # 兼容入口（旧导入支持：from Papyrus import ...）
+├── papyrus/             # 新版主程序包（模块化实现）
 └── ai/
     ├── __init__.py      # 模块初始化
     ├── config.py        # 配置管理

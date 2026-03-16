@@ -15,6 +15,8 @@ pip install requests
 
 ```bash
 python src/Papyrus.pyw
+# 或
+python src/Papyrus.py
 ```
 
 ### 步骤 3：开始学习

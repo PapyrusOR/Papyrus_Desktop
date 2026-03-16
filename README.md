@@ -1,7 +1,7 @@
 # 📜 Papyrus (莎草纸)
 
 ![Minecraft Paper](https://img.shields.io/badge/Icon-Minecraft_Paper-green)
-![Python](https://img.shields.io/badge/Python-3.8-blue)
+![Python](https://img.shields.io/badge/Python-3.14-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![AI-Assisted](https://img.shields.io/badge/Dev-AI--Assisted-blueviolet)
 
@@ -117,7 +117,7 @@ AI配置保存在 `data/ai_config.json`，包含：
 ## 🛠️ 技术细节 (For Developers)
 
 - **开发模式**: 本人为主，AI辅助(Cluade Sonnet 4.6,Gemini 3.0 Pro)
-- **语言**: Python 3.8 (Tkinter)
+- **语言**: Python 3.14 (Tkinter)
 - **工程化**: 采用 `PyInstaller` 封装，处理了 `sys._MEIPASS` 资源路径兼容性。
 - **开源协议**: MIT License
 - **鸣谢**: 图标素材来源于 Minecraft Wiki (Mojang Studio)。
