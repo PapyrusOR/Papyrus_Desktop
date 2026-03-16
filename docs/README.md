@@ -7,6 +7,8 @@
 ### 🚀 新手入门
 - [快速启动指南](guides/QUICKSTART.md) - 5分钟快速上手
 - [项目结构说明](PROJECT_STRUCTURE.md) - 了解项目组织
+- [FastAPI 接口（预留）](guides/API_FASTAPI.md) - 前后端通信方案
+
 
 ### 🤖 AI功能
 - [AI功能说明](AI_README.md) - AI助手完整指南
@@ -27,7 +29,9 @@ docs/
 └── guides/                # 用户指南
     ├── QUICKSTART.md      # 快速启动指南
     ├── VERSION.md         # 版本信息
+    ├── API_FASTAPI.md     # FastAPI 接口（预留）
     └── CHANGELOG.md       # 更新日志
+
 ```
 
 ## 🔧 开发者资源

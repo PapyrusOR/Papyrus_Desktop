@@ -9,7 +9,7 @@ Papyrus/
 ├── src/
 │   ├── Papyrus.py                 # 兼容入口：保持旧导入方式不变（from Papyrus import ...）
 │   ├── Papyrus.pyw                # 兼容入口（历史启动文件，转发到 run_app）
-
+│
 │   ├── papyrus/                   # ✅ 新版主程序包（模块化后代码都在这里）
 │   │   ├── app.py                 # PapyrusApp + run_app()
 │   │   ├── paths.py               # 路径常量：DATA_DIR/BACKUP_DIR/...
@@ -25,10 +25,21 @@ Papyrus/
 │   │       ├── ai.py              # AI 依赖隔离导入（可选）
 │   │       ├── mcp.py             # MCP 依赖隔离导入（可选）
 │   │       └── logging.py         # 日志模块隔离导入（可选）
+│   ├── papyrus_api/               # ✅ FastAPI 后端（预留：给前端提供 /api/*）
+│   │   └── main.py
 │   ├── ai/                        # AI 功能实现（现阶段仍为独立包）
 │   ├── mcp/                       # MCP 本地服务实现（现阶段仍为独立包）
 │   ├── logger.py                  # 日志实现
 │   └── log_viewer.py              # 日志查看器
+│
+├── frontend/                      # ✅ TS + React + Arco 前端（预留）
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tsconfig.json
+│   ├── index.html
+│   └── src/
+│       ├── main.tsx
+│       └── App.tsx
 │
 ├── data/                          # 用户数据（不进 Git）
 │   ├── Papyrusdata.json
@@ -43,6 +54,7 @@ Papyrus/
 ├── Papyrus.spec                   # PyInstaller 配置
 └── tests/
     └── test_papyrus.py
+
 ```
 
 ## 如何运行

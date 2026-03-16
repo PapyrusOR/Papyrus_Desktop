@@ -1,0 +1,123 @@
+@import './token.less';
+@import './mixin.less';
+
+@select-prefix-cls: ~'@{prefix}-select';
+@select-prefix-cls-rtl: ~'@{prefix}-select-rtl';
+
+.select-view(@select-prefix-cls);
+
+.@{select-prefix-cls} {
+  &-popup {
+    top: 4px;
+    box-sizing: border-box;
+    padding: @select-popup-padding-vertical @select-popup-padding-horizontal;
+    border: 1px solid @select-popup-color-border;
+    border-radius: @select-popup-border-radius;
+    background-color: @select-popup-color-bg;
+    box-shadow: @select-popup-box-shadow;
+    overflow: hidden;
+
+    &-hidden {
+      display: none;
+    }
+  }
+
+  &-popup &-popup-inner {
+    width: 100%;
+    max-height: @select-popup-max-height;
+    list-style: none;
+  }
+
+  &-popup &-option {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0 @select-signal-popup-option-padding-horizontal;
+    font-size: @select-popup-font-size;
+    text-align: left;
+    cursor: pointer;
+    line-height: @select-popup-option-height;
+    border-radius: @select-popup-option-border-radius;
+
+    .text-ellipsis();
+
+    .option-color(@status) {
+      @class-suffix: if(@status = default, ~'', ~'-@{status}');
+
+      &@{class-suffix} {
+        color: ~'@{select-popup-option-color-text_@{status}}';
+        background-color: ~'@{select-popup-option-color-bg_@{status}}';
+      }
+    }
+
+    .option-color(default);
+    .option-color(selected);
+    .option-color(hover);
+    // disabled 优先级最高，放在最后
+    .option-color(disabled);
+
+    &-disabled {
+      cursor: not-allowed;
+    }
+
+    &-selected {
+      font-weight: @select-popup-option-font-weight_selected;
+    }
+
+    &-empty {
+      height: $line-height;
+    }
+  }
+
+  &-popup &-option-rtl {
+    text-align: right;
+  }
+
+  &-option-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 0 7px;
+
+    .@{select-prefix-cls}-checkbox {
+      padding: 0 5px;
+
+      // 避免点击复选框导致 select-view 的输入框失焦
+      input {
+        display: none;
+      }
+    }
+
+    .@{select-prefix-cls}-option {
+      flex: 1;
+      margin-left: 1px;
+      padding: 0 @select-multi-popup-option-padding-horizontal;
+      border-radius: @select-border-radius;
+    }
+  }
+
+  &-group-title {
+    box-sizing: border-box;
+    width: 100%;
+    padding: @select-popup-group-title-padding-top @select-popup-group-title-padding-horizontal 0
+      @select-popup-group-title-padding-horizontal;
+    line-height: @select-popup-group-title-height;
+    font-size: @select-popup-group-title-font-size;
+    color: @select-popup-group-title-color-text;
+    .text-ellipsis();
+
+    &:first-child {
+      padding-top: @select-popup-group-title-padding-top - @select-popup-padding-vertical;
+    }
+  }
+
+  &-highlight {
+    font-weight: @select-popup-option-font-hightlight-weight;
+    color: @select-popup-option-color-hightlight-text;
+  }
+}
+
+.@{select-prefix-cls}-rtl {
+  direction: rtl;
+}
+
+.select-view-rtl(@select-prefix-cls, @select-prefix-cls-rtl);

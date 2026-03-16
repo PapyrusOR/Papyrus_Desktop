@@ -1,0 +1,66 @@
+@import './token.less';
+
+@trigger-prefix-cls: ~'@{prefix}-trigger';
+
+.@{trigger-prefix-cls} {
+  position: absolute;
+  z-index: @z-index-popup;
+  backface-visibility: hidden; // Prevent shaking
+
+  &-arrow {
+    background-color: @trigger-color-arrow-bg;
+    content: '';
+    height: @trigger-size-arrow-width;
+    width: @trigger-size-arrow-width;
+    position: absolute;
+    display: block;
+    box-sizing: border-box;
+    transform: rotate(45deg);
+    transform-origin: 50% 50% 0;
+    z-index: -1;
+  }
+
+  &[trigger-placement='top'] > &-arrow-container &-arrow,
+  &[trigger-placement='tl'] > &-arrow-container &-arrow,
+  &[trigger-placement='tr'] > &-arrow-container &-arrow {
+    bottom: -(@trigger-size-arrow-width / 2);
+    margin-left: -(@trigger-size-arrow-width / 2);
+    border-top: none;
+    border-left: none;
+    border-bottom-right-radius: @trigger-border-arrow-radius;
+  }
+
+  &[trigger-placement='bottom'] > &-arrow-container &-arrow,
+  &[trigger-placement='bl'] > &-arrow-container &-arrow,
+  &[trigger-placement='br'] > &-arrow-container &-arrow {
+    top: -(@trigger-size-arrow-width / 2);
+    margin-left: -(@trigger-size-arrow-width / 2);
+    border-bottom: none;
+    border-right: none;
+    border-top-left-radius: @trigger-border-arrow-radius;
+  }
+
+  &[trigger-placement='left'] > &-arrow-container &-arrow,
+  &[trigger-placement='lt'] > &-arrow-container &-arrow,
+  &[trigger-placement='lb'] > &-arrow-container &-arrow {
+    right: -(@trigger-size-arrow-width / 2);
+    margin-top: -(@trigger-size-arrow-width / 2);
+    border-left: none;
+    border-bottom: none;
+    border-top-right-radius: @trigger-border-arrow-radius;
+  }
+
+  &[trigger-placement='right'] > &-arrow-container &-arrow,
+  &[trigger-placement='rt'] > &-arrow-container &-arrow,
+  &[trigger-placement='rb'] > &-arrow-container &-arrow {
+    left: -(@trigger-size-arrow-width / 2);
+    margin-top: -(@trigger-size-arrow-width / 2);
+    border-top: none;
+    border-right: none;
+    border-bottom-left-radius: @trigger-border-arrow-radius;
+  }
+
+  &-rtl {
+    direction: rtl;
+  }
+}

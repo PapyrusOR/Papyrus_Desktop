@@ -1,0 +1,11 @@
+import OriginTypography from './typography';
+import Title from './title';
+import Text from './text';
+import Paragraph from './paragraph';
+import Ellipsis from './ellipsis';
+var Typography = OriginTypography;
+Typography.Title = Title;
+Typography.Text = Text;
+Typography.Paragraph = Paragraph;
+Typography.Ellipsis = Ellipsis;
+export default Typography;

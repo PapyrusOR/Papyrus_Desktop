@@ -1,0 +1,25 @@
+import React, { ReactNode } from 'react';
+import { ComponentsProps, InternalColumnProps, SorterInfo } from '../interface';
+declare type TdType = {
+    prefixCls?: string;
+    virtualized?: boolean;
+    stickyClassName?: string;
+    stickyOffset?: number;
+    components?: ComponentsProps;
+    InnerComponentTd?: any;
+    column?: InternalColumnProps;
+    columnIndex?: number;
+    currentSorter?: SorterInfo;
+    placeholder?: ReactNode;
+    indentSize?: number;
+    record?: any;
+    trIndex?: number;
+    level?: number;
+    haveTreeData?: boolean;
+    recordHaveChildren?: boolean;
+    rowKey?: string;
+    renderExpandIcon?: (record: any, rowKey: string) => ReactNode;
+};
+declare function Td(props: TdType): JSX.Element;
+declare const _default: React.MemoExoticComponent<typeof Td>;
+export default _default;

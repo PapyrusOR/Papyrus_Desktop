@@ -30,7 +30,8 @@
 
 #### AI 功能（需要安装依赖）
 ```bash
-pip install requests
+pip install -r requirements.txt
+
 ```
 
 ### 🚀 快速开始
@@ -79,11 +80,13 @@ Papyrus/
 │   ├── Papyrus.pyw          # 兼容入口（推荐运行：python src/Papyrus.pyw）
 │   ├── Papyrus.py           # 兼容入口（旧导入支持：from Papyrus import ...）
 │   ├── papyrus/             # 新版主程序包（模块化实现）
+│   ├── papyrus_api/         # FastAPI 后端（预留：给前端提供 /api/*）
 │   └── ai/                  # AI 模块
 │       ├── config.py        # 配置管理
 │       ├── provider.py      # AI 提供商接口
 │       ├── sidebar_v3.py    # AI 侧边栏 UI
 │       └── tools.py         # 工具调用系统
+├── frontend/                # TS + React + Arco 前端（预留）
 ├── data/
 │   ├── Papyrusdata.json     # 学习数据
 │   └── ai_config.json       # AI 配置
@@ -94,7 +97,16 @@ Papyrus/
 ```
 
 
-### 🐛 已知问题
+
+### 🌐 FastAPI（可选：给前端提供接口）
+
+```bash
+python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+- Health: http://127.0.0.1:8000/api/health
+
+
 
 1. **Windows 控制台编码警告**
    - 不影响使用

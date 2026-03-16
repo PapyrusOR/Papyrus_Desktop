@@ -1,0 +1,85 @@
+@import './token.less';
+
+// Navigation
+.@{steps-prefix-cls} {
+  &-mode-navigation&-label-horizontal &-item:not(:last-child) &-item-title::after {
+    display: none;
+  }
+
+  &-mode-navigation &-item {
+    padding-left: @steps-navigation-padding-left;
+    padding-right: @steps-navigation-spacing-arrow-right;
+    margin-right: @steps-navigation-margin-right;
+
+    &:last-child {
+      flex: 1;
+    }
+
+    &-content {
+      margin-bottom: 20px;
+    }
+
+    &-description {
+      padding-right: 20px;
+    }
+
+    &-active::after {
+      content: '';
+      position: absolute;
+      display: block;
+      height: 2px;
+      left: @steps-navigation-spacing-ink-left;
+      right: @steps-navigation-spacing-ink-right;
+      bottom: 0;
+      background-color: @color-primary-6;
+    }
+
+    &-active:last-child::after {
+      width: 100%;
+    }
+  }
+
+  &-mode-navigation &-item:not(:last-child) &-item-content::after {
+    content: '';
+    position: absolute;
+    top: @steps-navigation-size-arrow-top;
+    right: @steps-navigation-spacing-arrow-right;
+    display: inline-block;
+    width: @steps-navigation-size-arrow;
+    height: @steps-navigation-size-arrow;
+    border: @steps-navigation-size-arrow-line-width solid @steps-navigation-color-arrow;
+    background-color: var(~'@{arco-cssvars-prefix}-color-bg-2');
+    border-bottom: none;
+    border-left: none;
+    transform: rotate(45deg);
+  }
+}
+
+.@{steps-prefix-cls}-rtl {
+  &.@{steps-prefix-cls}-mode-navigation {
+    .@{steps-prefix-cls}-item {
+      padding-right: @steps-navigation-padding-left;
+      padding-left: @steps-navigation-spacing-arrow-right;
+      margin-left: @steps-navigation-margin-right;
+      margin-right: 0;
+
+      &-description {
+        padding-left: 20px;
+        padding-right: 0;
+      }
+
+      &-active::after {
+        right: @steps-navigation-spacing-ink-left;
+        left: @steps-navigation-spacing-ink-right;
+      }
+
+      &:not(:last-child) .@{steps-prefix-cls}-item-content::after {
+        left: @steps-navigation-spacing-arrow-right;
+        right: initial;
+        border: @steps-navigation-size-arrow-line-width solid @steps-navigation-color-arrow;
+        border-right: none;
+        border-top: none;
+      }
+    }
+  }
+}

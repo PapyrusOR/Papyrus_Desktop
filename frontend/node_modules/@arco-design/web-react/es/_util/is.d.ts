@@ -1,0 +1,27 @@
+import { Dayjs } from 'dayjs';
+export declare function isArray(obj: any): obj is any[];
+export declare function isObject(obj: any): obj is {
+    [key: string]: any;
+};
+export declare function isString(obj: any): obj is string;
+export declare function isNumber(obj: any): obj is number;
+export declare function isRegExp(obj: any): boolean;
+export declare function isFile(obj: any): obj is File;
+export declare function isBlob(obj: any): obj is Blob;
+export declare function isColor(color: any): boolean;
+export declare function isUndefined(obj: any): obj is undefined;
+export declare function isNull(obj: any): obj is null;
+export declare function isNullOrUndefined(obj: any): boolean;
+export declare function isFunction(obj: any): obj is (...args: any[]) => any;
+export declare function isEmptyObject(obj: any): boolean;
+export declare function isEmptyReactNode(content: any, trim?: boolean): boolean;
+export declare function isExist(obj: any): boolean;
+export declare function isWindow(el: any): el is Window;
+export declare function isDayjs(time: any): time is Dayjs;
+export declare function isBoolean(value: any): value is Boolean;
+export declare const isReactComponent: (element: any) => boolean;
+export declare const isClassComponent: (element: any) => boolean;
+export declare const isDOMElement: (element: any) => boolean;
+export declare const isReact18: boolean;
+export declare const isReact19: boolean;
+export declare const supportRef: (element: any) => boolean;

@@ -1,0 +1,11 @@
+import '../../style/index.css';
+import '../../Checkbox/style/css.js';
+import '../../Button/style/css.js';
+import '../../Empty/style/css.js';
+import '../../Pagination/style/css.js';
+import '../../Radio/style/css.js';
+import '../../Spin/style/css.js';
+import '../../Space/style/css.js';
+import '../../Trigger/style/css.js';
+import '../../Tooltip/style/css.js';
+import './index.css';

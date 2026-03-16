@@ -4,9 +4,9 @@
 
 ### 步骤 1：安装依赖（可选）
 
-如果你想使用 AI 功能：
+如果你想使用 AI 功能 或 FastAPI API：
 ```bash
-pip install requests
+pip install -r requirements.txt
 ```
 
 如果只使用基础学习功能，可以跳过此步骤。
@@ -37,9 +37,15 @@ python src/Papyrus.py
 - **2**：模糊（正常间隔）
 - **3**：秒杀（快速增长）
 
----
+## 🌐 FastAPI（可选：给前端提供接口）
 
-## 🤖 AI 功能配置
+启动 FastAPI：
+```bash
+python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+前端将通过 `/api/*` 与后端通信（详见 docs/guides/API_FASTAPI.md）。
+
 
 ### 方式 1：使用 OpenAI
 
