@@ -16,12 +16,10 @@ from .paths import (
 )
 from .resources import resource_path
 from .data.storage import (
-    load_cards,
-    save_cards,
     create_backup as storage_create_backup,
     restore_backup as storage_restore_backup,
 )
-from .logic.sm2 import apply_sm2
+from .core import cards as card_core
 from .ui.main_ui import setup_main_ui
 from .ui.ai_placeholder import create_ai_placeholder
 from .integrations.logging import LOG_AVAILABLE, PapyrusLogger, LogViewer
@@ -184,18 +182,13 @@ class PapyrusApp:
         self.content_text.config(state="disabled")
 
     def load_data(self):
-        # keep behaviour: if file missing do not override an existing list
-        if os.path.exists(DATA_FILE):
-            self.cards = load_cards(DATA_FILE, logger=self.logger)
+        self.cards = card_core.list_cards(DATA_FILE)
+        if self.logger:
+            self.logger.info("加载数据成功，共 %s 张卡片" % len(self.cards))
 
     def save_data(self):
-        self.last_backup_time = save_cards(
-            DATA_FILE,
-            self.cards,
-            backup_file=BACKUP_FILE,
-            last_backup_time=self.last_backup_time,
-            logger=self.logger,
-        )
+        # Delegate to core layer (handles backup internally)
+        card_core._save_cards(DATA_FILE, self.cards)
 
     def create_backup(self):
         if not os.path.exists(DATA_FILE):
@@ -227,8 +220,7 @@ class PapyrusApp:
             messagebox.showinfo("", "恢复成功")
 
     def get_due_cards(self):
-        now = time.time()
-        return [c for c in self.cards if c.get("next_review", 0) <= now]
+        return card_core.get_due_cards(self.cards)
 
     def next_card(self):
         if self.check_timer:
@@ -282,21 +274,38 @@ class PapyrusApp:
             return
 
         card = self.cards[self.current_card_index]
+        card_id = card.get("id")
 
-        interval_days, ef = apply_sm2(card, int(grade))
-
-        if self.logger:
-            self.logger.log_activity(
-                "rate_card",
-                {
-                    "grade": int(grade),
-                    "card_index": self.current_card_index,
-                    "interval_days": round(interval_days, 2),
-                    "ef": round(ef, 2),
-                },
-            )
-
-        self.save_data()
+        if card_id:
+            res = card_core.rate_card(DATA_FILE, card_id, int(grade))
+            if res:
+                # Refresh local list from disk
+                self.cards = card_core.list_cards(DATA_FILE)
+                if self.logger:
+                    self.logger.log_activity(
+                        "rate_card",
+                        {
+                            "grade": int(grade),
+                            "card_id": card_id,
+                            "interval_days": round(res["interval_days"], 2),
+                            "ef": round(res["ef"], 2),
+                        },
+                    )
+        else:
+            # Fallback for cards without id (legacy)
+            from .logic.sm2 import apply_sm2
+            interval_days, ef = apply_sm2(card, int(grade))
+            self.save_data()
+            if self.logger:
+                self.logger.log_activity(
+                    "rate_card",
+                    {
+                        "grade": int(grade),
+                        "card_index": self.current_card_index,
+                        "interval_days": round(interval_days, 2),
+                        "ef": round(ef, 2),
+                    },
+                )
         self.next_card()
 
     def add_new_model_dialog(self):
@@ -319,8 +328,13 @@ class PapyrusApp:
                 messagebox.showwarning("输入不完整", "题目和答案都不能为空")
                 return
 
-            self.cards.append({"q": question, "a": answer, "next_review": 0, "interval": 0})
-            self.save_data()
+            try:
+                card_core.create_card(DATA_FILE, q=question, a=answer)
+                self.cards = card_core.list_cards(DATA_FILE)
+            except ValueError as e:
+                messagebox.showwarning("添加失败", str(e))
+                return
+
             if self.logger:
                 self.logger.info("添加新卡片成功")
                 self.logger.log_activity("add_card", {"question_length": len(question)})
@@ -338,24 +352,13 @@ class PapyrusApp:
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            count = 0
-            for block in content.split("\n\n"):
-                if "===" in block:
-                    parts = block.split("===", 1)
-                    if len(parts) >= 2:
-                        question = parts[0].strip()
-                        answer = parts[1].strip()
-                        if question and answer:
-                            self.cards.append(
-                                {"q": question, "a": answer, "next_review": 0, "interval": 0}
-                            )
-                            count += 1
+            count = card_core.import_from_txt(DATA_FILE, content)
 
             if count == 0:
                 messagebox.showwarning("导入失败", "未找到有效卡片，请确认格式为：\n题目===答案")
                 return
 
-            self.save_data()
+            self.cards = card_core.list_cards(DATA_FILE)
             if self.logger:
                 self.logger.info("批量导入成功，共 %s 张卡片" % count)
                 self.logger.log_activity("import_cards", {"count": count, "file": path})
@@ -395,11 +398,19 @@ class PapyrusApp:
             return
 
         if messagebox.askyesno("确认删除", "确定要删除当前卡片吗？"):
+            card = self.cards[self.current_card_index]
+            card_id = card.get("id")
             if self.logger:
-                self.logger.warning("删除卡片: index=%s" % self.current_card_index)
-                self.logger.log_activity("delete_card", {"card_index": self.current_card_index})
-            del self.cards[self.current_card_index]
-            self.save_data()
+                self.logger.warning("删除卡片: id=%s" % card_id)
+                self.logger.log_activity("delete_card", {"card_id": card_id})
+
+            if card_id:
+                card_core.delete_card(DATA_FILE, card_id)
+                self.cards = card_core.list_cards(DATA_FILE)
+            else:
+                del self.cards[self.current_card_index]
+                self.save_data()
+
             self.current_card_index = -1
             self.next_card()
 
@@ -417,7 +428,7 @@ class PapyrusApp:
                 self.logger.log_activity("reset_data", {"card_count": len(self.cards)})
 
             self.cards = []
-            self.save_data()
+            card_core._save_cards(DATA_FILE, self.cards)
             self.next_card()
             messagebox.showinfo("完成", "所有数据已清空")
 
