@@ -1,0 +1,117 @@
+.titlebar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  background: var(--color-bg-1);
+  padding: 0;
+  user-select: none;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text-1);
+  border-bottom: 1px solid var(--color-border-2);
+}
+
+/* logo */
+.titlebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 40px;
+}
+
+.titlebar-logo-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.titlebar-logo:hover,
+.titlebar-logo:active {
+  background: var(--color-fill-2);
+  cursor: pointer;
+}
+
+/* menu items */
+.titlebar-menus {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.titlebar-menu-item {
+  padding: 0 10px !important;
+  height: 40px !important;
+  line-height: 40px;
+  cursor: pointer;
+  color: var(--color-text-2) !important;
+  font-size: 13px;
+  border-radius: 0 !important;
+}
+
+.titlebar-menu-item:hover,
+.titlebar-menu-item:focus,
+.titlebar-menu-item.active {
+  background: var(--color-fill-2) !important;
+  color: rgb(32, 108, 207) !important;
+}
+
+
+
+/* search - takes center */
+.titlebar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+}
+
+.titlebar-search {
+  width: 100%;
+  max-width: 420px;
+}
+
+.titlebar-search .arco-input-inner-wrapper {
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border-3);
+  background: var(--color-bg-1);
+}
+
+.titlebar-search .arco-input-inner-wrapper:hover,
+.titlebar-search .arco-input-inner-wrapper:focus-within {
+  border-color: rgb(32, 108, 207);
+}
+
+/* window controls */
+.titlebar-controls {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  margin-left: auto;
+}
+
+.titlebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 40px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-1);
+}
+
+.titlebar-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.titlebar-btn:hover {
+  background: var(--color-fill-2);
+}
+
+.titlebar-btn-close:hover {
+  background: #e81123;
+  color: #ffffff;
+}

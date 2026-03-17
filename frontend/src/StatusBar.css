@@ -1,0 +1,33 @@
+.statusbar {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  background: var(--color-bg-1);
+  border-top: 1px solid var(--color-border-2);
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.statusbar-lock {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.statusbar-lock:hover {
+  color: rgb(32, 108, 207);
+}
+
+.statusbar-text {
+  white-space: nowrap;
+}

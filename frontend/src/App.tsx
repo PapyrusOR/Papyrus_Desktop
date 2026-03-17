@@ -1,24 +1,24 @@
-import React from 'react'
-import { Button, Layout, Typography, Space } from '@arco-design/web-react'
 
-const { Header, Content } = Layout
+import { useState } from 'react';
+import TitleBar from './TitleBar';
+import Sidebar from './Sidebar';
+import StatusBar from './StatusBar';
 
-export function App(): React.JSX.Element {
+const App = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
   return (
-    <Layout style={{ height: '100vh' }}>
-      <Header style={{ display: 'flex', alignItems: 'center' }}>
-        <Typography.Title heading={5} style={{ margin: 0, color: '#fff' }}>
-          Papyrus Frontend
-        </Typography.Title>
-      </Header>
-      <Content style={{ padding: 24 }}>
-        <Space direction="vertical" size="large">
-          <Typography.Paragraph>
-            React 19 + Arco 已初始化。后端预留：FastAPI `/api/*`。
-          </Typography.Paragraph>
-          <Button type="primary">OK</Button>
-        </Space>
-      </Content>
-    </Layout>
-  )
-}
+    <div style={{ width: '1440px', height: '900px', margin: '0 auto', background: '#ffffff', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <TitleBar />
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+        </div>
+      </div>
+      <StatusBar />
+    </div>
+  );
+};
+
+export default App;
