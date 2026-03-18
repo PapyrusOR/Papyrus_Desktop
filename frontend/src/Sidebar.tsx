@@ -54,7 +54,7 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle }: SidebarProps) 
         onClick={onToggle}
       >
         <IconNav />
-        {!collapsed && <span className="sidebar-label">侧边栏</span>}
+        <span className="sidebar-label">侧边栏</span>
       </div>
       {items.map((item) => (
         <Tooltip key={item.key} content={item.label} position="right" mini disabled={!collapsed}>
@@ -63,7 +63,7 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle }: SidebarProps) 
             onClick={() => setActive(item.key)}
           >
             {item.icon}
-            {!collapsed && <span className="sidebar-label">{item.label}</span>}
+            <span className="sidebar-label">{item.label}</span>
           </div>
         </Tooltip>
       ))}
@@ -71,25 +71,25 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle }: SidebarProps) 
       <Tooltip content="聊天" position="right" mini disabled={!collapsed}>
         <div className={`sidebar-item${chatOpen ? ' sidebar-item-active' : ''}`} onClick={onChatToggle}>
           <IconRobot />
-          {!collapsed && <span className="sidebar-label">聊天</span>}
+          <span className="sidebar-label">聊天</span>
         </div>
       </Tooltip>
       <Tooltip content={dark ? '夜间模式' : '日间模式'} position="right" mini disabled={!collapsed}>
         <div className="sidebar-item" onClick={toggleDark}>
           {dark ? <IconMoon /> : <IconSun />}
-          {!collapsed && <span className="sidebar-label">{dark ? '夜间模式' : '日间模式'}</span>}
+          <span className="sidebar-label">{dark ? '夜间模式' : '日间模式'}</span>
         </div>
       </Tooltip>
       <Tooltip content={locked ? '锁定文本编辑' : '解锁文本编辑'} position="right" mini disabled={!collapsed}>
         <div className="sidebar-item" onClick={() => setLocked(!locked)}>
           {locked ? <IconLock /> : <IconUnlock />}
-          {!collapsed && <span className="sidebar-label">{locked ? '锁定编辑' : '解锁编辑'}</span>}
+          <span className="sidebar-label">{locked ? '锁定编辑' : '解锁编辑'}</span>
         </div>
       </Tooltip>
       <Tooltip content="设置" position="right" mini disabled={!collapsed}>
         <div className="sidebar-item">
           <IconSettings />
-          {!collapsed && <span className="sidebar-label">设置</span>}
+          <span className="sidebar-label">设置</span>
         </div>
       </Tooltip>
     </div>
