@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dropdown, Menu } from '@arco-design/web-react';
-import { IconArrowUp, IconAt, IconImage, IconBranch, IconMessage, IconDown } from '@arco-design/web-react/icon';
+import { IconArrowUp, IconAt, IconImage, IconBranch, IconMessage, IconDown, IconBulb } from '@arco-design/web-react/icon';
 import './ChatPanel.css';
 
 const models = [
@@ -23,6 +23,7 @@ const ChatPanel = ({ open }: ChatPanelProps) => {
   const [text, setText] = useState('');
   const [mode, setMode] = useState('agent');
   const [model, setModel] = useState('claude-sonnet-4');
+  const [reasoning, setReasoning] = useState(false);
 
   if (!open) return null;
 
@@ -32,21 +33,28 @@ const ChatPanel = ({ open }: ChatPanelProps) => {
     <div className="chat-panel">
       <div className="chat-panel-body">
         <div className="chat-model-select">
-          <Dropdown
-            trigger="click"
-            droplist={
-              <Menu onClickMenuItem={(key) => setModel(key)}>
-                {models.map((m) => (
-                  <Menu.Item key={m.key}>{m.label}</Menu.Item>
-                ))}
-              </Menu>
-            }
-          >
-            <button className="chat-model-btn">
-              <span>{models.find((m) => m.key === model)!.label}</span>
-              <IconDown style={{ fontSize: 12 }} />
-            </button>
-          </Dropdown>
+          <div className="chat-model-row">
+            <Dropdown
+              trigger="click"
+              droplist={
+                <Menu onClickMenuItem={(key) => setModel(key)}>
+                  {models.map((m) => (
+                    <Menu.Item key={m.key}>{m.label}</Menu.Item>
+                  ))}
+                </Menu>
+              }
+            >
+              <button className="chat-model-btn">
+                <span>{models.find((m) => m.key === model)!.label}</span>
+                <IconDown style={{ fontSize: 12 }} />
+              </button>
+            </Dropdown>
+            {reasoning && (
+              <span className="chat-reasoning-badge">
+                <IconBulb />
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <div className="chat-input-area">
@@ -82,9 +90,18 @@ const ChatPanel = ({ open }: ChatPanelProps) => {
             <button className="chat-toolbar-btn"><IconImage /></button>
             <button className="chat-toolbar-btn"><IconAt /></button>
           </div>
-          <button className="chat-send-btn">
-            <IconArrowUp />
-          </button>
+          <div className="chat-toolbar-right">
+            <button
+              className={`chat-toolbar-btn${reasoning ? ' chat-toolbar-btn-active' : ''}`}
+              onClick={() => setReasoning(!reasoning)}
+              title="推理模式"
+            >
+              <IconBulb />
+            </button>
+            <button className="chat-send-btn">
+              <IconArrowUp />
+            </button>
+          </div>
         </div>
       </div>
     </div>
