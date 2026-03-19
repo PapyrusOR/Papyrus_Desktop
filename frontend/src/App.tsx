@@ -33,7 +33,8 @@ const App = () => {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} chatOpen={chatOpen} onChatToggle={() => setChatOpen(!chatOpen)} />
-        <div style={{ flex: 1, overflow: 'auto' }}>
+        <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', padding: '64px 0 0 64px' }}>
+          <span style={{ fontSize: '56px', fontWeight: 'bold', lineHeight: 1, color: 'var(--color-text-1)' }}>开始</span>
         </div>
         {chatOpen && (
           <div style={{ display: 'flex', flexShrink: 0 }}>
@@ -43,7 +44,7 @@ const App = () => {
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-border-2)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             />
-            <ChatPanel open={chatOpen} width={chatWidth} />
+            <ChatPanel open={chatOpen} width={chatWidth} onClose={() => setChatOpen(false)} />
           </div>
         )}
       </div>
