@@ -4,9 +4,16 @@ import TitleBar from './TitleBar';
 import Sidebar from './Sidebar';
 import ChatPanel from './ChatPanel';
 import StatusBar from './StatusBar';
+import StartPage from './StartPage/StartPage';
+import ScrollPage from './ScrollPage/ScrollPage';
+import NotesPage from './NotesPage/NotesPage';
+import ChartsPage from './ChartsPage/ChartsPage';
+import ExtensionsPage from './ExtensionsPage/ExtensionsPage';
+import FilesPage from './FilesPage/FilesPage';
 
 const App = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [activePage, setActivePage] = useState('start');
   const [chatOpen, setChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(320);
   const dragStartX = useRef<number>(0);
@@ -32,9 +39,14 @@ const App = () => {
       <TitleBar />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} chatOpen={chatOpen} onChatToggle={() => setChatOpen(!chatOpen)} />
-        <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', padding: '64px 0 0 64px' }}>
-          <span style={{ fontSize: '56px', fontWeight: 'bold', lineHeight: 1, color: 'var(--color-text-1)' }}>开始</span>
+        <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} chatOpen={chatOpen} onChatToggle={() => setChatOpen(!chatOpen)} activePage={activePage} onPageChange={setActivePage} />
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+          {activePage === 'start' && <StartPage />}
+          {activePage === 'scroll' && <ScrollPage />}
+          {activePage === 'notes' && <NotesPage />}
+          {activePage === 'charts' && <ChartsPage />}
+          {activePage === 'files' && <FilesPage />}
+          {activePage === 'extensions' && <ExtensionsPage />}
         </div>
         {chatOpen && (
           <div style={{ display: 'flex', flexShrink: 0 }}>

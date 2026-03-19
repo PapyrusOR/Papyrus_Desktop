@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Tooltip } from '@arco-design/web-react';
 import { IconNav, IconPlayArrow, IconCommon, IconFolder, IconMindMapping, IconSettings, IconLock, IconUnlock, IconMoon, IconSun, IconRobot } from '@arco-design/web-react/icon';
+import IconCharts from './icons/IconCharts';
+import IconScroll from './icons/IconScroll';
 import './Sidebar.css';
 
 const items = [
   { key: 'start', icon: <IconPlayArrow />, label: '开始' },
-  { key: 'cards', icon: <IconFolder />, label: '闪卡' },
+  { key: 'scroll', icon: <IconScroll />, label: '卷轴' },
   { key: 'notes', icon: <IconMindMapping />, label: '结构笔记' },
-  { key: 'extensions', icon: <IconCommon />, label: '扩展' },
+  { key: 'charts', icon: <IconCharts />, label: '数据' },
+  { key: 'files', icon: <IconFolder />, label: '文件库' },
+  { key: 'extensions', icon: <IconCommon />, label: '扩展管理' },
 ];
 
 interface SidebarProps {
@@ -15,10 +19,11 @@ interface SidebarProps {
   onToggle: () => void;
   chatOpen: boolean;
   onChatToggle: () => void;
+  activePage: string;
+  onPageChange: (key: string) => void;
 }
 
-const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle }: SidebarProps) => {
-  const [active, setActive] = useState('start');
+const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPageChange }: SidebarProps) => {
   const [locked, setLocked] = useState(false);
   const [dark, setDark] = useState(() => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -59,8 +64,8 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle }: SidebarProps) 
       {items.map((item) => (
         <Tooltip key={item.key} content={item.label} position="right" mini disabled={!collapsed}>
           <div
-            className={`sidebar-item${active === item.key ? ' sidebar-item-active' : ''}`}
-            onClick={() => setActive(item.key)}
+            className={`sidebar-item${activePage === item.key ? ' sidebar-item-active' : ''}`}
+            onClick={() => onPageChange(item.key)}
           >
             {item.icon}
             <span className="sidebar-label">{item.label}</span>
