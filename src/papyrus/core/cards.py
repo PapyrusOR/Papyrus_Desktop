@@ -19,21 +19,47 @@ NOTE about concurrency
 import threading
 import time
 import uuid
-from typing import Any, Iterable
+from typing import Iterable, TypeAlias, TypedDict, cast
 
-from papyrus.data.storage import load_cards, save_cards
-from papyrus.logic.sm2 import apply_sm2
+
+from papyrus.data.storage import CardRecord, load_cards, save_cards
+from papyrus.logic.sm2 import apply_sm2, CardState
 from papyrus.paths import BACKUP_FILE
 
 _LOCK = threading.Lock()
 _LAST_BACKUP_TIME: float = 0.0
+
+CardDict: TypeAlias = CardRecord
+
+
+class NextDueResult(TypedDict):
+    card: CardDict
+    due_count: int
+    total_count: int
+
+
+class RateCardResult(TypedDict):
+    card: CardDict
+    interval_days: float
+    ef: float
+
 
 
 def _now_ts(now: float | None) -> float:
     return time.time() if now is None else float(now)
 
 
-def _ensure_card_ids(cards: list[dict[str, Any]]) -> bool:
+def _new_card(*, q: str, a: str) -> CardDict:
+    return {
+        "id": uuid.uuid4().hex,
+        "q": q,
+        "a": a,
+        "next_review": 0.0,
+        "interval": 0.0,
+    }
+
+
+def _ensure_card_ids(cards: list[CardDict]) -> bool:
     """Ensure every card has a stable string id.
 
     Returns:
@@ -49,16 +75,18 @@ def _ensure_card_ids(cards: list[dict[str, Any]]) -> bool:
     return changed
 
 
-def list_cards(data_file: str) -> list[dict[str, Any]]:
+
+def list_cards(data_file: str) -> list[CardDict]:
     with _LOCK:
-        cards = load_cards(data_file)
+        cards: list[CardDict] = load_cards(data_file)
         changed = _ensure_card_ids(cards)
         if changed:
             _save_cards(data_file, cards)
         return cards
 
 
-def get_card(data_file: str, card_id: str) -> dict[str, Any] | None:
+
+def get_card(data_file: str, card_id: str) -> CardDict | None:
     cards = list_cards(data_file)
     for c in cards:
         if c.get("id") == card_id:
@@ -66,7 +94,8 @@ def get_card(data_file: str, card_id: str) -> dict[str, Any] | None:
     return None
 
 
-def create_card(data_file: str, q: str, a: str) -> dict[str, Any]:
+
+def create_card(data_file: str, q: str, a: str) -> CardDict:
     q = (q or "").strip()
     a = (a or "").strip()
     if not q or not a:
@@ -76,16 +105,11 @@ def create_card(data_file: str, q: str, a: str) -> dict[str, Any]:
         cards = load_cards(data_file)
         _ensure_card_ids(cards)
 
-        card = {
-            "id": uuid.uuid4().hex,
-            "q": q,
-            "a": a,
-            "next_review": 0,
-            "interval": 0,
-        }
+        card = _new_card(q=q, a=a)
         cards.append(card)
         _save_cards(data_file, cards)
         return card
+
 
 
 def delete_card(data_file: str, card_id: str) -> bool:
@@ -102,6 +126,7 @@ def delete_card(data_file: str, card_id: str) -> bool:
         return True
 
 
+
 def import_from_txt(data_file: str, content: str) -> int:
     """Parse and import TXT content.
 
@@ -114,22 +139,14 @@ def import_from_txt(data_file: str, content: str) -> int:
     content = content or ""
     blocks: Iterable[str] = content.split("\n\n")
 
-    new_cards: list[dict[str, Any]] = []
+    new_cards: list[CardDict] = []
     for block in blocks:
         if "===" not in block:
             continue
         q, a = (part.strip() for part in block.split("===", 1))
         if not q or not a:
             continue
-        new_cards.append(
-            {
-                "id": uuid.uuid4().hex,
-                "q": q,
-                "a": a,
-                "next_review": 0,
-                "interval": 0,
-            }
-        )
+        new_cards.append(_new_card(q=q, a=a))
 
     if not new_cards:
         return 0
@@ -142,12 +159,14 @@ def import_from_txt(data_file: str, content: str) -> int:
         return len(new_cards)
 
 
-def get_due_cards(cards: list[dict[str, Any]], *, now: float | None = None) -> list[dict[str, Any]]:
+
+def get_due_cards(cards: list[CardDict], *, now: float | None = None) -> list[CardDict]:
     ts = _now_ts(now)
-    return [c for c in cards if float(c.get("next_review", 0) or 0) <= ts]
+    return [c for c in cards if float(c.get("next_review", 0.0) or 0.0) <= ts]
 
 
-def get_next_due(data_file: str, *, now: float | None = None) -> dict[str, Any] | None:
+
+def get_next_due(data_file: str, *, now: float | None = None) -> NextDueResult | None:
     """Return the next due card plus counts.
 
     Returns:
@@ -167,7 +186,8 @@ def get_next_due(data_file: str, *, now: float | None = None) -> dict[str, Any] 
     }
 
 
-def rate_card(data_file: str, card_id: str, grade: int, *, now: float | None = None) -> dict[str, Any] | None:
+
+def rate_card(data_file: str, card_id: str, grade: int, *, now: float | None = None) -> RateCardResult | None:
     """Apply SM-2 to a card by id and persist.
 
     Returns:
@@ -180,7 +200,7 @@ def rate_card(data_file: str, card_id: str, grade: int, *, now: float | None = N
         cards = load_cards(data_file)
         _ensure_card_ids(cards)
 
-        target = None
+        target: CardDict | None = None
         for c in cards:
             if c.get("id") == card_id:
                 target = c
@@ -189,7 +209,7 @@ def rate_card(data_file: str, card_id: str, grade: int, *, now: float | None = N
         if target is None:
             return None
 
-        interval_days, ef = apply_sm2(target, int(grade), now=ts)
+        interval_days, ef = apply_sm2(cast(CardState, target), int(grade), now=ts)
         _save_cards(data_file, cards)
 
         return {
@@ -199,7 +219,8 @@ def rate_card(data_file: str, card_id: str, grade: int, *, now: float | None = N
         }
 
 
-def _save_cards(data_file: str, cards: list[dict[str, Any]]) -> None:
+
+def _save_cards(data_file: str, cards: list[CardDict]) -> None:
     global _LAST_BACKUP_TIME
     _LAST_BACKUP_TIME = save_cards(
         data_file,

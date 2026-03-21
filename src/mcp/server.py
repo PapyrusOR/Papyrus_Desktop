@@ -1,27 +1,88 @@
 """MCP 本地服务器 - 通过 HTTP 暴露卡片工具接口"""
 
+from __future__ import annotations
+
 import json
 import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Protocol, TypedDict, cast
+
+
+class LoggerProtocol(Protocol):
+    def info(self, message: str) -> None: ...
+
+
+class ToolResult(TypedDict, total=False):
+    success: bool
+    error: str
+    message: str
+    count: int
+    tool: str
+    params: dict[str, object]
+    tools: list[str]
+    status: str
+
+
+class CallRequest(TypedDict):
+    tool: str
+    params: dict[str, object]
+
+
+class CardToolsProtocol(Protocol):
+    def execute_tool(self, tool_name: str, params: dict[str, object]) -> ToolResult: ...
+
+
+class _ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
+    mcp_logger: LoggerProtocol | None
+    mcp_card_tools: CardToolsProtocol | None
 
 
 class _MCPHandler(BaseHTTPRequestHandler):
     """处理 MCP JSON-RPC 风格的请求"""
 
-    def log_message(self, format, *args):
+    @property
+    def _typed_server(self) -> _ReusableHTTPServer:
+        return cast(_ReusableHTTPServer, self.server)
+
+    def log_message(self, format: str, *args: object) -> None:
         """覆盖默认日志，转发到 PapyrusLogger"""
-        logger = self.server.mcp_logger
-        if logger:
+        logger = self._typed_server.mcp_logger
+        if logger is not None:
             logger.info(f"MCP: {format % args}")
 
-    def _send_json(self, data, status=200):
+    def _send_json(self, data: ToolResult, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
 
-    def do_OPTIONS(self):
+    def _read_json_body(self) -> object:
+        length_header = self.headers.get("Content-Length", "0")
+        length = int(length_header)
+        raw_body = self.rfile.read(length)
+        return json.loads(raw_body.decode("utf-8"))
+
+    def _normalize_call_request(self, raw: object) -> CallRequest | None:
+        if not isinstance(raw, dict):
+            return None
+
+        tool_name = raw.get("tool")
+        params = raw.get("params")
+        if not isinstance(tool_name, str) or not tool_name:
+            return None
+        if params is None:
+            params = {}
+        if not isinstance(params, dict):
+            return None
+
+        return {
+            "tool": tool_name,
+            "params": {str(key): value for key, value in params.items()},
+        }
+
+    def do_OPTIONS(self) -> None:
         """处理 CORS 预检"""
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -29,84 +90,95 @@ class _MCPHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         if self.path == "/health":
             self._send_json({"status": "ok"})
         elif self.path == "/tools":
-            self._send_json({
-                "tools": [
-                    "search_cards",
-                    "get_card_stats",
-                    "create_card",
-                    "update_card",
-                    "delete_card",
-                ]
-            })
+            self._send_json(
+                {
+                    "tools": [
+                        "search_cards",
+                        "get_card_stats",
+                        "create_card",
+                        "update_card",
+                        "delete_card",
+                    ]
+                }
+            )
         else:
             self._send_json({"error": "未知路径"}, 404)
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         if self.path != "/call":
             self._send_json({"error": "未知路径"}, 404)
             return
 
-        card_tools = self.server.mcp_card_tools
+        card_tools = self._typed_server.mcp_card_tools
         if card_tools is None:
             self._send_json({"error": "CardTools 未初始化"}, 503)
             return
 
         try:
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length).decode("utf-8"))
-        except (json.JSONDecodeError, ValueError):
+            body_obj = self._read_json_body()
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             self._send_json({"error": "请求体不是合法 JSON"}, 400)
             return
 
-        tool_name = body.get("tool")
-        params = body.get("params", {})
-
-        if not tool_name:
-            self._send_json({"error": "缺少 tool 字段"}, 400)
+        if not isinstance(body_obj, dict):
+            self._send_json({"error": "请求体必须是对象"}, 400)
             return
 
-        result = card_tools.execute_tool(tool_name, params)
+        request = self._normalize_call_request(body_obj)
+        if request is None:
+            tool_value = body_obj.get("tool")
+            params_value = body_obj.get("params")
+            if not isinstance(tool_value, str) or not tool_value:
+                self._send_json({"error": "缺少 tool 字段"}, 400)
+                return
+            if params_value is not None and not isinstance(params_value, dict):
+                self._send_json({"error": "params 必须是对象"}, 400)
+                return
+            self._send_json({"error": "请求体格式无效"}, 400)
+            return
+
+        result = card_tools.execute_tool(request["tool"], request["params"])
         self._send_json(result)
 
 
 class MCPServer:
     """可在后台线程运行的轻量 MCP 服务器"""
 
-    def __init__(self, host="127.0.0.1", port=9100, logger=None, card_tools=None):
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 9100,
+        logger: LoggerProtocol | None = None,
+        card_tools: CardToolsProtocol | None = None,
+    ) -> None:
         self.host = host
         self.port = port
         self.logger = logger
         self.card_tools = card_tools
-        self._httpd = None
-        self._thread = None
+        self._httpd: _ReusableHTTPServer | None = None
+        self._thread: threading.Thread | None = None
 
-    def start(self):
+    def start(self) -> None:
         """在守护线程中启动 HTTP 服务器"""
-
         if self._httpd is not None:
             return
 
-        class _ReusableHTTPServer(HTTPServer):
-            allow_reuse_address = True
-
         self._httpd = _ReusableHTTPServer((self.host, self.port), _MCPHandler)
-        # 把依赖挂到 HTTPServer 实例上，Handler 通过 self.server 访问
         self._httpd.mcp_logger = self.logger
         self._httpd.mcp_card_tools = self.card_tools
 
         self._thread = threading.Thread(target=self._httpd.serve_forever, daemon=True)
         self._thread.start()
 
-        if self.logger:
+        if self.logger is not None:
             self.logger.info(f"MCP 服务器已启动: http://{self.host}:{self.port}")
 
-    def stop(self):
+    def stop(self) -> None:
         """关闭服务器"""
-
         if self._httpd is None:
             return
 
@@ -120,5 +192,5 @@ class MCPServer:
             self._thread.join(timeout=2)
             self._thread = None
 
-        if self.logger:
+        if self.logger is not None:
             self.logger.info("MCP 服务器已停止")

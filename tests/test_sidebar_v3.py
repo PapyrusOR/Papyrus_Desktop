@@ -88,7 +88,8 @@ def _make_sidebar(*, ai_manager=None, card_tools=None, logger=None):
     sidebar.chat_btn = MagicMock()
     sidebar.model_label = MagicMock()
     sidebar.model_var = MagicMock()
-    sidebar.model_menu = {"menu": MagicMock()}  # 支持 sidebar.model_menu["menu"]
+    sidebar.model_menu = MagicMock()  # type: ignore[assignment]
+    sidebar.model_menu.__getitem__ = MagicMock(return_value=MagicMock())  # 支持 sidebar.model_menu["menu"]
 
     sidebar._placeholder_active = False
     return sidebar

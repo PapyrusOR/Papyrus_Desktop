@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, Tuple
+from typing import TypedDict, NotRequired
 
 
-def apply_sm2(card: Dict[str, Any], grade: int, *, now: float = None) -> Tuple[float, float]:
+class CardState(TypedDict):
+    """SM-2 algorithm card state."""
+    ef: NotRequired[float]
+    repetitions: NotRequired[int]
+    interval: NotRequired[float]
+    next_review: NotRequired[float]
+
+
+def apply_sm2(card: CardState, grade: int, *, now: float | None = None) -> tuple[float, float]:
     """Apply SM-2 update to `card` in-place.
 
     Args:
@@ -17,15 +25,17 @@ def apply_sm2(card: Dict[str, Any], grade: int, *, now: float = None) -> Tuple[f
     Returns:
         (interval_days, ef)
     """
-
     if now is None:
         now = time.time()
 
-    ef = float(card.get("ef", 2.5))
-    repetitions = int(card.get("repetitions", 0))
+    ef_raw: float | int | None = card.get("ef")
+    ef = float(ef_raw) if isinstance(ef_raw, (int, float)) else 2.5
 
-    quality_map = {1: 1, 2: 3, 3: 5}
-    quality = quality_map[int(grade)]
+    rep_raw: int | float | None = card.get("repetitions")
+    repetitions = int(rep_raw) if isinstance(rep_raw, (int, float)) and not isinstance(rep_raw, bool) else 0
+
+    quality_map: dict[int, int] = {1: 1, 2: 3, 3: 5}
+    quality = quality_map.get(grade, 3)
 
     if quality >= 3:
         if repetitions == 0:
@@ -33,7 +43,9 @@ def apply_sm2(card: Dict[str, Any], grade: int, *, now: float = None) -> Tuple[f
         elif repetitions == 1:
             interval_days = 6.0
         else:
-            interval_days = (float(card.get("interval", 86400)) / 86400.0) * ef
+            interval_raw: float | int | None = card.get("interval")
+            interval_val = float(interval_raw) if isinstance(interval_raw, (int, float)) else 86400.0
+            interval_days = (interval_val / 86400.0) * ef
         repetitions += 1
     else:
         repetitions = 0

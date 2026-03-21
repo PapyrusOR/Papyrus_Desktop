@@ -17,7 +17,7 @@ AIManager = None
 CardTools = None
 
 try:
-    import requests  # noqa: F401
+    import requests  # type: ignore[import-untyped] # noqa: F401
 
     from ai.config import AIConfig as _AIConfig
     from ai.provider import AIManager as _AIManager
