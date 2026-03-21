@@ -144,16 +144,16 @@ class AISidebar:
         btn_frame.pack(side="right")
 
         tk.Button(btn_frame, text="＋", command=self.new_chat,
-                 bg="#f0f0f0", fg="#666666", font=("微软雅黑", 10),
-                 relief="flat", width=3).pack(side="left", padx=2)
+                bg="#f0f0f0", fg="#666666", font=("微软雅黑", 10),
+                relief="flat", width=3).pack(side="left", padx=2)
 
         tk.Button(btn_frame, text="✎", command=self.rename_current_chat,
-             bg="#f0f0f0", fg="#666666", font=("微软雅黑", 10),
-             relief="flat", width=3).pack(side="left", padx=2)
+            bg="#f0f0f0", fg="#666666", font=("微软雅黑", 10),
+            relief="flat", width=3).pack(side="left", padx=2)
 
         tk.Button(btn_frame, text="⚙", command=self.open_settings,
-                 bg="#f0f0f0", fg="#666666", font=("微软雅黑", 10),
-                 relief="flat", width=3).pack(side="left", padx=2)
+                bg="#f0f0f0", fg="#666666", font=("微软雅黑", 10),
+                relief="flat", width=3).pack(side="left", padx=2)
 
         # 分隔线
         tk.Frame(self.sidebar, bg="#e0e0e0", height=1).pack(side="top", fill="x")
@@ -178,8 +178,8 @@ class AISidebar:
         self.refresh_session_menu(select_active=True)
 
         self.status_label: tk.Label = tk.Label(status_bar, text="● 就绪",
-                                     font=("微软雅黑", 9),
-                                     bg="#f8f8f8", fg="#28a745")
+            font=("微软雅黑", 9),
+            bg="#f8f8f8", fg="#28a745")
         self.status_label.pack(side="right")
 
         # 分隔线
@@ -248,13 +248,13 @@ class AISidebar:
                 bg="#f8f8f8", fg="#666666").pack(side="left", padx=(0, 8))
 
         self.agent_btn: tk.Label = tk.Label(mode_row,
-                                   text="Agent",
-                                   bg="#1976d2",
-                                   fg="#ffffff",
-                                   font=("微软雅黑", 9),
-                                   padx=10,
-                                   pady=2,
-                                   cursor="hand2")
+                    text="Agent",
+                    bg="#1976d2",
+                    fg="#ffffff",
+                    font=("微软雅黑", 9),
+                    padx=10,
+                    pady=2,
+                    cursor="hand2")
         self.agent_btn.pack(side="left", padx=(0, 5))
         self.agent_btn.bind("<Button-1>", lambda e: self.set_mode(True))
 
