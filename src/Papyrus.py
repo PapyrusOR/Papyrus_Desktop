@@ -107,12 +107,35 @@ class PapyrusApp:
         self.mcp_server = None
         self.setup_logger()
 
+        # macOS 窗口激活修复
+        if sys.platform == 'darwin':
+            # 绑定窗口显示事件
+            self.root.bind('<Map>', self.on_window_map)
+            # 绑定窗口获得焦点事件
+            self.root.bind('<FocusIn>', self.on_focus_in)
+            # 绑定鼠标进入窗口事件
+            self.root.bind('<Enter>', self.on_enter_window)
 
         self.load_data()
         self.setup_ui()  # 先初始化主界面容器
         self.setup_ai()  # 再初始化AI侧边栏
         self.setup_mcp()  # 启动MCP本地服务器
         self.next_card()
+
+    def on_window_map(self, event):
+        """窗口显示时的处理，用于 macOS 窗口激活修复"""
+        # 延迟激活窗口，确保窗口完全显示
+        self.root.after(50, self.activate_window)
+
+    def on_focus_in(self, event):
+        """窗口获得焦点时的处理，用于 macOS 点击响应修复"""
+        # 确保窗口获得焦点时重新激活
+        self.activate_window()
+
+    def on_enter_window(self, event):
+        """鼠标进入窗口时的处理，用于 macOS 点击响应修复"""
+        # 鼠标进入窗口时确保窗口获得焦点
+        self.activate_window()
 
     # -------------------------
     # 日志
@@ -126,7 +149,7 @@ class PapyrusApp:
         try:
             self.logger = PapyrusLogger(LOG_DIR)
             self.logger.info("Papyrus 启动成功")
-            self.logger.log_activity("app_start", {"version": "1.2.2"})
+            self.logger.log_activity("app_start", {"version": "1.2.5"})
         except Exception as e:
             print(f"[ERROR] 日志系统初始化失败: {e}")
             self.logger = None
@@ -179,6 +202,11 @@ class PapyrusApp:
             bg="#e1f5fe",
         )
         self.show_btn.pack(fill="both", expand=True, ipady=5)
+        
+        # macOS 按钮点击修复
+        if sys.platform == 'darwin':
+            # 绑定按钮的 Enter 事件，确保鼠标悬停时窗口获得焦点
+            self.show_btn.bind('<Enter>', self.on_enter_window)
 
         # 状态B：评分按钮组
         self.grading_frame = tk.Frame(self.btn_frame)
@@ -188,13 +216,18 @@ class PapyrusApp:
             ("秒杀 (3)", "#c8e6c9", 3),
         ]
         for text, color, score in btn_config:
-            tk.Button(
+            btn = tk.Button(
                 self.grading_frame,
                 text=text,
                 bg=color,
                 command=lambda s=score: self.rate_card(s),
                 font=("微软雅黑", 10),
-            ).pack(side="left", fill="both", expand=True, padx=5)
+            )
+            btn.pack(side="left", fill="both", expand=True, padx=5)
+            # macOS 按钮点击修复
+            if sys.platform == 'darwin':
+                # 绑定按钮的 Enter 事件，确保鼠标悬停时窗口获得焦点
+                btn.bind('<Enter>', self.on_enter_window)
 
         # 3. 中间卡片区 (带滚动条的文本)
         self.card_frame = tk.Frame(self.main_panel, relief="groove", bd=2)
@@ -727,6 +760,24 @@ class PapyrusApp:
 
     def update_status(self, count: int):
         self.status_var.set(f"待复习: {count} | 总卡片: {len(self.cards)}")
+
+    def activate_window(self):
+        """激活窗口，确保窗口在前台显示"""
+        try:
+            if sys.platform == 'darwin':
+                # macOS 特定处理
+                self.root.lift()  # 提升窗口到顶层
+                self.root.focus_force()  # 强制获取焦点
+                # 额外的 macOS 修复：确保窗口管理器识别焦点
+                self.root.update_idletasks()
+                # 模拟一次事件循环，确保所有事件被处理
+                self.root.after(10, lambda: None)
+            else:
+                # 其他平台
+                self.root.lift()
+                self.root.focus_force()
+        except Exception:
+            pass  # 忽略可能的错误
 
     def restore_backup(self):
         if not os.path.exists(BACKUP_FILE):
