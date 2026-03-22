@@ -149,7 +149,7 @@ class PapyrusApp:
         try:
             self.logger = PapyrusLogger(LOG_DIR)
             self.logger.info("Papyrus 启动成功")
-            self.logger.log_activity("app_start", {"version": "1.2.2"})
+            self.logger.log_activity("app_start", {"version": "1.2.5"})
         except Exception as e:
             print(f"[ERROR] 日志系统初始化失败: {e}")
             self.logger = None
