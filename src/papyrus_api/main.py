@@ -28,7 +28,16 @@ from pydantic import BaseModel, Field
 
 from papyrus.core import cards as card_core
 from papyrus.core.cards import CardDict, NextDueResult
-from papyrus.paths import DATA_FILE
+from papyrus.paths import DATA_FILE, NOTES_FILE
+from papyrus.data.notes_storage import (
+    Note,
+    load_notes,
+    save_notes,
+    create_note,
+    update_note,
+    delete_note as delete_note_storage,
+)
+from papyrus.integrations.obsidian import import_obsidian_vault, sync_obsidian_vault
 
 
 def _get_data_file() -> str:
@@ -118,6 +127,80 @@ class ImportTxtResponse(BaseModel):
     count: int
 
 
+# ========== Notes API ==========
+
+class NoteDict(BaseModel):
+    id: str
+    title: str
+    folder: str
+    content: str
+    preview: str
+    tags: list[str]
+    created_at: float
+    updated_at: float
+    word_count: int
+
+
+class NotesListResponse(BaseModel):
+    success: bool
+    notes: list[NoteDict]
+    count: int
+
+
+class CreateNoteIn(BaseModel):
+    title: str
+    folder: str = "默认"
+    content: str = ""
+    tags: list[str] = []
+
+
+class CreateNoteResponse(BaseModel):
+    success: bool
+    note: NoteDict
+
+
+class UpdateNoteIn(BaseModel):
+    title: str | None = None
+    folder: str | None = None
+    content: str | None = None
+    tags: list[str] | None = None
+
+
+class UpdateNoteResponse(BaseModel):
+    success: bool
+    note: NoteDict
+
+
+class DeleteNoteResponse(BaseModel):
+    success: bool
+
+
+class ObsidianImportIn(BaseModel):
+    vault_path: str
+    exclude_folders: list[str] = [".obsidian", ".git"]
+
+
+class ObsidianImportResponse(BaseModel):
+    success: bool
+    imported: int
+    skipped: int
+    errors: list[str]
+
+
+def _note_to_dict(note: Note) -> NoteDict:
+    return NoteDict(
+        id=note.id,
+        title=note.title,
+        folder=note.folder,
+        content=note.content,
+        preview=note.preview,
+        tags=note.tags,
+        created_at=note.created_at,
+        updated_at=note.updated_at,
+        word_count=note.word_count,
+    )
+
+
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -194,4 +277,88 @@ def import_txt(payload: ImportTxtIn) -> ImportTxtResponse:
     if count == 0:
         raise HTTPException(status_code=400, detail="未找到有效卡片，请确认格式为：题目===答案")
     return ImportTxtResponse(success=True, count=count)
+
+
+# ========== Notes Endpoints ==========
+
+@app.get("/api/notes", response_model=NotesListResponse)
+def list_notes() -> NotesListResponse:
+    """List all notes."""
+    notes = load_notes(NOTES_FILE)
+    return NotesListResponse(
+        success=True,
+        notes=[_note_to_dict(n) for n in notes],
+        count=len(notes),
+    )
+
+
+@app.post("/api/notes", response_model=CreateNoteResponse)
+def create_note_endpoint(payload: CreateNoteIn) -> CreateNoteResponse:
+    """Create a new note."""
+    note = create_note(
+        NOTES_FILE,
+        title=payload.title,
+        folder=payload.folder,
+        content=payload.content,
+        tags=payload.tags,
+    )
+    return CreateNoteResponse(success=True, note=_note_to_dict(note))
+
+
+@app.get("/api/notes/{note_id}", response_model=CreateNoteResponse)
+def get_note_endpoint(note_id: str) -> CreateNoteResponse:
+    """Get a single note by ID."""
+    notes = load_notes(NOTES_FILE)
+    for note in notes:
+        if note.id == note_id:
+            return CreateNoteResponse(success=True, note=_note_to_dict(note))
+    raise HTTPException(status_code=404, detail="note not found")
+
+
+@app.patch("/api/notes/{note_id}", response_model=UpdateNoteResponse)
+def update_note_endpoint(note_id: str, payload: UpdateNoteIn) -> UpdateNoteResponse:
+    """Update an existing note."""
+    note = update_note(
+        NOTES_FILE,
+        note_id=note_id,
+        title=payload.title,
+        folder=payload.folder,
+        content=payload.content,
+        tags=payload.tags,
+    )
+    if note is None:
+        raise HTTPException(status_code=404, detail="note not found")
+    return UpdateNoteResponse(success=True, note=_note_to_dict(note))
+
+
+@app.delete("/api/notes/{note_id}", response_model=DeleteNoteResponse)
+def delete_note_endpoint(note_id: str) -> DeleteNoteResponse:
+    """Delete a note by ID."""
+    ok = delete_note_storage(NOTES_FILE, note_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="note not found")
+    return DeleteNoteResponse(success=True)
+
+
+@app.post("/api/notes/import/obsidian", response_model=ObsidianImportResponse)
+def import_obsidian_endpoint(payload: ObsidianImportIn) -> ObsidianImportResponse:
+    """Import notes from Obsidian vault."""
+    if not os.path.exists(payload.vault_path):
+        raise HTTPException(status_code=400, detail="Vault path does not exist")
+    
+    existing_notes = load_notes(NOTES_FILE)
+    
+    result = sync_obsidian_vault(
+        NOTES_FILE,
+        payload.vault_path,
+        existing_notes,
+        exclude_folders=payload.exclude_folders,
+    )
+    
+    return ObsidianImportResponse(
+        success=True,
+        imported=result.imported,
+        skipped=result.skipped,
+        errors=result.errors,
+    )
 
