@@ -16,6 +16,8 @@ const MOCK_NOTES: Note[] = [
   { id: '4', title: '算法与数据结构', preview: '排序、树、图、动态规划...', lastUsed: '4天前' },
 ];
 
+const SECONDARY_COLOR = '#9FD4FD';
+
 const NoteCard = ({ note }: { note: Note }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -28,14 +30,14 @@ const NoteCard = ({ note }: { note: Note }) => {
         width: '220px',
         height: '100%',
         borderRadius: '16px',
-        border: `1px solid ${hovered ? '#206CCF' : 'var(--color-text-3)'}`,
-        background: hovered ? 'rgba(232, 255, 234, 0.3)' : 'transparent',
+        border: `2px solid ${hovered ? SECONDARY_COLOR : 'var(--color-text-3)'}`,
+        background: 'transparent',
         padding: '24px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         cursor: 'pointer',
-        transition: 'border-color 0.2s, background 0.2s',
+        transition: 'border-color 0.2s',
         boxSizing: 'border-box',
       }}
     >

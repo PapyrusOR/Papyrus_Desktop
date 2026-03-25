@@ -3,6 +3,7 @@ import { NoteListView } from './views/NoteListView';
 import { NoteDetailView } from './views/NoteDetailView';
 import { FileTree } from './components/FileTree';
 import { useNotes } from './useNotes';
+import { SceneryBackground } from '../components/SceneryBackground';
 import type { Note } from './types';
 
 // 视图模式
@@ -106,7 +107,7 @@ const NotesPage = () => {
   }, [sidebarWidth]);
 
   return (
-    <div style={{ 
+    <SceneryBackground page="notes" style={{ 
       flex: 1, 
       display: 'flex', 
       overflow: 'hidden',
@@ -166,10 +167,11 @@ const NotesPage = () => {
           />
         )}
       </div>
-    </div>
+    </SceneryBackground>
   );
 };
 
 const PRIMARY_COLOR = '#206CCF';
+const SECONDARY_COLOR = '#9FD4FD';
 
 export default NotesPage;

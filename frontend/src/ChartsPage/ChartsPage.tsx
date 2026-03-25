@@ -1,6 +1,7 @@
 import { Typography, Card, Progress, Tooltip } from '@arco-design/web-react';
 import { useState, useMemo } from 'react';
 import { IconFire, IconClockCircle, IconCheckCircle, IconCalendar } from '@arco-design/web-react/icon';
+import { SceneryBackground } from '../components/SceneryBackground';
 
 const PRIMARY_COLOR = '#206CCF';
 const SUCCESS_COLOR = '#00B42A';
@@ -122,7 +123,7 @@ const StatCard = ({ title, value, suffix, icon }: { title: string; value: string
         {icon}
       </div>
       <div>
-        <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginBottom: '2px' }}>
+        <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
           {title}
         </Typography.Text>
         <Typography.Text style={{ fontSize: '24px', fontWeight: 600 }}>
@@ -148,7 +149,7 @@ const CollectionProgressCard = ({ stats }: { stats: typeof MOCK_COLLECTION_STATS
         padding: '20px',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <Typography.Text bold style={{ fontSize: '15px' }}>
           {stats.title}
         </Typography.Text>
@@ -157,7 +158,7 @@ const CollectionProgressCard = ({ stats }: { stats: typeof MOCK_COLLECTION_STATS
             background: 'var(--color-fill-2)',
             color: 'var(--color-text-2)',
             borderRadius: '999px',
-            padding: '2px 8px',
+            padding: '4px 8px',
             fontSize: '11px',
           }}>
             {stats.dueCards} 待复习
@@ -169,7 +170,7 @@ const CollectionProgressCard = ({ stats }: { stats: typeof MOCK_COLLECTION_STATS
         percent={progress}
         size='large'
         color={progress >= 80 ? SUCCESS_COLOR : PRIMARY_COLOR}
-        style={{ marginBottom: '12px' }}
+        style={{ marginBottom: '16px' }}
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-text-3)' }}>
@@ -185,7 +186,7 @@ const WeekChart = () => {
   const maxValue = Math.max(...MOCK_WEEK_DATA.map(d => d.learned + d.reviewed));
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', width: '100%', height: '100%', gap: '12px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', width: '100%', height: '100%', gap: '16px' }}>
       {MOCK_WEEK_DATA.map((item, index) => {
         const total = item.learned + item.reviewed;
         const height = (total / maxValue) * 100;
@@ -267,7 +268,7 @@ const ChartsPage = () => {
   const overallProgress = Math.round((MOCK_STATS.totalLearned / MOCK_STATS.totalCards) * 100);
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
+    <SceneryBackground page="charts" style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
       {/* 标题 */}
       <Typography.Title
         heading={1}
@@ -281,7 +282,7 @@ const ChartsPage = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '20px 24px',
+        padding: '24px',
         marginBottom: '32px',
         borderRadius: '12px',
         border: '1px solid var(--color-text-3)',
@@ -311,7 +312,7 @@ const ChartsPage = () => {
           <Typography.Text bold style={{ fontSize: '15px', display: 'block', marginBottom: '16px' }}>
             本周学习趋势
           </Typography.Text>
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', fontSize: '11px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', fontSize: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <div style={{ width: '8px', height: '8px', background: PRIMARY_COLOR, borderRadius: '2px' }} />
               <Typography.Text type='secondary'>新学</Typography.Text>
@@ -332,7 +333,7 @@ const ChartsPage = () => {
             <Typography.Text bold style={{ fontSize: '15px' }}>
               过去一年学习记录
             </Typography.Text>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
               <Typography.Text type='secondary'>少</Typography.Text>
               <div style={{ display: 'flex', gap: '2px' }}>
                 <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: 'var(--color-fill-2)' }} />
@@ -350,7 +351,7 @@ const ChartsPage = () => {
       </div>
 
       {/* 各卷轴进度 */}
-      <Typography.Title heading={2} style={{ fontWeight: 400, fontSize: '20px', margin: '0 0 20px', color: 'var(--color-text-3)' }}>
+      <Typography.Title heading={2} style={{ fontWeight: 400, fontSize: '20px', margin: '0 0 24px', color: 'var(--color-text-3)' }}>
         各卷轴进度
       </Typography.Title>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
@@ -360,7 +361,7 @@ const ChartsPage = () => {
       </div>
 
       <div style={{ height: '32px' }} />
-    </div>
+    </SceneryBackground>
   );
 };
 

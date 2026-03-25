@@ -37,7 +37,7 @@ export const NoteCard = ({ note, onClick }: NoteCardProps) => {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: '12px' 
+        marginBottom: '16px' 
       }}>
         <div style={{
           display: 'inline-flex',
@@ -76,7 +76,7 @@ export const NoteCard = ({ note, onClick }: NoteCardProps) => {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginTop: '12px' 
+        marginTop: '16px' 
       }}>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {note.tags.slice(0, 2).map(tag => (

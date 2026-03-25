@@ -42,7 +42,7 @@ export const FolderTab = ({ folder, count, isActive, onClick }: FolderTabProps) 
       <div style={{ 
         fontSize: '11px', 
         color: 'var(--color-text-3)', 
-        marginTop: '2px' 
+        marginTop: '4px' 
       }}>
         {count} 篇
       </div>

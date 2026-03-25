@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: flex-end;
   padding: 0 8px;
-  background: var(--color-bg-1);
+  background: #FFFFFF;
   border-top: 1px solid var(--color-border-2);
   flex-shrink: 0;
   font-size: 12px;
@@ -25,7 +25,7 @@
 }
 
 .statusbar-lock:hover {
-  color: rgb(32, 108, 207);
+  color: #57A9FB;
 }
 
 .statusbar-text {

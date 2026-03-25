@@ -1,7 +1,7 @@
 .sidebar {
   width: 48px;
   height: 100%;
-  background: var(--color-bg-1);
+  background: #FFFFFF;
   border-right: 1px solid var(--color-border-2);
   display: flex;
   flex-direction: column;
@@ -10,6 +10,10 @@
   flex-shrink: 0;
   transition: width 0.15s ease;
   overflow: hidden;
+}
+
+body[arco-theme="dark"] .sidebar {
+  background: var(--color-bg-2);
 }
 
 .sidebar-expanded {
@@ -22,8 +26,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding-left: 7px;
-  border-radius: 6px;
+  padding-left: 8px;
+  border-radius: 8px;
   cursor: pointer;
   color: var(--color-text-2);
   font-size: 18px;
@@ -59,13 +63,36 @@
 }
 
 .sidebar-item:hover {
-  background: var(--color-fill-2);
-  color: rgb(32, 108, 207);
+  background: transparent;
+  border: 2px solid #9FD4FD;
+  color: #000000;
 }
 
 .sidebar-item-active {
-  background: var(--color-fill-2);
-  color: rgb(32, 108, 207);
+  background: #206CCF;
+  color: #FFFFFF;
+}
+
+.sidebar-item-active:hover {
+  background: #206CCF;
+  color: #FFFFFF;
+}
+
+/* 深色模式适配 */
+body[arco-theme="dark"] .sidebar-item:hover {
+  background: transparent;
+  border: 2px solid #9FD4FD;
+  color: #FFFFFF;
+}
+
+body[arco-theme="dark"] .sidebar-item-active {
+  background: #206CCF;
+  color: #FFFFFF;
+}
+
+body[arco-theme="dark"] .sidebar-item-active:hover {
+  background: #206CCF;
+  color: #FFFFFF;
 }
 
 .sidebar-toggle {
@@ -73,17 +100,21 @@
 }
 
 .sidebar-toggle:hover {
-  border-color: rgb(32, 108, 207);
+  border: 2px solid #9FD4FD;
 }
 
-.sidebar-item-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 20px;
-  background: rgb(32, 108, 207);
-  border-radius: 0 2px 2px 0;
+body[arco-theme="dark"] .sidebar-toggle:hover {
+  border: 2px solid #9FD4FD;
 }
+
+.sidebar-toggle.sidebar-item-active {
+  background: #206CCF;
+  border-color: #206CCF;
+  color: #FFFFFF;
+}
+
+.sidebar-toggle.sidebar-item-active:hover {
+  background: #206CCF;
+  border-color: #206CCF;
+}
+

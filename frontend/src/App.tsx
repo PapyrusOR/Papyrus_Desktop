@@ -53,7 +53,7 @@ const App = () => {
   }, [chatWidth]);
 
   return (
-    <div style={{ width: '1440px', height: '900px', margin: '0 auto', background: 'var(--color-bg-1)', border: '1px solid var(--color-border-3)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ width: '1440px', height: '900px', margin: '0 auto', background: '#FFFFFF', border: '1px solid var(--color-border-3)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {activePage === 'start' && (
         <BackTop
           visibleHeight={200}

@@ -206,7 +206,8 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
             setIsOpen(true);
           }
         }}
-        style={{ width: '320px' }}
+        style={{ width: '480px' }}
+        className="titlebar-search-input"
         allowClear
       />
 
@@ -248,7 +249,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
               <Text type="secondary" style={{ fontSize: '13px' }}>
                 输入关键词搜索笔记和卡片...
               </Text>
-              <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <Tag size="small" style={{ fontSize: '12px' }}>↑↓ 导航</Tag>
                 <Tag size="small" style={{ fontSize: '12px' }}>↵ 选择</Tag>
                 <Tag size="small" style={{ fontSize: '12px' }}>Esc 关闭</Tag>
@@ -307,7 +308,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
                 >
                   {/* 图标 */}
                   <div style={{ 
-                    marginTop: '2px',
+                    marginTop: '4px',
                     flexShrink: 0,
                   }}>
                     {getTypeIcon(result.type)}
@@ -320,7 +321,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '8px',
-                      marginBottom: '4px',
+                      marginBottom: '8px',
                     }}>
                       <Text 
                         style={{ 
@@ -357,7 +358,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '8px',
-                      marginTop: '6px',
+                      marginTop: '8px',
                     }}>
                       {result.folder && (
                         <Text type="secondary" style={{ fontSize: '12px' }}>

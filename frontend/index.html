@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Papyrus Frontend</title>
+    <style>
+      /* 自定义背景色 */
+      :root {
+        --color-bg-2: #FFFFFF;
+      }
+      /* 深色模式适配 */
+      body[arco-theme="dark"] {
+        --color-bg-2: #2A2A2B;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

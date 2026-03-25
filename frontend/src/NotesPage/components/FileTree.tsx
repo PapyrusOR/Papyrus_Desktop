@@ -230,7 +230,7 @@ export const FileTree = ({
             fontSize: '14px',
             fontWeight: 600,
             display: 'block',
-            marginBottom: '12px',
+            marginBottom: '16px',
           }}
         >
           文件树

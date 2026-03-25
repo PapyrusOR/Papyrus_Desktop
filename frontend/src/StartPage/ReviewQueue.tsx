@@ -15,6 +15,8 @@ const MOCK_REVIEW: ReviewItem[] = [
   { id: '3', collectionTitle: '操作系统', scrollCount: 5, estimatedMinutes: 4 },
 ];
 
+const SECONDARY_COLOR = '#9FD4FD';
+
 const ReviewCard = ({ item }: { item: ReviewItem }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -27,14 +29,14 @@ const ReviewCard = ({ item }: { item: ReviewItem }) => {
         width: '220px',
         height: '100%',
         borderRadius: '16px',
-        border: `1px solid ${hovered ? '#206CCF' : 'var(--color-text-3)'}`,
-        background: hovered ? '#206CCF0f' : 'transparent',
+        border: `2px solid ${hovered ? SECONDARY_COLOR : 'var(--color-text-3)'}`,
+        background: 'transparent',
         padding: '24px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         cursor: 'pointer',
-        transition: 'border-color 0.2s, background 0.2s',
+        transition: 'border-color 0.2s',
         boxSizing: 'border-box',
       }}
     >

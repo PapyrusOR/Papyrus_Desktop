@@ -1,9 +1,11 @@
 import { Typography, Button, Tag, Radio, Empty, Tooltip } from '@arco-design/web-react';
 import { useState } from 'react';
 import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete } from '@arco-design/web-react/icon';
+import { SceneryBackground } from '../components/SceneryBackground';
 import ZipIcon from './ZipIcon';
 
 const PRIMARY_COLOR = '#206CCF';
+const SECONDARY_COLOR = '#9FD4FD';
 
 // 类型定义
 interface FileItem {
@@ -30,8 +32,8 @@ const MOCK_FILES: FileItem[] = [
 // 通用卡片样式 - 适配深色模式
 const useCardStyle = (hovered: boolean) => ({
   borderRadius: '16px',
-  border: `1px solid ${hovered ? PRIMARY_COLOR : 'var(--color-text-3)'}`,
-  background: hovered ? `${PRIMARY_COLOR}08` : 'var(--color-bg-1)',
+  border: `2px solid ${hovered ? SECONDARY_COLOR : 'var(--color-text-3)'}`,
+  background: 'transparent',
   transition: 'border-color 0.2s, background 0.2s',
   cursor: 'pointer',
 });
@@ -100,10 +102,11 @@ const ListFileRow = ({ file }: { file: FileItem }) => {
       onMouseLeave={() => setHovered(false)}
       style={{
         borderRadius: '8px',
-        background: hovered ? 'var(--color-fill-2)' : 'transparent',
+        border: `2px solid ${hovered ? SECONDARY_COLOR : 'transparent'}`,
+        background: 'transparent',
         padding: '12px 16px',
         cursor: 'pointer',
-        transition: 'background 0.2s',
+        transition: 'border-color 0.2s',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
@@ -111,7 +114,7 @@ const ListFileRow = ({ file }: { file: FileItem }) => {
     >
       <FileIcon type={file.type} size={32} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Typography.Text style={{ fontSize: '14px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={file.name}>
+        <Typography.Text style={{ fontSize: '14px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: hovered ? '#57A9FB' : 'var(--color-text-1)' }} title={file.name}>
           {file.name}
         </Typography.Text>
       </div>
@@ -139,7 +142,7 @@ const FilesPage = () => {
   };
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
+    <SceneryBackground page="files" style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
       {/* 标题 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
@@ -177,7 +180,7 @@ const FilesPage = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '24px 32px',
+        padding: '24px',
         marginBottom: '24px',
         borderRadius: '16px',
         border: '1px solid var(--color-text-3)',
@@ -217,7 +220,7 @@ const FilesPage = () => {
       ) : (
         <div style={{ border: '1px solid var(--color-text-3)', borderRadius: '12px', overflow: 'hidden', background: 'var(--color-bg-1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--color-border-2)', background: 'var(--color-fill-2)', fontSize: '13px', color: 'var(--color-text-3)', fontWeight: 500 }}>
-            <div style={{ width: '32px', marginRight: '12px' }} />
+            <div style={{ width: '32px', marginRight: '16px' }} />
             <div style={{ flex: 1 }}>名称</div>
             <div style={{ width: '100px' }}>大小</div>
             <div style={{ width: '80px' }}>修改时间</div>
@@ -228,7 +231,7 @@ const FilesPage = () => {
       )}
 
       <div style={{ height: '32px' }} />
-    </div>
+    </SceneryBackground>
   );
 };
 

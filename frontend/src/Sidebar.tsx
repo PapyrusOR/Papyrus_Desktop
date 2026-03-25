@@ -32,12 +32,12 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
   useEffect(() => {
     if (dark) {
       document.body.setAttribute('arco-theme', 'dark');
-      document.body.style.backgroundColor = 'var(--color-bg-1)';
+      document.body.style.backgroundColor = '#2A2A2B';
       document.body.style.color = 'var(--color-text-1)';
       document.body.style.colorScheme = 'dark';
     } else {
       document.body.removeAttribute('arco-theme');
-      document.body.style.backgroundColor = '';
+      document.body.style.backgroundColor = '#FFFFFF';
       document.body.style.color = '';
       document.body.style.colorScheme = '';
     }

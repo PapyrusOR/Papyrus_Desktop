@@ -6,6 +6,7 @@ import ReviewQueue from './ReviewQueue';
 import { getSolarTerm, fetchSolarTerm } from './solarTerms';
 import { type SceneryContent, fetchSceneryContent } from './sceneryContent';
 import FlashcardStudy from '../ScrollPage/FlashcardStudy';
+import { StartPageSceneryBackground } from '../components/SceneryBackground';
 
 type StartPageStats = {
   cardsDue: number;
@@ -34,12 +35,13 @@ type PendingCardProps = {
 };
 
 const PRIMARY_COLOR = '#206CCF';
+const SECONDARY_COLOR = '#9FD4FD';
 const CARD_HEIGHT_EXPR = 'calc(61.8vh - 128px)';
 
 const MOCK_STATS: StartPageStats = {
-  cardsDue: 1,
+  cardsDue: 0,
   streakDays: 7,
-  todayProgress: 20,
+  todayProgress: 100,
 };
 
 const cardStyle: CSSProperties = {
@@ -51,6 +53,7 @@ const cardStyle: CSSProperties = {
   border: '1px solid var(--color-text-3)',
   borderRadius: '16px',
   overflow: 'hidden',
+  transform: 'translateZ(0)',
 };
 
 function getGreeting(hour: number): string {
@@ -369,7 +372,7 @@ const DoneCard = ({ scenery }: { scenery: SceneryContent | null }) => {
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
-          opacity: hovered ? 1 : 0,
+          opacity: (hovered && !!scenery) ? 1 : 0,
           transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           pointerEvents: 'none',
         }}
@@ -398,24 +401,24 @@ const DoneCard = ({ scenery }: { scenery: SceneryContent | null }) => {
               overflow: 'hidden',
             }}
           >
-            {poem}
+            {scenery?.poem ?? ''}
           </div>
-          <div
-            style={{
-              writingMode: 'vertical-rl',
-              fontFamily: '"Noto Serif SC", "Source Han Serif SC", "STSong", serif',
-              fontSize: '14px',
-              fontWeight: 400,
-              letterSpacing: '0.2em',
-              color: '#5C5C5C',
-              lineHeight: 1.6,
-              marginTop: '6px',
-              height: '100%',
-              overflow: 'hidden',
-            }}
-          >
-            {source}
-          </div>
+          {scenery?.source && (
+            <div
+              style={{
+                writingMode: 'vertical-rl',
+                fontFamily: '"Noto Serif SC", "Source Han Serif SC", "STSong", serif',
+                fontSize: '14px',
+                fontWeight: 400,
+                letterSpacing: '0.15em',
+                color: 'var(--color-text-3)',
+                lineHeight: 1.6,
+                overflow: 'hidden',
+              }}
+            >
+              {'——'}{scenery.source}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -441,11 +444,11 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
   }
 
   return (
-    <div id='start-page-scroll' style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+    <StartPageSceneryBackground id="start-page-scroll" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
       <div style={{ position: 'relative', height: '61.8vh', padding: '64px 0 0 64px' }}>
         <Typography.Title
           heading={1}
-          style={{ fontWeight: 400, lineHeight: 1, margin: 0, fontSize: '56px' }}
+          style={{ fontWeight: 400, lineHeight: 1, margin: 0, fontSize: '40px' }}
         >
           开始
         </Typography.Title>
@@ -466,7 +469,7 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
       <div style={{ padding: '64px 64px 0' }}>
         <Typography.Title
           heading={2}
-          style={{ fontWeight: 400, lineHeight: 1, margin: 0, marginBottom: '48px', fontSize: '32px' }}
+          style={{ fontWeight: 400, lineHeight: 1, margin: 0, marginBottom: '48px', fontSize: '24px' }}
         >
           书架
         </Typography.Title>
@@ -480,19 +483,18 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
         @property --mask-start {
           syntax: '<percentage>';
           inherits: false;
-          initial-value: 20%;
-        }
-        @property --mask-end {
-          syntax: '<percentage>';
-          inherits: false;
-          initial-value: 80%;
+          initial-value: 61.8%;
         }
 
         .scenery-img {
-          transition: transform 6s cubic-bezier(0.4, 0, 0.2, 1);
+          --mask-start: 61.8%;
+          -webkit-mask-image: linear-gradient(to right, transparent var(--mask-start), black 100%);
+          mask-image: linear-gradient(to right, transparent var(--mask-start), black 100%);
+          transition: transform 6s cubic-bezier(0.4, 0, 0.2, 1), --mask-start 0.6s cubic-bezier(0.4, 0, 0.2, 1);
           transform: scale(1);
         }
         .scenery-img.expanded {
+          --mask-start: 38.2%;
           transform: scale(1.05);
         }
 
@@ -515,7 +517,7 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
           animation: ripple-effect 0.6s ease-out forwards;
         }
       `}</style>
-    </div>
+    </StartPageSceneryBackground>
   );
 };
 

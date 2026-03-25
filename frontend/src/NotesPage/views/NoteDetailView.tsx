@@ -178,7 +178,7 @@ export const NoteDetailView = ({
               fontWeight: 600,
               color: 'var(--color-text-2)',
               display: 'block',
-              marginBottom: '12px',
+              marginBottom: '16px',
             }}
           >
             大纲
@@ -189,7 +189,7 @@ export const NoteDetailView = ({
                 key={index}
                 style={{
                   padding: '4px 8px',
-                  paddingLeft: `${(item.level - 1) * 12 + 8}px`,
+                  paddingLeft: `${(item.level - 1) * 16 + 8}px`,
                   fontSize: '13px',
                   color: 'var(--color-text-2)',
                   cursor: 'pointer',
@@ -224,7 +224,7 @@ export const NoteDetailView = ({
           {/* 元信息区 */}
           <div
             style={{
-              padding: '16px 20px',
+              padding: '16px',
               background: '#FFFBE6',
               borderRadius: '8px',
               border: '1px solid #FFE58F',
@@ -349,21 +349,21 @@ export const NoteDetailView = ({
                 }
                 if (line.startsWith('## ')) {
                   return (
-                    <h2 key={index} style={{ fontSize: '20px', margin: '14px 0 6px' }}>
+                    <h2 key={index} style={{ fontSize: '20px', margin: '16px 0 8px' }}>
                       {line.slice(3)}
                     </h2>
                   );
                 }
                 if (line.startsWith('### ')) {
                   return (
-                    <h3 key={index} style={{ fontSize: '16px', margin: '12px 0 4px' }}>
+                    <h3 key={index} style={{ fontSize: '16px', margin: '16px 0 8px' }}>
                       {line.slice(4)}
                     </h3>
                   );
                 }
                 if (line.startsWith('- ')) {
                   return (
-                    <li key={index} style={{ marginLeft: '20px' }}>
+                    <li key={index} style={{ marginLeft: '16px' }}>
                       {line.slice(2)}
                     </li>
                   );

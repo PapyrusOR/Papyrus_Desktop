@@ -2,6 +2,7 @@ import { Typography, Button } from '@arco-design/web-react';
 import { IconPlus, IconClockCircle, IconBook, IconPlayCircle, IconEye } from '@arco-design/web-react/icon';
 import { useState, useEffect } from 'react';
 import FlashcardStudy from './FlashcardStudy';
+import { SceneryBackground } from '../components/SceneryBackground';
 import { api } from '../api';
 
 // 类型定义
@@ -50,6 +51,7 @@ const MOCK_SCROLLS: Scroll[] = [
 ];
 
 const PRIMARY_COLOR = '#206CCF';
+const SECONDARY_COLOR = '#9FD4FD';
 const SUCCESS_COLOR = '#00B42A';
 
 // 统计小卡片
@@ -58,7 +60,7 @@ const StatItem = ({ label, value, color }: { label: string; value: string | numb
     <Typography.Text style={{ fontSize: '28px', fontWeight: 600, color: color || 'inherit' }}>
       {value}
     </Typography.Text>
-    <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '2px' }}>
+    <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
       {label}
     </Typography.Text>
   </div>
@@ -67,8 +69,8 @@ const StatItem = ({ label, value, color }: { label: string; value: string | numb
 // 通用卡片样式 - 与开始界面统一
 const useCardStyle = (hovered: boolean) => ({
   borderRadius: '16px',
-  border: `1px solid ${hovered ? PRIMARY_COLOR : 'var(--color-text-3)'}`,
-  background: hovered ? `${PRIMARY_COLOR}08` : 'var(--color-bg-1)',
+  border: `2px solid ${hovered ? SECONDARY_COLOR : 'var(--color-text-3)'}`,
+  background: 'var(--color-bg-1)',
   transition: 'border-color 0.2s, background 0.2s',
   cursor: 'pointer',
 });
@@ -181,7 +183,7 @@ const ScrollCard = ({ scroll, onStudy }: { scroll: Scroll; onStudy?: () => void 
               background: PRIMARY_COLOR,
               color: '#fff',
               borderRadius: '999px',
-              padding: '2px 10px',
+              padding: '4px 12px',
               fontSize: '12px',
               fontWeight: 600,
             }}>
@@ -194,7 +196,7 @@ const ScrollCard = ({ scroll, onStudy }: { scroll: Scroll; onStudy?: () => void 
               background: '#E8FFEA',
               color: SUCCESS_COLOR,
               borderRadius: '999px',
-              padding: '2px 10px',
+              padding: '4px 12px',
               fontSize: '12px',
               fontWeight: 600,
             }}>
@@ -238,13 +240,13 @@ const AddCard = ({ label }: { label: string }) => {
         width: '220px',
         height: '140px',
         borderRadius: '16px',
-        border: `1px dashed ${hovered ? PRIMARY_COLOR : 'var(--color-text-3)'}`,
-        background: hovered ? `${PRIMARY_COLOR}08` : 'transparent',
+        border: `2px dashed ${hovered ? SECONDARY_COLOR : 'var(--color-text-3)'}`,
+        background: 'transparent',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '12px',
+        gap: '16px',
         cursor: 'pointer',
         transition: 'border-color 0.2s, background 0.2s',
         boxSizing: 'border-box',
@@ -273,7 +275,7 @@ const AddCard = ({ label }: { label: string }) => {
 const ShelfTitle = ({ children }: { children: React.ReactNode }) => (
   <Typography.Title
     heading={2}
-    style={{ fontWeight: 400, lineHeight: 1, margin: '0 0 20px', fontSize: '20px', color: 'var(--color-text-3)' }}
+    style={{ fontWeight: 400, lineHeight: 1, margin: '0 0 24px', fontSize: '20px', color: 'var(--color-text-3)' }}
   >
     {children}
   </Typography.Title>
@@ -340,7 +342,7 @@ const ScrollPage = () => {
 
   // 列表模式
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
+    <SceneryBackground page="scroll" style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
       {/* 标题行 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <Typography.Title
@@ -389,7 +391,7 @@ const ScrollPage = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '20px 24px',
+        padding: '24px',
         marginBottom: '40px',
         borderRadius: '12px',
         border: '1px solid var(--color-text-3)',
@@ -429,7 +431,7 @@ const ScrollPage = () => {
       </section>
 
       <div style={{ height: '32px' }} />
-    </div>
+    </SceneryBackground>
   );
 };
 

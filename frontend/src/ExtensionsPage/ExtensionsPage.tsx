@@ -1,6 +1,7 @@
 import { Typography, Button, Tabs, Tag, Switch, Card } from '@arco-design/web-react';
 import { useState } from 'react';
 import { IconPlus, IconSettings, IconDelete, IconCheckCircleFill, IconDownload, IconStarFill } from '@arco-design/web-react/icon';
+import { SceneryBackground } from '../components/SceneryBackground';
 
 const PRIMARY_COLOR = '#206CCF';
 const SUCCESS_COLOR = '#00B42A';
@@ -43,7 +44,7 @@ const ExtensionCard = ({ ext, isInstalled, onToggle }: { ext: typeof MOCK_INSTAL
         padding: '20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: '16px',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -65,7 +66,7 @@ const ExtensionCard = ({ ext, isInstalled, onToggle }: { ext: typeof MOCK_INSTAL
       </div>
 
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <Typography.Text bold style={{ fontSize: '15px' }}>{ext.name}</Typography.Text>
           {isInstalled && <IconCheckCircleFill style={{ fontSize: '14px', color: SUCCESS_COLOR }} />}
           {ext.updateAvailable && <Tag size='small' color='green' style={{ fontSize: '10px' }}>更新</Tag>}
@@ -75,7 +76,7 @@ const ExtensionCard = ({ ext, isInstalled, onToggle }: { ext: typeof MOCK_INSTAL
         </Typography.Text>
       </div>
 
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {ext.tags.map(tag => <Tag key={tag} size='small' style={{ fontSize: '11px' }}>{tag}</Tag>)}
       </div>
 
@@ -111,7 +112,7 @@ const ExtensionCard = ({ ext, isInstalled, onToggle }: { ext: typeof MOCK_INSTAL
 const SettingItem = ({ title, description, defaultChecked }: { title: string; description: string; defaultChecked?: boolean }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--color-border-2)' }}>
     <div>
-      <Typography.Text bold style={{ display: 'block', marginBottom: '4px' }}>{title}</Typography.Text>
+      <Typography.Text bold style={{ display: 'block', marginBottom: '8px' }}>{title}</Typography.Text>
       <Typography.Text type='secondary' style={{ fontSize: '13px' }}>{description}</Typography.Text>
     </div>
     <Switch defaultChecked={defaultChecked} />
@@ -130,7 +131,7 @@ const ExtensionsPage = () => {
   const updateCount = extensions.filter(e => e.updateAvailable).length;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
+    <SceneryBackground page="extensions" style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
       {/* 标题 */}
       <Typography.Title heading={1} style={{ fontWeight: 400, lineHeight: 1, margin: 0, marginBottom: '32px', fontSize: '40px' }}>
         扩展管理
@@ -141,7 +142,7 @@ const ExtensionsPage = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '20px 24px',
+        padding: '24px',
         marginBottom: '32px',
         borderRadius: '12px',
         border: '1px solid var(--color-text-3)',
@@ -150,19 +151,19 @@ const ExtensionsPage = () => {
         <div style={{ display: 'flex', gap: '48px' }}>
           <div style={{ textAlign: 'center' }}>
             <Typography.Text style={{ fontSize: '24px', fontWeight: 600, color: PRIMARY_COLOR }}>{extensions.length}</Typography.Text>
-            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '2px' }}>已安装</Typography.Text>
+            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>已安装</Typography.Text>
           </div>
           <div style={{ textAlign: 'center' }}>
             <Typography.Text style={{ fontSize: '24px', fontWeight: 600, color: SUCCESS_COLOR }}>{enabledCount}</Typography.Text>
-            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '2px' }}>已启用</Typography.Text>
+            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>已启用</Typography.Text>
           </div>
           <div style={{ textAlign: 'center' }}>
             <Typography.Text style={{ fontSize: '24px', fontWeight: 600, color: updateCount > 0 ? '#FF7D00' : 'inherit' }}>{updateCount}</Typography.Text>
-            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '2px' }}>有更新</Typography.Text>
+            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>有更新</Typography.Text>
           </div>
           <div style={{ textAlign: 'center' }}>
             <Typography.Text style={{ fontSize: '24px', fontWeight: 600 }}>65.8k</Typography.Text>
-            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '2px' }}>总下载</Typography.Text>
+            <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>总下载</Typography.Text>
           </div>
         </div>
         <Button shape='round' type='primary' size='large' style={{ height: '40px', padding: '0 20px', fontSize: '14px', backgroundColor: PRIMARY_COLOR }}>检查更新</Button>
@@ -170,8 +171,8 @@ const ExtensionsPage = () => {
 
       {/* 内容 */}
       <Tabs activeTab={activeTab} onChange={setActiveTab} type='text' style={{ marginBottom: '24px' }}>
-        <Tabs.TabPane key='installed' title={<>已安装 <Tag size='small' style={{ marginLeft: '4px' }}>{extensions.length}</Tag></>} />
-        <Tabs.TabPane key='market' title={<>扩展商店 <Tag size='small' style={{ marginLeft: '4px' }}>{MOCK_MARKET.length}</Tag></>} />
+        <Tabs.TabPane key='installed' title={<>已安装 <Tag size='small' style={{ marginLeft: '8px' }}>{extensions.length}</Tag></>} />
+        <Tabs.TabPane key='market' title={<>扩展商店 <Tag size='small' style={{ marginLeft: '8px' }}>{MOCK_MARKET.length}</Tag></>} />
         <Tabs.TabPane key='settings' title='设置' />
       </Tabs>
 
@@ -200,7 +201,7 @@ const ExtensionsPage = () => {
       )}
 
       <div style={{ height: '32px' }} />
-    </div>
+    </SceneryBackground>
   );
 };
 

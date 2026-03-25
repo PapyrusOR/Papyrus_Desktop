@@ -13,7 +13,7 @@ export const StatsBar = ({ noteCount, totalWords, todayNotes, tagCount }: StatsB
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '20px 24px',
+    padding: '24px',
     marginBottom: '24px',
     borderRadius: '12px',
     border: '1px solid var(--color-text-3)',
@@ -45,7 +45,7 @@ const StatItem = ({ value, label, highlight }: StatItemProps) => (
     </Typography.Text>
     <Typography.Text 
       type='secondary' 
-      style={{ fontSize: '12px', display: 'block', marginTop: '2px' }}
+      style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}
     >
       {label}
     </Typography.Text>
