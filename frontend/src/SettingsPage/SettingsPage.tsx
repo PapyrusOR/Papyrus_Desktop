@@ -45,7 +45,7 @@ import {
 } from '@arco-design/web-react/icon';
 
 import './SettingsPage.css';
-import { useSceneryManager, usePageScenery, useStartPageScenery, type PageType } from '../hooks/useScenery';
+import { useSceneryManager, usePageScenery, useStartPageScenery, type PageType, loadStartPageScenery, saveStartPageScenery, type StartPageSceneryConfig } from '../hooks/useScenery';
 
 const FormItem = Form.Item;
 const { Title, Text, Paragraph } = Typography;
@@ -243,31 +243,30 @@ const SettingsPage = () => {
   const [fontSize, setFontSize] = useState('medium');
   const [accentColor, setAccentColor] = useState('#206CCF');
   
-  // 窗景设置状态 - 各页面独立配置
-  // 开始界面：支持合集（多张）
-  const [startPageScenery, setStartPageScenery] = useState<StartPageSceneryConfig>({
-    enabled: true,
-    collection: ['/scenery/image.png'],
-    currentIndex: 0,
-  });
+  // 窗景设置 - 使用 hooks
+  const { allSceneries, customSceneries, addCustomScenery, deleteCustomScenery } = useSceneryManager();
+  const notesScenery = usePageScenery('notes');
+  const scrollScenery = usePageScenery('scroll');
+  const filesScenery = usePageScenery('files');
+  const extensionsScenery = usePageScenery('extensions');
+  const chartsScenery = usePageScenery('charts');
   
-  // 其他界面：单张窗景
-  const [pageSceneries, setPageSceneries] = useState<Record<PageType, PageSceneryConfig>>({
-    start: { enabled: true, image: '/scenery/image.png', name: '默认窗景' },
-    notes: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
-    scroll: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
-    files: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
-    extensions: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
-    charts: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
-  });
-  
-  // 全局自定义窗景库
-  const [customSceneries, setCustomSceneries] = useState<{ id: string; name: string; image: string }[]>([]);
+  // 开始页面窗景设置（用于 DoneCard）
+  const [startPageScenery, setStartPageScenery] = useState<StartPageSceneryConfig>(() => loadStartPageScenery());
   
   // 弹窗状态
   const [addSceneryModalVisible, setAddSceneryModalVisible] = useState(false);
   const [sceneryForm] = Form.useForm();
   const [activeSceneryPage, setActiveSceneryPage] = useState<PageType | 'start'>('start');
+  
+  // 更新开始页面窗景
+  const updateStartPageScenery = (updates: Partial<StartPageSceneryConfig>) => {
+    setStartPageScenery(prev => {
+      const newConfig = { ...prev, ...updates };
+      saveStartPageScenery(newConfig);
+      return newConfig;
+    });
+  };
 
   // 通用设置状态
   const [autoStart, setAutoStart] = useState(false);
@@ -605,42 +604,40 @@ const SettingsPage = () => {
     );
   };
 
-  // 开始界面窗景设置（支持合集）
+  // 开始界面窗景设置（用于 DoneCard）
   const StartPageScenerySettings = () => {
-    const { config, updateConfig, toggleImage } = startPageScenery;
-    
     return (
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div>
             <Text style={{ fontWeight: 600 }}>开始界面</Text>
             <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
-              支持多张窗景轮播
+              今日完成卡片中的窗景
             </Paragraph>
           </div>
           <Switch 
             size="small"
-            checked={config.enabled} 
-            onChange={(checked) => updateConfig({ enabled: checked })}
+            checked={startPageScenery.enabled} 
+            onChange={(checked) => updateStartPageScenery({ enabled: checked })}
           />
         </div>
         
-        {config.enabled && (
+        {startPageScenery.enabled && (
           <>
-            <Text style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>选择窗景合集</Text>
+            <Text style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>选择窗景</Text>
             <Grid.Row gutter={[8, 8]}>
               {allSceneries.map((item) => (
                 <Grid.Col key={item.id} span={4}>
                   <div
-                    className={`settings-scenery-thumb ${config.collection.includes(item.image) ? 'active' : ''}`}
-                    onClick={() => toggleImage(item.image)}
+                    className={`settings-scenery-thumb ${startPageScenery.image === item.image ? 'active' : ''}`}
+                    onClick={() => updateStartPageScenery({ image: item.image, name: item.name })}
                     style={{
                       aspectRatio: '16/9',
                       borderRadius: 6,
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      border: config.collection.includes(item.image) ? '2px solid #206CCF' : '2px solid transparent',
-                      boxShadow: config.collection.includes(item.image) ? '0 0 0 2px rgba(32, 108, 207, 0.2)' : 'none',
+                      border: startPageScenery.image === item.image ? '2px solid #206CCF' : '2px solid transparent',
+                      boxShadow: startPageScenery.image === item.image ? '0 0 0 2px rgba(32, 108, 207, 0.2)' : 'none',
                       position: 'relative',
                     }}
                   >
@@ -653,7 +650,7 @@ const SettingsPage = () => {
                         (e.target as HTMLImageElement).parentElement!.style.background = 'var(--color-fill-2)';
                       }}
                     />
-                    {config.collection.includes(item.image) && (
+                    {startPageScenery.image === item.image && (
                       <div
                         style={{
                           position: 'absolute',
@@ -677,9 +674,6 @@ const SettingsPage = () => {
                 </Grid.Col>
               ))}
             </Grid.Row>
-            <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
-              已选择 {config.collection.length} 张窗景
-            </Text>
           </>
         )}
       </div>

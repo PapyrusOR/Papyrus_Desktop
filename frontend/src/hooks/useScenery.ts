@@ -4,18 +4,12 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 
-export type PageType = 'start' | 'notes' | 'scroll' | 'files' | 'extensions' | 'charts';
+export type PageType = 'notes' | 'scroll' | 'files' | 'extensions' | 'charts';
 
 export interface PageSceneryConfig {
   enabled: boolean;
   image: string;
   name: string;
-}
-
-export interface StartPageSceneryConfig {
-  enabled: boolean;
-  collection: string[];
-  currentIndex: number;
 }
 
 export interface SceneryItem {
@@ -33,10 +27,10 @@ const DEFAULT_SCENERY: SceneryItem = {
 // 本地存储键
 const STORAGE_KEY = 'papyrus_scenery_settings';
 const CUSTOM_SCENERIES_KEY = 'papyrus_custom_sceneries';
+const START_PAGE_SCENERY_KEY = 'papyrus_start_page_scenery';
 
-// 默认设置
+// 默认设置（开始页面已移除，窗景由 DoneCard 独立管理）
 const defaultPageSceneries: Record<PageType, PageSceneryConfig> = {
-  start: { enabled: true, image: '/scenery/image.png', name: '默认窗景' },
   notes: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
   scroll: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
   files: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
@@ -44,21 +38,27 @@ const defaultPageSceneries: Record<PageType, PageSceneryConfig> = {
   charts: { enabled: false, image: '/scenery/image.png', name: '默认窗景' },
 };
 
+// 开始页面窗景设置（用于 DoneCard）
+export interface StartPageSceneryConfig {
+  enabled: boolean;
+  image: string;
+  name: string;
+}
+
 const defaultStartPageScenery: StartPageSceneryConfig = {
   enabled: true,
-  collection: ['/scenery/image.png'],
-  currentIndex: 0,
+  image: '/scenery/image.png',
+  name: '默认窗景',
 };
 
-// 加载设置
+// 加载页面设置
 const loadSettings = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       return {
-        pageSceneries: { ...defaultPageSceneries, ...parsed.pageSceneries },
-        startPageScenery: { ...defaultStartPageScenery, ...parsed.startPageScenery },
+        pageSceneries: { ...defaultPageSceneries, ...(parsed.pageSceneries || {}) },
       };
     }
   } catch {
@@ -66,14 +66,35 @@ const loadSettings = () => {
   }
   return {
     pageSceneries: defaultPageSceneries,
-    startPageScenery: defaultStartPageScenery,
   };
 };
 
-// 保存设置
-const saveSettings = (pageSceneries: Record<PageType, PageSceneryConfig>, startPageScenery: StartPageSceneryConfig) => {
+// 保存页面设置
+const saveSettings = (pageSceneries: Record<PageType, PageSceneryConfig>) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ pageSceneries, startPageScenery }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ pageSceneries }));
+  } catch {
+    // ignore
+  }
+};
+
+// 加载开始页面窗景设置（单独存储，用于 DoneCard）
+export const loadStartPageScenery = (): StartPageSceneryConfig => {
+  try {
+    const saved = localStorage.getItem(START_PAGE_SCENERY_KEY);
+    if (saved) {
+      return { ...defaultStartPageScenery, ...JSON.parse(saved) };
+    }
+  } catch {
+    // ignore
+  }
+  return defaultStartPageScenery;
+};
+
+// 保存开始页面窗景设置
+export const saveStartPageScenery = (config: StartPageSceneryConfig) => {
+  try {
+    localStorage.setItem(START_PAGE_SCENERY_KEY, JSON.stringify(config));
   } catch {
     // ignore
   }
@@ -122,9 +143,9 @@ export const usePageScenery = (page: PageType) => {
   const updateConfig = useCallback((updates: Partial<PageSceneryConfig>) => {
     setConfig(prev => {
       const newConfig = { ...prev, ...updates };
-      const { pageSceneries, startPageScenery } = loadSettings();
+      const { pageSceneries } = loadSettings();
       pageSceneries[page] = newConfig;
-      saveSettings(pageSceneries, startPageScenery);
+      saveSettings(pageSceneries);
       return newConfig;
     });
   }, [page]);
@@ -132,56 +153,25 @@ export const usePageScenery = (page: PageType) => {
   return { config, updateConfig, loaded };
 };
 
-// Hook: 开始页面窗景（合集）
+// Hook: 开始页面窗景（用于 DoneCard）
 export const useStartPageScenery = () => {
   const [config, setConfig] = useState<StartPageSceneryConfig>(defaultStartPageScenery);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const { startPageScenery } = loadSettings();
-    setConfig(startPageScenery);
+    setConfig(loadStartPageScenery());
     setLoaded(true);
   }, []);
 
   const updateConfig = useCallback((updates: Partial<StartPageSceneryConfig>) => {
     setConfig(prev => {
       const newConfig = { ...prev, ...updates };
-      const { pageSceneries } = loadSettings();
-      saveSettings(pageSceneries, newConfig);
+      saveStartPageScenery(newConfig);
       return newConfig;
     });
   }, []);
 
-  const toggleImage = useCallback((image: string) => {
-    setConfig(prev => {
-      const isSelected = prev.collection.includes(image);
-      let newCollection: string[];
-      if (isSelected) {
-        // 取消选择（至少保留一张）
-        if (prev.collection.length > 1) {
-          newCollection = prev.collection.filter(img => img !== image);
-        } else {
-          return prev;
-        }
-      } else {
-        newCollection = [...prev.collection, image];
-      }
-      const newConfig = { ...prev, collection: newCollection };
-      const { pageSceneries } = loadSettings();
-      saveSettings(pageSceneries, newConfig);
-      return newConfig;
-    });
-  }, []);
-
-  // 获取当前轮播的图片
-  const getCurrentImage = useCallback(() => {
-    if (!config.enabled || config.collection.length === 0) {
-      return null;
-    }
-    return config.collection[config.currentIndex % config.collection.length];
-  }, [config]);
-
-  return { config, updateConfig, toggleImage, getCurrentImage, loaded };
+  return { config, updateConfig, loaded };
 };
 
 // Hook: 全局窗景管理

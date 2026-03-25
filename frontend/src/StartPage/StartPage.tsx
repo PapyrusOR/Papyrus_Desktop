@@ -315,9 +315,51 @@ const PendingCard = ({ stats, greeting, dateLabel, solarTerm, onStartStudy }: Pe
 const DoneCard = ({ scenery }: { scenery: SceneryContent | null }) => {
   const [hovered, setHovered] = useState(false);
 
-  const image = scenery?.image ?? '/scenery/image.png';
-  const poem = scenery?.poem ?? '且将新火试新茶，诗酒趁年华。';
-  const source = scenery?.source ?? '[宋] 苏轼《望江南·超然台作》';
+  // 窗景关闭时（scenery 为 null），显示纯背景卡片样式
+  if (!scenery) {
+    return (
+      <div
+        style={{
+          ...cardStyle,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          background: 'var(--color-bg-2)',
+        }}
+      >
+        <div style={{ position: 'relative', zIndex: 1, padding: '24px' }}>
+          <Typography.Paragraph
+            type='secondary'
+            spacing='close'
+            style={{ margin: 0, fontSize: '48px', fontWeight: 600 }}
+          >
+            恭喜你，今日任务已完成！
+          </Typography.Paragraph>
+        </div>
+
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            padding: '24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: '24px',
+          }}
+        >
+          <Typography.Text className='scenery-sub-text' style={{ fontSize: '24px', fontWeight: 600 }}>
+            继续保持，明天见。
+          </Typography.Text>
+        </div>
+      </div>
+    );
+  }
+
+  // 窗景开启时，显示图片 + 诗句 + 渐变遮罩
+  const image = scenery.image;
+  const poem = scenery.poem ?? '且将新火试新茶，诗酒趁年华。';
+  const source = scenery.source ?? '[宋] 苏轼《望江南·超然台作》';
 
   return (
     <div
@@ -372,7 +414,7 @@ const DoneCard = ({ scenery }: { scenery: SceneryContent | null }) => {
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
-          opacity: (hovered && !!scenery) ? 1 : 0,
+          opacity: hovered ? 1 : 0,
           transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           pointerEvents: 'none',
         }}
@@ -401,9 +443,9 @@ const DoneCard = ({ scenery }: { scenery: SceneryContent | null }) => {
               overflow: 'hidden',
             }}
           >
-            {scenery?.poem ?? ''}
+            {poem}
           </div>
-          {scenery?.source && (
+          {source && (
             <div
               style={{
                 writingMode: 'vertical-rl',
@@ -416,7 +458,7 @@ const DoneCard = ({ scenery }: { scenery: SceneryContent | null }) => {
                 overflow: 'hidden',
               }}
             >
-              {'——'}{scenery.source}
+              {'——'}{source}
             </div>
           )}
         </div>

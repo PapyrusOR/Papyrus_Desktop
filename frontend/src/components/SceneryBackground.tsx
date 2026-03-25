@@ -3,7 +3,7 @@
  * 为页面提供可配置的窗景背景
  */
 import { useEffect, useState, type CSSProperties } from 'react';
-import { usePageScenery, useStartPageScenery, type PageType } from '../hooks/useScenery';
+import { usePageScenery, type PageType } from '../hooks/useScenery';
 
 interface SceneryBackgroundProps {
   page: PageType;
@@ -66,14 +66,15 @@ const SinglePageSceneryBackground = ({ page, children, style, className }: Scene
         </div>
       )}
       {/* 内容层 */}
-      <div style={{ position: 'relative', zIndex: 1, height: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 1, flex: 1, minHeight: '100%' }}>
         {children}
       </div>
     </div>
   );
 };
 
-// 开始页面专用窗景背景（支持轮播）
+// 开始页面专用窗景背景 - 已简化为透明包装器
+// 开始界面的窗景由 DoneCard 独立管理
 interface StartPageSceneryBackgroundProps {
   children: React.ReactNode;
   style?: CSSProperties;
@@ -82,33 +83,7 @@ interface StartPageSceneryBackgroundProps {
 }
 
 export const StartPageSceneryBackground = ({ children, style, className, id }: StartPageSceneryBackgroundProps) => {
-  const { config, getCurrentImage, loaded } = useStartPageScenery();
-  const [bgImage, setBgImage] = useState<string | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (loaded) {
-      const image = getCurrentImage();
-      setBgImage(image);
-      setCurrentIndex(config.currentIndex);
-    }
-  }, [config, getCurrentImage, loaded]);
-
-  // 自动轮播（每30秒切换）
-  useEffect(() => {
-    if (!config.enabled || config.collection.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex(prev => {
-        const nextIndex = (prev + 1) % config.collection.length;
-        setBgImage(config.collection[nextIndex]);
-        return nextIndex;
-      });
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [config]);
-
+  // 简化：仅作为容器，不再处理背景窗景
   const containerStyle: CSSProperties = {
     position: 'relative',
     minHeight: '100%',
@@ -117,51 +92,13 @@ export const StartPageSceneryBackground = ({ children, style, className, id }: S
 
   return (
     <div id={id} className={className} style={containerStyle}>
-      {/* 窗景背景层 */}
-      {bgImage && config.enabled && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <img
-            key={bgImage}
-            src={bgImage}
-            alt=""
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: 0.2,
-              transition: 'opacity 0.5s ease-in-out',
-            }}
-          />
-          {/* 遮罩层 */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, var(--color-bg-1) 0%, transparent 40%, var(--color-bg-1) 100%)',
-            }}
-          />
-        </div>
-      )}
-      {/* 内容层 */}
-      <div style={{ position: 'relative', zIndex: 1, height: '100%' }}>
-        {children}
-      </div>
+      {children}
     </div>
   );
 };
 
 // 统一导出
 export const SceneryBackground = (props: SceneryBackgroundProps) => {
-  if (props.page === 'start') {
-    return <StartPageSceneryBackground {...props} page={undefined as unknown as PageType} />;
-  }
   return <SinglePageSceneryBackground {...props} />;
 };
 
