@@ -828,6 +828,7 @@ const SettingsPage = () => {
           各界面窗景配置（设置专用）
         </Title>
         
+        <SinglePageScenerySettings sceneryHook={notesScenery} title="笔记库界面" pageKey="notes" />
         <SinglePageScenerySettings sceneryHook={scrollScenery} title="卷轴界面" pageKey="scroll" />
         <SinglePageScenerySettings sceneryHook={filesScenery} title="文件库界面" pageKey="files" />
         <SinglePageScenerySettings sceneryHook={extensionsScenery} title="扩展管理界面" pageKey="extensions" />

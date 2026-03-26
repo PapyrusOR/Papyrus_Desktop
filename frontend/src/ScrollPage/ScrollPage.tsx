@@ -2,7 +2,7 @@ import { Typography, Button } from '@arco-design/web-react';
 import { IconPlus, IconClockCircle, IconBook, IconPlayCircle, IconEye } from '@arco-design/web-react/icon';
 import { useState, useEffect } from 'react';
 import FlashcardStudy from './FlashcardStudy';
-import { SceneryBackground } from '../components/SceneryBackground';
+
 import { api } from '../api';
 import { type SceneryContent } from '../StartPage/sceneryContent';
 import { usePageScenery } from '../hooks/useScenery';
@@ -472,7 +472,7 @@ const ScrollPage = () => {
 
   // 列表模式
   return (
-    <SceneryBackground page="scroll" style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
       {/* 标题行 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <Typography.Title
@@ -555,7 +555,7 @@ const ScrollPage = () => {
       </section>
 
       <div style={{ height: '32px' }} />
-    </SceneryBackground>
+    </div>
   );
 };
 

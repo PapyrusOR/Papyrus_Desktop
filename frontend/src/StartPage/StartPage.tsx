@@ -6,7 +6,7 @@ import ReviewQueue from './ReviewQueue';
 import { getSolarTerm, fetchSolarTerm } from './solarTerms';
 import { type SceneryContent, fetchSceneryContent } from './sceneryContent';
 import FlashcardStudy from '../ScrollPage/FlashcardStudy';
-import { StartPageSceneryBackground } from '../components/SceneryBackground';
+
 
 type StartPageStats = {
   cardsDue: number;
@@ -488,7 +488,7 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
   }
 
   return (
-    <StartPageSceneryBackground id="start-page-scroll" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+    <div id="start-page-scroll" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
       <div style={{ position: 'relative', height: '61.8vh', padding: '48px 0 0 64px' }}>
         <Typography.Title
           heading={1}
@@ -561,7 +561,7 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
           animation: ripple-effect 0.6s ease-out forwards;
         }
       `}</style>
-    </StartPageSceneryBackground>
+    </div>
   );
 };
 
