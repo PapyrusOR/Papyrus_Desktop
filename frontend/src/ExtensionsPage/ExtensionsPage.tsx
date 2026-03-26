@@ -1,6 +1,7 @@
 import { Typography, Button, Tabs, Tag, Switch, Card } from '@arco-design/web-react';
 import { useState } from 'react';
 import { IconPlus, IconSettings, IconDelete, IconCheckCircleFill, IconDownload, IconStarFill } from '@arco-design/web-react/icon';
+import { usePageScenery } from '../hooks/useScenery';
 
 
 const PRIMARY_COLOR = '#206CCF';
@@ -119,25 +120,19 @@ const SettingItem = ({ title, description, defaultChecked }: { title: string; de
   </div>
 );
 
-const ExtensionsPage = () => {
-  const [activeTab, setActiveTab] = useState('installed');
-  const [extensions, setExtensions] = useState(MOCK_INSTALLED);
+// 统计栏组件 - 支持窗景背景
+interface StatsBarProps {
+  extensions: typeof MOCK_INSTALLED;
+  enabledCount: number;
+  updateCount: number;
+}
 
-  const handleToggle = (id: string, enabled: boolean) => {
-    setExtensions(prev => prev.map(ext => ext.id === id ? { ...ext, isEnabled: enabled } : ext));
-  };
+const StatsBar = ({ extensions, enabledCount, updateCount }: StatsBarProps) => {
+  const { config: sceneryConfig, loaded } = usePageScenery('extensions');
 
-  const enabledCount = extensions.filter(e => e.isEnabled).length;
-  const updateCount = extensions.filter(e => e.updateAvailable).length;
-
-  return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px', background: 'var(--color-bg-1)' }}>
-      {/* 标题 */}
-      <Typography.Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, marginBottom: '32px', fontSize: '40px' }}>
-        扩展管理
-      </Typography.Title>
-
-      {/* 数据栏 */}
+  // 等待设置加载完成
+  if (!loaded) {
+    return (
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -168,6 +163,100 @@ const ExtensionsPage = () => {
         </div>
         <Button shape='round' type='primary' size='large' style={{ height: '40px', padding: '0 20px', fontSize: '14px', backgroundColor: PRIMARY_COLOR }}>检查更新</Button>
       </div>
+    );
+  }
+
+  // 窗景配置
+  const image = sceneryConfig.image;
+  const poem = '且将新火试新茶，诗酒趁年华。';
+  const source = '[宋] 苏轼《望江南·超然台作》';
+  const overlayOpacity = Math.max(0.25, Math.min(0.75, sceneryConfig.opacity));
+
+  return (
+    <div style={{
+      position: 'relative',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '24px',
+      marginBottom: '32px',
+      borderRadius: '12px',
+      border: '1px solid var(--color-text-3)',
+      overflow: 'hidden',
+    }}>
+      {/* 窗景背景图 */}
+      {sceneryConfig.enabled && (
+        <>
+          <img
+            src={image}
+            alt={`窗景图片：${poem} —— ${source}`}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+          {/* 固定透明度遮罩层 */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `rgba(255, 255, 255, ${overlayOpacity})`,
+            }}
+          />
+        </>
+      )}
+
+      {/* 统计内容 */}
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: '48px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <Typography.Text style={{ fontSize: '24px', fontWeight: 600, color: PRIMARY_COLOR }}>{extensions.length}</Typography.Text>
+          <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>已安装</Typography.Text>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <Typography.Text style={{ fontSize: '24px', fontWeight: 600, color: SUCCESS_COLOR }}>{enabledCount}</Typography.Text>
+          <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>已启用</Typography.Text>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <Typography.Text style={{ fontSize: '24px', fontWeight: 600, color: updateCount > 0 ? '#FF7D00' : 'inherit' }}>{updateCount}</Typography.Text>
+          <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>有更新</Typography.Text>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <Typography.Text style={{ fontSize: '24px', fontWeight: 600 }}>65.8k</Typography.Text>
+          <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>总下载</Typography.Text>
+        </div>
+      </div>
+
+      {/* 按钮 */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Button shape='round' type='primary' size='large' style={{ height: '40px', padding: '0 20px', fontSize: '14px', backgroundColor: PRIMARY_COLOR }}>检查更新</Button>
+      </div>
+    </div>
+  );
+};
+
+const ExtensionsPage = () => {
+  const [activeTab, setActiveTab] = useState('installed');
+  const [extensions, setExtensions] = useState(MOCK_INSTALLED);
+
+  const handleToggle = (id: string, enabled: boolean) => {
+    setExtensions(prev => prev.map(ext => ext.id === id ? { ...ext, isEnabled: enabled } : ext));
+  };
+
+  const enabledCount = extensions.filter(e => e.isEnabled).length;
+  const updateCount = extensions.filter(e => e.updateAvailable).length;
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px', background: 'var(--color-bg-1)' }}>
+      {/* 标题 */}
+      <Typography.Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, marginBottom: '32px', fontSize: '40px' }}>
+        扩展管理
+      </Typography.Title>
+
+      {/* 数据栏 */}
+      <StatsBar extensions={extensions} enabledCount={enabledCount} updateCount={updateCount} />
 
       {/* 内容 */}
       <Tabs activeTab={activeTab} onChange={setActiveTab} type='text' style={{ marginBottom: '24px' }}>
