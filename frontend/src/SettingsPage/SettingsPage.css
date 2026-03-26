@@ -33,38 +33,35 @@
 
 /* 页面标题 - 与其他页面保持一致 */
 .settings-page-title {
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1;
   margin: 0 0 32px 0;
   font-size: 40px;
   color: var(--color-text-1);
 }
 
-/* 分类网格 - 参考 Windows 设置 */
+/* 分类网格 */
 .settings-categories-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
-/* 分类卡片 */
+/* 分类卡片 - 沿用开始页面标准：1px边框，悬停变2px蓝色 */
 .settings-category-card {
   display: flex;
   align-items: center;
   gap: 20px;
   padding: 24px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-2);
-  background: var(--color-bg-1);
+  border-radius: 16px;
+  border: 1px solid var(--color-text-3);
+  background: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s, border-width 0.2s;
 }
 
 .settings-category-card:hover {
-  border-color: var(--color-border-3);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 2px solid #9FD4FD;
 }
 
 /* 分类图标 */
@@ -125,7 +122,7 @@
   font-weight: 400;
   line-height: 1;
   margin: 0 0 32px 0;
-  font-size: 32px;
+  font-size: 28px;
   color: var(--color-text-1);
 }
 
@@ -232,29 +229,29 @@
   margin-top: 8px;
 }
 
-/* 数据卡片 */
+/* 数据卡片 - 沿用开始页面标准：2px边框，悬停变蓝色 */
 .settings-data-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 24px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-2);
-  background: var(--color-bg-1);
+  border-radius: 16px;
+  border: 2px solid var(--color-text-3);
+  background: transparent;
   margin-bottom: 16px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s;
 }
 
 .settings-data-card:hover {
-  border-color: var(--color-border-3);
+  border-color: #9FD4FD;
 }
 
 .settings-data-card.danger {
-  border-color: rgba(245, 63, 63, 0.3);
+  border-color: rgba(245, 63, 63, 0.5);
 }
 
 .settings-data-card.danger:hover {
-  border-color: rgba(245, 63, 63, 0.5);
+  border-color: #F53F3F;
 }
 
 .settings-data-info {
@@ -273,15 +270,17 @@
   flex-shrink: 0;
 }
 
-/* MCP 卡片 */
+/* MCP 卡片 - 沿用开始页面标准 */
 .settings-mcp-card {
   margin-bottom: 16px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-2);
+  border-radius: 16px;
+  border: 2px solid var(--color-text-3);
+  background: transparent;
+  transition: border-color 0.2s;
 }
 
 .settings-mcp-card:hover {
-  border-color: var(--color-border-3);
+  border-color: #9FD4FD;
 }
 
 .settings-mcp-card-content {
@@ -380,15 +379,16 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* 卡片样式 */
+/* Arco Card 组件 - 沿用开始页面标准 */
 .settings-page .arco-card {
-  border-radius: 12px;
-  border: 1px solid var(--color-border-2);
-  background: var(--color-bg-1);
+  border-radius: 16px;
+  border: 2px solid var(--color-text-3);
+  background: transparent;
+  transition: border-color 0.2s;
 }
 
 .settings-page .arco-card:hover {
-  border-color: var(--color-border-3);
+  border-color: #9FD4FD;
 }
 
 /* 分隔线样式 */
@@ -398,12 +398,9 @@
 
 /* 窗景设置卡片 */
 .settings-scenery-card {
-  border: 1px solid var(--color-border-2);
-  background: var(--color-bg-1);
-}
-
-.settings-scenery-card:hover {
-  border-color: var(--color-border-3);
+  border-radius: 16px;
+  border: 1px solid var(--color-text-3);
+  background: transparent;
 }
 
 /* 窗景缩略图 */
@@ -413,7 +410,6 @@
 
 .settings-scenery-thumb:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .settings-scenery-thumb.active {

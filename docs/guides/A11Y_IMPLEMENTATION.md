@@ -73,6 +73,24 @@
 **改动**：
 - 为评分按钮添加 `aria-label`（包含标签、描述和快捷键）
 
+### 10. 无障碍设置面板 (`frontend/src/SettingsPage/SettingsPage.tsx`)
+
+**新增**：
+- 新的设置分类"无障碍"（设置 → 无障碍）
+- 五个无障碍选项：
+  - 减少动画
+  - 高对比度
+  - 屏幕阅读器优化
+  - 焦点指示器
+  - 大光标
+- 字体大小保留在外观设置中
+
+### 11. 无障碍图标 (`frontend/src/icons/`)
+
+**新增**：
+- `IconAccessibility.tsx` - React 组件
+- `svgs/accessibility.svg` - SVG 源文件
+
 ---
 
 ## 📊 改进效果

@@ -308,7 +308,7 @@ export const NoteDetailView = ({
           ) : (
             <Typography.Title
               heading={2}
-              style={{ marginBottom: '24px', fontSize: '32px' }}
+              style={{ marginBottom: '24px', fontSize: '28px', fontWeight: 400 }}
             >
               {note?.title}
             </Typography.Title>

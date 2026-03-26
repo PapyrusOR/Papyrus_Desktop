@@ -412,7 +412,7 @@ export default function FlashcardStudy({ onExit, demo = false }: FlashcardStudyP
           icon={<div style={{ fontSize: '64px' }}>🎉</div>}
           description={
             <div style={{ textAlign: 'center' }}>
-              <Typography.Title heading={3} style={{ marginBottom: '8px' }}>
+              <Typography.Title heading={3} style={{ marginBottom: '8px', fontWeight: 200, fontSize: '16px' }}>
                 {isDemo ? '演示结束！' : '今日复习完成！'}
               </Typography.Title>
               <Typography.Text type="secondary">

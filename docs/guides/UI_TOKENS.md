@@ -47,8 +47,9 @@ const { Title, Text, Paragraph } = Typography;
 
 | heading | 字号 | 字重 | 用途 |
 |---------|------|------|------|
-| heading={3} | 24px | 600 | 页面主标题 |
-| heading={4} | 20px | 600 | 页面副标题 |
+| heading={1} | 40px | 600 | 页面主标题（最重，最突出） |
+| heading={2} | 28px | 400 | 区块标题（中等层次） |
+| heading={3} | 16px | 200 | 子区块标题（轻盈） |
 | heading={6} | 16px | 600 | 表单标签、小标题 |
 
 #### 正文 (Text)
@@ -90,9 +91,10 @@ const { Title, Text, Paragraph } = Typography;
 
 | 值 | 名称 | 用途 |
 |----|------|------|
-| 400 | Regular | 正文、辅助文字 |
+| 200 | Extra Light | H3 子标题，轻盈感 |
+| 400 | Regular | 正文、辅助文字、H2 区块标题 |
 | 500 | Medium | 按钮文字 |
-| 600 | Semibold | 标题、加粗文字 |
+| 600 | Semibold | H1 页面主标题、表单标签、强调 |
 
 ### 使用示例
 

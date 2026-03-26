@@ -43,6 +43,7 @@ import {
   IconArrowLeft,
   IconImage,
 } from '@arco-design/web-react/icon';
+import IconAccessibility from '../icons/IconAccessibility';
 
 import './SettingsPage.css';
 import { useSceneryManager, usePageScenery, useStartPageScenery, type PageType, loadStartPageScenery, saveStartPageScenery, type StartPageSceneryConfig } from '../hooks/useScenery';
@@ -88,6 +89,13 @@ const SETTING_CATEGORIES = [
     desc: '键盘快捷键设置',
     icon: IconEdit,
     color: '#FF7D00',
+  },
+  {
+    key: 'accessibility',
+    title: '无障碍',
+    desc: '视觉辅助、动画、对比度',
+    icon: IconAccessibility,
+    color: '#86909C',
   },
   {
     key: 'data',
@@ -295,6 +303,13 @@ const SettingsPage = () => {
     toggleSidebar: 'Ctrl+B',
   });
 
+  // 无障碍设置状态
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [highContrast, setHighContrast] = useState(false);
+  const [screenReaderOptimized, setScreenReaderOptimized] = useState(false);
+  const [focusIndicator, setFocusIndicator] = useState(true);
+  const [largeCursor, setLargeCursor] = useState(false);
+
   const filtered = providers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
   const selected = providers.find(p => p.id === selectedId);
 
@@ -448,19 +463,12 @@ const SettingsPage = () => {
 
   // 分类卡片组件
   const CategoryCard = ({ category }: { category: typeof SETTING_CATEGORIES[0] }) => {
-    const [hovered, setHovered] = useState(false);
     const Icon = category.icon;
 
     return (
       <div
         className="settings-category-card"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         onClick={() => setActiveCategory(category.key)}
-        style={{
-          background: 'var(--color-bg-1)',
-          boxShadow: hovered ? `0 8px 24px rgba(0, 0, 0, 0.12)` : '0 2px 8px rgba(0, 0, 0, 0.04)',
-        }}
       >
         <div 
           className="settings-category-icon"
@@ -1111,6 +1119,68 @@ const SettingsPage = () => {
     </div>
   );
 
+  // 无障碍设置
+  const AccessibilityView = () => (
+    <div className="settings-detail">
+      <div className="settings-detail-header-row">
+        <Button 
+          type="text" 
+          icon={<IconArrowLeft />}
+          onClick={() => setActiveCategory(null)}
+          className="settings-back-btn"
+        >
+          返回
+        </Button>
+      </div>
+      <Title heading={2} className="settings-detail-title">无障碍</Title>
+      
+      <div className="settings-section">
+        <SettingItem 
+          title="减少动画" 
+          desc="减弱界面动画效果，适用于对动画敏感的用户"
+        >
+          <Switch checked={reduceMotion} onChange={setReduceMotion} />
+        </SettingItem>
+
+        <SettingItem 
+          title="高对比度" 
+          desc="增强文字与背景的对比度，提高可读性"
+        >
+          <Switch checked={highContrast} onChange={setHighContrast} />
+        </SettingItem>
+
+        <SettingItem 
+          title="屏幕阅读器优化" 
+          desc="优化界面元素，提供更好的屏幕阅读器体验"
+        >
+          <Switch checked={screenReaderOptimized} onChange={setScreenReaderOptimized} />
+        </SettingItem>
+
+        <SettingItem 
+          title="焦点指示器" 
+          desc="始终显示键盘焦点高亮，方便键盘导航"
+        >
+          <Switch checked={focusIndicator} onChange={setFocusIndicator} />
+        </SettingItem>
+
+        <SettingItem 
+          title="大光标" 
+          desc="放大鼠标指针，方便视力不佳的用户"
+          divider={false}
+        >
+          <Switch checked={largeCursor} onChange={setLargeCursor} />
+        </SettingItem>
+      </div>
+
+      <div className="settings-tip">
+        <IconAccessibility style={{ color: '#86909C' }} />
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          这些设置可以帮助您更舒适地使用应用。字体大小调整请前往外观设置。
+        </Text>
+      </div>
+    </div>
+  );
+
   // 数据设置
   const DataView = () => (
     <div className="settings-detail">
@@ -1205,6 +1275,7 @@ const SettingsPage = () => {
       {activeCategory === 'chat' && <ChatView />}
       {activeCategory === 'mcp' && <McpView />}
       {activeCategory === 'shortcuts' && <ShortcutsView />}
+      {activeCategory === 'accessibility' && <AccessibilityView />}
       {activeCategory === 'data' && <DataView />}
 
       {/* 添加 Provider 弹窗 */}

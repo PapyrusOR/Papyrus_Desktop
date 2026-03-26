@@ -39,7 +39,7 @@ export const NoteListView = ({
         <div>
           <Typography.Title 
             heading={1} 
-            style={{ fontWeight: 400, lineHeight: 1, margin: 0, fontSize: '40px' }}
+            style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px' }}
           >
             笔记库
           </Typography.Title>
