@@ -27,7 +27,7 @@
 
 /* 主页面 */
 .settings-main {
-  padding: 48px 64px 64px;
+  padding: 64px 48px 64px;
   min-height: 100%;
 }
 
@@ -97,7 +97,7 @@
 
 /* 详情页面 */
 .settings-detail {
-  padding: 48px 64px 64px;
+  padding: 64px 48px 64px;
   min-height: 100%;
   max-width: 800px;
 }

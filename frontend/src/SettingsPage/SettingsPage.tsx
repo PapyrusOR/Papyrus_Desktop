@@ -527,7 +527,7 @@ const SettingsPage = () => {
   // 主页面 - 分类网格
   const MainView = () => (
     <div className="settings-main">
-      <Title heading={1} className="settings-page-title">设置</Title>
+      <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>设置</Title>
       <div className="settings-categories-grid">
         {SETTING_CATEGORIES.map(category => (
           <CategoryCard key={category.key} category={category} />
