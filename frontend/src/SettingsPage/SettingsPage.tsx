@@ -1069,13 +1069,6 @@ const SettingsPage = () => {
     
     return (
       <>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text type="secondary">管理 AI 服务提供商</Text>
-          <Button type="primary" size="small" icon={<IconPlus />} onClick={() => setAddModalVisible(true)}>
-            添加供应商
-          </Button>
-        </div>
-
         {providers.map(provider => {
           const isExpanded = expandedProviders.has(provider.id);
           return (
@@ -1130,15 +1123,6 @@ const SettingsPage = () => {
 
   const ChatModelsSettings = () => (
     <>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Select value={selectedId} onChange={setSelectedId} style={{ width: 200 }}>
-          {providers.filter(p => p.enabled).map(p => (
-            <Option key={p.id} value={p.id}>{p.name}</Option>
-          ))}
-        </Select>
-        <Button type="primary" size="small" icon={<IconPlus />} onClick={() => openModelModal()}>添加模型</Button>
-      </div>
-
       {providers.find(p => p.id === selectedId)?.models.map(model => (
         <Card key={model.id} style={{ marginBottom: 10, border: currentModelId === model.id ? '1px solid #206CCF' : undefined }} bodyStyle={{ padding: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1245,9 +1229,28 @@ const SettingsPage = () => {
             padding: '48px',
           }}
         >
-          <Title heading={2} style={{ margin: '0 0 32px 0', fontWeight: 400, fontSize: '28px' }}>
-            {getCurrentTitle()}
-          </Title>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+            <Title heading={2} style={{ margin: 0, fontWeight: 400, fontSize: '28px' }}>
+              {getCurrentTitle()}
+            </Title>
+            {chatActiveMenu === 'providers' && (
+              <Button type="primary" icon={<IconPlus />} onClick={() => setAddModalVisible(true)} style={{ borderRadius: '999px', padding: '4px 16px', display: 'flex', alignItems: 'center' }}>
+                添加供应商
+              </Button>
+            )}
+            {chatActiveMenu === 'models' && (
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <Select value={selectedId} onChange={setSelectedId} style={{ width: 200 }}>
+                  {providers.filter(p => p.enabled).map(p => (
+                    <Option key={p.id} value={p.id}>{p.name}</Option>
+                  ))}
+                </Select>
+                <Button type="primary" icon={<IconPlus />} onClick={() => openModelModal()} style={{ borderRadius: '999px', padding: '4px 16px', display: 'flex', alignItems: 'center' }}>
+                  添加模型
+                </Button>
+              </div>
+            )}
+          </div>
           
           <div className="settings-section">
             {renderContent()}
