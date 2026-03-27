@@ -4,6 +4,7 @@ import './TitleBar.css';
 import { api, type SearchResult } from './api';
 import { useState } from 'react';
 import SearchBox from './SearchBox';
+import { useShortcuts } from './hooks/useShortcuts';
 
 // 快捷键提示组件
 const Shortcut = ({ keys }: { keys: string }) => (
@@ -27,6 +28,7 @@ interface TitleBarProps {
 const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) => {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importContent, setImportContent] = useState('');
+  const { getShortcutDisplay } = useShortcuts();
 
   // 处理搜索结果点击
   const handleSearchResult = (result: SearchResult) => {
@@ -106,11 +108,11 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
 
   // 保存功能
   const handleSave = () => {
-    Message.success('保存成功 (Ctrl+S)');
+    Message.success(`保存成功 (${getShortcutDisplay('save')})`);
   };
 
   const handleSaveAll = () => {
-    Message.success('全部保存成功 (Ctrl+K S)');
+    Message.success(`全部保存成功 (${getShortcutDisplay('saveAll')})`);
   };
 
   // 关闭功能
@@ -143,19 +145,19 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
         <Menu.Item key="new-note" onClick={handleNewNote} style={{ width: 260 }}>
           <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
             新建笔记
-            <Shortcut keys="Ctrl+N" />
+            <Shortcut keys={getShortcutDisplay('newNote')} />
           </span>
         </Menu.Item>
         <Menu.Item key="new-card" onClick={handleNewCard} style={{ width: 260 }}>
           <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
             新建卡片
-            <Shortcut keys="Ctrl+Shift+C" />
+            <Shortcut keys={getShortcutDisplay('newCard')} />
           </span>
         </Menu.Item>
         <Menu.Item key="new-window" onClick={handleNewWindow} style={{ width: 260 }}>
           <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
             新建窗口
-            <Shortcut keys="Ctrl+Shift+N" />
+            <Shortcut keys={getShortcutDisplay('newWindow')} />
           </span>
         </Menu.Item>
       </Menu.SubMenu>
@@ -167,19 +169,19 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
         <Menu.Item key="open-notes" onClick={handleOpenNotes} style={{ width: 260 }}>
           <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
             打开笔记页
-            <Shortcut keys="Ctrl+O" />
+            <Shortcut keys={getShortcutDisplay('openNotes')} />
           </span>
         </Menu.Item>
         <Menu.Item key="open-files" onClick={handleOpenFiles} style={{ width: 260 }}>
           <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
             打开文件库
-            <Shortcut keys="Ctrl+K O" />
+            <Shortcut keys={getShortcutDisplay('openFiles')} />
           </span>
         </Menu.Item>
         <Menu.Item key="open-review" onClick={handleOpenReview} style={{ width: 260 }}>
           <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
             开始复习
-            <Shortcut keys="Ctrl+R" />
+            <Shortcut keys={getShortcutDisplay('openReview')} />
           </span>
         </Menu.Item>
         <Menu.SubMenu key="recent" title="打开最近的文件" style={{ width: 260 }}>
@@ -193,7 +195,7 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
       <Menu.Item key="import" onClick={handleImportTxt}>
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           从文本导入卡片...
-          <Shortcut keys="Ctrl+Shift+I" />
+          <Shortcut keys={getShortcutDisplay('importTxt')} />
         </span>
       </Menu.Item>
       
@@ -203,13 +205,13 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
       <Menu.Item key="save" onClick={handleSave}>
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           保存
-          <Shortcut keys="Ctrl+S" />
+          <Shortcut keys={getShortcutDisplay('save')} />
         </span>
       </Menu.Item>
       <Menu.Item key="save-all" onClick={handleSaveAll}>
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           全部保存
-          <Shortcut keys="Ctrl+K S" />
+          <Shortcut keys={getShortcutDisplay('saveAll')} />
         </span>
       </Menu.Item>
       
@@ -219,7 +221,7 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
       <Menu.Item key="preferences" onClick={handlePreferences}>
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           首选项
-          <Shortcut keys="Ctrl+," />
+          <Shortcut keys={getShortcutDisplay('preferences')} />
         </span>
       </Menu.Item>
       
@@ -229,13 +231,13 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
       <Menu.Item key="close-editor" onClick={handleCloseEditor}>
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           关闭编辑器
-          <Shortcut keys="Ctrl+F4" />
+          <Shortcut keys={getShortcutDisplay('closeEditor')} />
         </span>
       </Menu.Item>
       <Menu.Item key="exit" onClick={handleExit}>
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           退出
-          <Shortcut keys="Alt+F4" />
+          <Shortcut keys={getShortcutDisplay('exit')} />
         </span>
       </Menu.Item>
     </Menu>
@@ -247,45 +249,45 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
       <Menu.Item key="undo">
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           撤销
-          <Shortcut keys="Ctrl+Z" />
+          <Shortcut keys={getShortcutDisplay('undo')} />
         </span>
       </Menu.Item>
       <Menu.Item key="redo">
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           重做
-          <Shortcut keys="Ctrl+Y" />
+          <Shortcut keys={getShortcutDisplay('redo')} />
         </span>
       </Menu.Item>
       <Divider style={{ margin: '4px 0' }} />
       <Menu.Item key="cut">
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           剪切
-          <Shortcut keys="Ctrl+X" />
+          <Shortcut keys={getShortcutDisplay('cut')} />
         </span>
       </Menu.Item>
       <Menu.Item key="copy">
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           复制
-          <Shortcut keys="Ctrl+C" />
+          <Shortcut keys={getShortcutDisplay('copy')} />
         </span>
       </Menu.Item>
       <Menu.Item key="paste">
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           粘贴
-          <Shortcut keys="Ctrl+V" />
+          <Shortcut keys={getShortcutDisplay('paste')} />
         </span>
       </Menu.Item>
       <Divider style={{ margin: '4px 0' }} />
       <Menu.Item key="select-all">
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           全选
-          <Shortcut keys="Ctrl+A" />
+          <Shortcut keys={getShortcutDisplay('selectAll')} />
         </span>
       </Menu.Item>
       <Menu.Item key="find">
         <span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
           查找
-          <Shortcut keys="Ctrl+F" />
+          <Shortcut keys={getShortcutDisplay('find')} />
         </span>
       </Menu.Item>
     </Menu>

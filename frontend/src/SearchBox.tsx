@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Input, Spin, Empty, Tag, Typography } from '@arco-design/web-react';
 import { IconSearch, IconFile, IconBook } from '@arco-design/web-react/icon';
 import { api, type SearchResult } from './api';
+import { useShortcuts } from './hooks/useShortcuts';
 
 interface SearchBoxProps {
   onResultClick?: (result: SearchResult) => void;
@@ -12,6 +13,7 @@ interface SearchBoxProps {
 const { Text } = Typography;
 
 const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: SearchBoxProps) => {
+  const { getShortcutDisplay } = useShortcuts();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -195,7 +197,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
       <Input
         ref={inputRef}
-        placeholder="搜索 (Ctrl+K)"
+        placeholder={`搜索 (${getShortcutDisplay('search')})`}
         prefix={<IconSearch aria-hidden="true" />}
         size="small"
         value={query}
@@ -209,7 +211,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
         style={{ width: '480px' }}
         className="titlebar-search-input"
         allowClear
-        aria-label="搜索笔记和卡片，按 Ctrl+K 快速聚焦"
+        aria-label={`搜索笔记和卡片，按 ${getShortcutDisplay('search')} 快速聚焦`}
         aria-autocomplete="list"
         aria-controls={isOpen ? 'search-results-listbox' : undefined}
         aria-expanded={isOpen}
