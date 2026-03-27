@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
+  SettingsSidebar,
+} from './components';
+import {
   Input,
   Select,
   Switch,
@@ -62,7 +65,7 @@ const SETTING_CATEGORIES = [
   {
     key: 'appearance',
     title: '外观与窗景',
-    desc: '主题、颜色、字体大小、背景窗景',
+    desc: '主题、颜色、字体大小、窗景',
     icon: IconFileImage,
     color: '#206CCF',
   },
@@ -99,7 +102,7 @@ const SETTING_CATEGORIES = [
     title: '无障碍',
     desc: '视觉辅助、动画、对比度',
     icon: IconAccessibility,
-    color: '#86909C',
+    color: '#c5b507',
   },
   {
     key: 'data',
@@ -550,23 +553,19 @@ const SettingsPage = () => {
     </div>
   );
 
+  // 外观设置侧边栏子菜单项
+  const APPEARANCE_MENU_ITEMS = [
+    { key: 'theme', label: '外观', icon: IconPalette },
+    { key: 'scenery', label: '窗景', icon: IconFileImage },
+  ];
+
   // 外观设置
   const AppearanceView = () => {
-    return (
-    <div className="settings-detail">
-      <div className="settings-detail-header-row">
-        <Button 
-          type="text" 
-          icon={<IconArrowLeft />}
-          onClick={() => setActiveCategory(null)}
-          className="settings-back-btn"
-        >
-          返回
-        </Button>
-      </div>
-      <Title heading={2} className="settings-detail-title">外观与窗景</Title>
-      
-      <div className="settings-section">
+    const [activeMenu, setActiveMenu] = useState('theme');
+
+    // 外观设置内容
+    const ThemeSettings = () => (
+      <>
         <SettingItem title="主题" desc="选择应用的整体配色方案">
           <RadioGroup
             type="button"
@@ -589,7 +588,7 @@ const SettingsPage = () => {
           </div>
         </SettingItem>
 
-        <SettingItem title="字体大小" desc="调整界面文字大小">
+        <SettingItem title="字体大小" desc="调整界面文字大小" divider={false}>
           <RadioGroup
             type="button"
             value={fontSize}
@@ -597,12 +596,12 @@ const SettingsPage = () => {
             options={FONT_SIZE_OPTIONS}
           />
         </SettingItem>
+      </>
+    );
 
-      </div>
-
-      {/* 窗景设置区域 */}
-      <Title heading={3} style={{ margin: '32px 0 16px 0', fontSize: 18 }}>窗景设置</Title>
-      <div className="settings-section">
+    // 窗景设置内容
+    const ScenerySettings = () => (
+      <>
         {/* 开始界面窗景 - 使用独立 hook */}
         <div style={{ marginBottom: 24, padding: 16, border: '1px solid var(--color-border-2)', borderRadius: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -693,9 +692,59 @@ const SettingsPage = () => {
         <SinglePageScenerySettings sceneryHook={filesScenery} title="文件库界面" pageKey="files" />
         <SinglePageScenerySettings sceneryHook={extensionsScenery} title="扩展管理界面" pageKey="extensions" />
         <SinglePageScenerySettings sceneryHook={chartsScenery} title="数据图表界面" pageKey="charts" />
+      </>
+    );
+
+    const renderContent = () => {
+      switch (activeMenu) {
+        case 'theme':
+          return <ThemeSettings />;
+        case 'scenery':
+          return <ScenerySettings />;
+        default:
+          return <ThemeSettings />;
+      }
+    };
+
+    const getCurrentTitle = () => {
+      const item = APPEARANCE_MENU_ITEMS.find(item => item.key === activeMenu);
+      return item?.label || '外观';
+    };
+
+    return (
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        overflow: 'hidden',
+        position: 'relative',
+        background: 'var(--color-bg-1)',
+      }}>
+        <SettingsSidebar
+          title="外观与窗景"
+          menuItems={APPEARANCE_MENU_ITEMS}
+          activeItem={activeMenu}
+          onItemClick={setActiveMenu}
+          onBack={() => setActiveCategory(null)}
+        />
+
+        {/* 主内容区 */}
+        <div 
+          style={{ 
+            flex: 1, 
+            overflowY: 'auto', 
+            padding: '48px',
+          }}
+        >
+          <Title heading={2} style={{ margin: '0 0 32px 0', fontWeight: 400, fontSize: '28px' }}>
+            {getCurrentTitle()}
+          </Title>
+          
+          <div className="settings-section">
+            {renderContent()}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
   };
 
   // 单页面窗景设置组件
@@ -873,338 +922,221 @@ const SettingsPage = () => {
     { key: 'model', label: '模型参数', icon: IconRobot },
   ];
 
-  // 聊天设置
-  const ChatView = () => {
-    const [sidebarWidth, setSidebarWidth] = useState(200);
-    const [isResizing, setIsResizing] = useState(false);
-    const [activeMenuItem, setActiveMenuItem] = useState('general');
-    const contentRef = useRef<HTMLDivElement>(null);
+  // 聊天设置 - 通用设置内容
+  const ChatGeneralSettings = () => (
+    <>
+      <SettingItem title="Agent 模式" desc="启用工具调用功能，AI 可以操作卡片和笔记">
+        <Switch 
+          checked={agentModeEnabled && currentModelSupportTools}
+          onChange={setAgentModeEnabled}
+          disabled={!currentModelSupportTools}
+        />
+      </SettingItem>
 
-    // 侧边栏拖拽调整
-    const handleMouseDown = useCallback((e: React.MouseEvent) => {
-      setIsResizing(true);
-      const startX = e.clientX;
-      const startWidth = sidebarWidth;
-
-      const handleMouseMove = (e: MouseEvent) => {
-        const delta = e.clientX - startX;
-        const newWidth = Math.max(160, Math.min(320, startWidth + delta));
-        setSidebarWidth(newWidth);
-      };
-
-      const handleMouseUp = () => {
-        setIsResizing(false);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }, [sidebarWidth]);
-
-    // 点击菜单项滚动到对应区域
-    const handleMenuClick = useCallback((key: string) => {
-      setActiveMenuItem(key);
-      const element = document.getElementById(`chat-section-${key}`);
-      if (element && contentRef.current) {
-        const container = contentRef.current;
-        const offsetTop = element.offsetTop - 24;
-        container.scrollTo({ top: offsetTop, behavior: 'smooth' });
-      }
-    }, []);
-
-    // 监听滚动更新激活状态
-    useEffect(() => {
-      const container = contentRef.current;
-      if (!container) return;
-
-      const handleScroll = () => {
-        const scrollTop = container.scrollTop;
-        const sections = CHAT_MENU_ITEMS.map(item => ({
-          key: item.key,
-          element: document.getElementById(`chat-section-${item.key}`),
-        }));
-
-        for (let i = sections.length - 1; i >= 0; i--) {
-          const section = sections[i];
-          if (section.element && section.element.offsetTop - 48 <= scrollTop) {
-            setActiveMenuItem(section.key);
-            break;
-          }
-        }
-      };
-
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    return (
-    <div style={{ 
-      flex: 1, 
-      display: 'flex', 
-      overflow: 'hidden',
-      position: 'relative',
-      background: 'var(--color-bg-1)',
-    }}>
-      {/* 次要侧边栏 */}
-      <div
-        style={{
-          width: `${sidebarWidth}px`,
-          height: '100%',
-          borderRight: '1px solid var(--color-border-2)',
-          background: 'var(--color-bg-1)',
-          display: 'flex',
-          flexDirection: 'column',
-          flexShrink: 0,
-        }}
-      >
-        {/* 标题栏 */}
-        <div
-          style={{
-            padding: '16px',
-            borderBottom: '1px solid var(--color-border-2)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <Button 
-            type="text" 
-            icon={<IconArrowLeft />}
-            onClick={() => setActiveCategory(null)}
-            style={{ padding: 0, fontSize: 14 }}
-          />
-          <Text style={{ fontSize: '14px', fontWeight: 500 }}>聊天设置</Text>
+      {!currentModelSupportTools && currentModel && (
+        <div className="settings-warning-tip">
+          <IconBulb style={{ color: '#FF7D00' }} />
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            当前选中的模型 "{currentModel.name}" 不支持工具调用
+          </Text>
         </div>
+      )}
 
-        {/* 菜单项 */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-          {CHAT_MENU_ITEMS.map(item => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.key}
-                onClick={() => handleMenuClick(item.key)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 12px',
-                  cursor: 'pointer',
-                  borderRadius: '8px',
-                  marginBottom: '4px',
-                  background: activeMenuItem === item.key ? '#206CCF15' : 'transparent',
-                  color: activeMenuItem === item.key ? '#206CCF' : 'var(--color-text-1)',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  if (activeMenuItem !== item.key) {
-                    e.currentTarget.style.background = 'var(--color-fill-2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (activeMenuItem !== item.key) {
-                    e.currentTarget.style.background = 'transparent';
-                  }
-                }}
-              >
-                <Icon style={{ fontSize: 16 }} />
-                <Text style={{ 
-                  fontSize: 13, 
-                  color: activeMenuItem === item.key ? '#206CCF' : 'inherit',
-                  fontWeight: activeMenuItem === item.key ? 500 : 400,
-                }}>
-                  {item.label}
-                </Text>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <SettingItem title="显示时间戳" desc="在消息旁显示发送时间">
+        <Switch checked={showTimestamp} onChange={setShowTimestamp} />
+      </SettingItem>
 
-      {/* 拖拽条 */}
-      <div
-        onMouseDown={handleMouseDown}
-        style={{
-          width: '4px',
-          cursor: isResizing ? 'col-resize' : 'ew-resize',
-          background: isResizing ? '#206CCF' : 'transparent',
-          transition: 'background 0.2s',
-          flexShrink: 0,
-        }}
-        onMouseEnter={(e) => {
-          if (!isResizing) e.currentTarget.style.background = 'var(--color-border-2)';
-        }}
-        onMouseLeave={(e) => {
-          if (!isResizing) e.currentTarget.style.background = 'transparent';
-        }}
-      />
+      <SettingItem title="自动滚动" desc="新消息到来时自动滚动到底部">
+        <Switch checked={autoScroll} onChange={setAutoScroll} />
+      </SettingItem>
 
-      {/* 主内容区 */}
-      <div 
-        ref={contentRef}
-        style={{ 
-          flex: 1, 
-          overflowY: 'auto', 
-          padding: '48px',
-        }}
-      >
-        <Title heading={2} style={{ margin: '0 0 32px 0', fontWeight: 400, fontSize: '28px' }}>聊天</Title>
-        
-        <div id="chat-section-general" className="settings-section">
-          <Title heading={4} className="settings-section-title">通用设置</Title>
-          <SettingItem title="Agent 模式" desc="启用工具调用功能，AI 可以操作卡片和笔记">
+      <SettingItem title="Enter 发送" desc="按 Enter 键发送消息，Shift+Enter 换行" divider={false}>
+        <Switch checked={sendOnEnter} onChange={setSendOnEnter} />
+      </SettingItem>
+    </>
+  );
+
+  // 聊天设置 - 自动补全内容
+  const ChatCompletionSettings = () => (
+    <>
+      <SettingItem title="笔记自动补全" desc="启用 AI 驱动的笔记内容自动补全功能">
+        <Switch checked={completionEnabled} onChange={setCompletionEnabled} />
+      </SettingItem>
+
+      {completionEnabled && (
+        <>
+          <SettingItem title="二次确认模式" desc="开启后需按 Tab 触发补全，Enter 确认；关闭时输入自动显示补全，Tab 直接接受">
             <Switch 
-              checked={agentModeEnabled && currentModelSupportTools}
-              onChange={setAgentModeEnabled}
-              disabled={!currentModelSupportTools}
+              checked={completionRequireConfirm} 
+              onChange={(checked) => {
+                setCompletionRequireConfirm(checked);
+                fetch('/api/completion/config', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    enabled: completionEnabled,
+                    require_confirm: checked,
+                    trigger_delay: completionTriggerDelay,
+                    max_tokens: completionMaxTokens,
+                  }),
+                });
+              }}
             />
           </SettingItem>
 
-          {!currentModelSupportTools && currentModel && (
-            <div className="settings-warning-tip">
-              <IconBulb style={{ color: '#FF7D00' }} />
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                当前选中的模型 "{currentModel.name}" 不支持工具调用
-              </Text>
-            </div>
-          )}
-
-          <SettingItem title="显示时间戳" desc="在消息旁显示发送时间">
-            <Switch checked={showTimestamp} onChange={setShowTimestamp} />
+          <SettingItem title="触发延迟" desc="实时预览模式下的防抖延迟（毫秒）">
+            <Slider
+              min={200}
+              max={2000}
+              step={100}
+              value={completionTriggerDelay}
+              onChange={(val) => {
+                setCompletionTriggerDelay(val as number);
+                fetch('/api/completion/config', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    enabled: completionEnabled,
+                    require_confirm: completionRequireConfirm,
+                    trigger_delay: val,
+                    max_tokens: completionMaxTokens,
+                  }),
+                });
+              }}
+              style={{ width: 200 }}
+            />
           </SettingItem>
 
-          <SettingItem title="自动滚动" desc="新消息到来时自动滚动到底部">
-            <Switch checked={autoScroll} onChange={setAutoScroll} />
+          <SettingItem title="最大补全长度" desc="每次补全的最大 token 数" divider={false}>
+            <Slider
+              min={10}
+              max={200}
+              step={10}
+              value={completionMaxTokens}
+              onChange={(val) => {
+                setCompletionMaxTokens(val as number);
+                fetch('/api/completion/config', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    enabled: completionEnabled,
+                    require_confirm: completionRequireConfirm,
+                    trigger_delay: completionTriggerDelay,
+                    max_tokens: val,
+                  }),
+                });
+              }}
+              style={{ width: 200 }}
+            />
           </SettingItem>
-
-          <SettingItem title="Enter 发送" desc="按 Enter 键发送消息，Shift+Enter 换行" divider={false}>
-            <Switch checked={sendOnEnter} onChange={setSendOnEnter} />
-          </SettingItem>
-        </div>
-
-        <div id="chat-section-completion" className="settings-section">
-          <Title heading={4} className="settings-section-title">自动补全</Title>
-          <SettingItem title="笔记自动补全" desc="启用 AI 驱动的笔记内容自动补全功能">
-            <Switch checked={completionEnabled} onChange={setCompletionEnabled} />
-          </SettingItem>
-
-          {completionEnabled && (
-            <>
-              <SettingItem title="二次确认模式" desc="开启后需按 Tab 触发补全，Enter 确认；关闭时输入自动显示补全，Tab 直接接受">
-                <Switch 
-                  checked={completionRequireConfirm} 
-                  onChange={(checked) => {
-                    setCompletionRequireConfirm(checked);
-                    fetch('/api/completion/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        enabled: completionEnabled,
-                        require_confirm: checked,
-                        trigger_delay: completionTriggerDelay,
-                        max_tokens: completionMaxTokens,
-                      }),
-                    });
-                  }}
-                />
-              </SettingItem>
-
-              <SettingItem title="触发延迟" desc="实时预览模式下的防抖延迟（毫秒）">
-                <Slider
-                  min={200}
-                  max={2000}
-                  step={100}
-                  value={completionTriggerDelay}
-                  onChange={(val) => {
-                    setCompletionTriggerDelay(val as number);
-                    fetch('/api/completion/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        enabled: completionEnabled,
-                        require_confirm: completionRequireConfirm,
-                        trigger_delay: val,
-                        max_tokens: completionMaxTokens,
-                      }),
-                    });
-                  }}
-                  style={{ width: 200 }}
-                />
-              </SettingItem>
-
-              <SettingItem title="最大补全长度" desc="每次补全的最大 token 数" divider={false}>
-                <Slider
-                  min={10}
-                  max={200}
-                  step={10}
-                  value={completionMaxTokens}
-                  onChange={(val) => {
-                    setCompletionMaxTokens(val as number);
-                    fetch('/api/completion/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        enabled: completionEnabled,
-                        require_confirm: completionRequireConfirm,
-                        trigger_delay: completionTriggerDelay,
-                        max_tokens: val,
-                      }),
-                    });
-                  }}
-                  style={{ width: 200 }}
-                />
-              </SettingItem>
-            </>
-          )}
-        </div>
-
-        <div id="chat-section-model" className="settings-section">
-          <Title heading={4} className="settings-section-title">模型参数</Title>
-          
-          <div className="settings-form-row">
-            <Text className="settings-form-label">当前模型</Text>
-            <Select 
-              value={currentModelId} 
-              onChange={setCurrentModelId}
-              style={{ width: 280 }}
-            >
-              {providers.filter(p => p.enabled).map(p => (
-                <OptGroup key={p.id} label={p.name}>
-                {p.models.filter(m => m.enabled).map(m => (
-                  <Option key={m.id} value={m.id}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {m.name}
-                      {renderCapabilityIcons(m.capabilities)}
-                    </span>
-                  </Option>
-                ))}
-              </OptGroup>
-            ))}
-          </Select>
-        </div>
-
-        {[
-          { label: 'Temperature', min: 0, max: 2, step: 0.1, default: 0.7 },
-          { label: 'Top P', min: 0, max: 1, step: 0.1, default: 0.9 },
-          { label: 'Max Tokens', min: 100, max: 8000, step: 100, default: 2000 },
-        ].map(item => (
-          <div key={item.label} className="settings-slider-row">
-            <Text className="settings-form-label">{item.label}</Text>
-            <div className="settings-slider-control">
-              <Slider min={item.min} max={item.max} step={item.step} defaultValue={item.default} style={{ flex: 1 }} />
-              <InputNumber min={item.min} max={item.max} step={item.step} defaultValue={item.default} style={{ width: 80 }} />
-            </div>
-          </div>
-        ))}
-
-        <Button type="primary" shape="round" style={{ marginTop: 16 }}>
-          保存参数
-        </Button>
-      </div>
-    </div>
-  </div>
+        </>
+      )}
+    </>
   );
+
+  // 聊天设置 - 模型参数内容
+  const ChatModelSettings = () => (
+    <>
+      <div className="settings-form-row">
+        <Text className="settings-form-label">当前模型</Text>
+        <Select 
+          value={currentModelId} 
+          onChange={setCurrentModelId}
+          style={{ width: 280 }}
+        >
+          {providers.filter(p => p.enabled).map(p => (
+            <OptGroup key={p.id} label={p.name}>
+              {p.models.filter(m => m.enabled).map(m => (
+                <Option key={m.id} value={m.id}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {m.name}
+                    {renderCapabilityIcons(m.capabilities)}
+                  </span>
+                </Option>
+              ))}
+            </OptGroup>
+          ))}
+        </Select>
+      </div>
+
+      {[
+        { label: 'Temperature', min: 0, max: 2, step: 0.1, default: 0.7 },
+        { label: 'Top P', min: 0, max: 1, step: 0.1, default: 0.9 },
+        { label: 'Max Tokens', min: 100, max: 8000, step: 100, default: 2000 },
+      ].map(item => (
+        <div key={item.label} className="settings-slider-row">
+          <Text className="settings-form-label">{item.label}</Text>
+          <div className="settings-slider-control">
+            <Slider min={item.min} max={item.max} step={item.step} defaultValue={item.default} style={{ flex: 1 }} />
+            <InputNumber min={item.min} max={item.max} step={item.step} defaultValue={item.default} style={{ width: 80 }} />
+          </div>
+        </div>
+      ))}
+
+      <Button type="primary" shape="round" style={{ marginTop: 16 }}>
+        保存参数
+      </Button>
+    </>
+  );
+
+  // 聊天设置主组件
+  const ChatView = () => {
+    const [activeMenu, setActiveMenu] = useState('general');
+
+    // 根据当前菜单渲染对应内容
+    const renderContent = () => {
+      switch (activeMenu) {
+        case 'general':
+          return <ChatGeneralSettings />;
+        case 'completion':
+          return <ChatCompletionSettings />;
+        case 'model':
+          return <ChatModelSettings />;
+        default:
+          return <ChatGeneralSettings />;
+      }
+    };
+
+    // 获取当前菜单标题
+    const getCurrentTitle = () => {
+      const item = CHAT_MENU_ITEMS.find(item => item.key === activeMenu);
+      return item?.label || '通用设置';
+    };
+
+    return (
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        overflow: 'hidden',
+        position: 'relative',
+        background: 'var(--color-bg-1)',
+      }}>
+        <SettingsSidebar
+          title="聊天设置"
+          menuItems={CHAT_MENU_ITEMS}
+          activeItem={activeMenu}
+          onItemClick={setActiveMenu}
+          onBack={() => setActiveCategory(null)}
+        />
+
+        {/* 主内容区 */}
+        <div 
+          style={{ 
+            flex: 1, 
+            overflowY: 'auto', 
+            padding: '48px',
+          }}
+        >
+          <Title heading={2} style={{ margin: '0 0 32px 0', fontWeight: 400, fontSize: '28px' }}>
+            {getCurrentTitle()}
+          </Title>
+          
+          <div className="settings-section">
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // MCP 服务设置
