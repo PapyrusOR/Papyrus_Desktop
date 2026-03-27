@@ -170,6 +170,7 @@ interface Model {
   enabled: boolean;
   port: string;
   capabilities: string[];
+  apiKeyId?: string;
 }
 
 interface ApiKeyItem {
@@ -197,9 +198,9 @@ const defaultProviders: Provider[] = [
     apiKeys: [{id: '1', name: 'default', key: ''}], 
     baseUrl: 'https://api.openai.com/v1', 
     models: [
-      { id: 'm1', name: 'GPT-4o', modelId: 'gpt-4o', enabled: true, port: 'openai', capabilities: ['tools', 'vision'] },
-      { id: 'm2', name: 'GPT-4 Turbo', modelId: 'gpt-4-turbo', enabled: true, port: 'openai', capabilities: ['tools'] },
-      { id: 'm3', name: 'GPT-3.5 Turbo', modelId: 'gpt-3.5-turbo', enabled: true, port: 'openai', capabilities: ['tools'] },
+      { id: 'm1', name: 'GPT-4o', modelId: 'gpt-4o', enabled: true, port: 'openai', capabilities: ['tools', 'vision'], apiKeyId: '1' },
+      { id: 'm2', name: 'GPT-4 Turbo', modelId: 'gpt-4-turbo', enabled: true, port: 'openai', capabilities: ['tools'], apiKeyId: '1' },
+      { id: 'm3', name: 'GPT-3.5 Turbo', modelId: 'gpt-3.5-turbo', enabled: true, port: 'openai', capabilities: ['tools'], apiKeyId: '1' },
     ], 
     enabled: true, 
     isDefault: true 
@@ -211,8 +212,8 @@ const defaultProviders: Provider[] = [
     apiKeys: [{id: '1', name: 'default', key: ''}], 
     baseUrl: 'https://generativelanguage.googleapis.com', 
     models: [
-      { id: 'm4', name: 'Gemini 2.5 Flash', modelId: 'gemini-2.5-flash', enabled: true, port: 'gemini', capabilities: ['tools', 'vision'] },
-      { id: 'm5', name: 'Gemini 2.5 Pro', modelId: 'gemini-2.5-pro', enabled: true, port: 'gemini', capabilities: ['tools', 'vision', 'reasoning'] },
+      { id: 'm4', name: 'Gemini 2.5 Flash', modelId: 'gemini-2.5-flash', enabled: true, port: 'gemini', capabilities: ['tools', 'vision'], apiKeyId: '1' },
+      { id: 'm5', name: 'Gemini 2.5 Pro', modelId: 'gemini-2.5-pro', enabled: true, port: 'gemini', capabilities: ['tools', 'vision', 'reasoning'], apiKeyId: '1' },
     ], 
     enabled: false, 
     isDefault: false 
@@ -224,8 +225,8 @@ const defaultProviders: Provider[] = [
     apiKeys: [{id: '1', name: 'default', key: ''}], 
     baseUrl: 'https://api.deepseek.com', 
     models: [
-      { id: 'm6', name: 'DeepSeek Chat', modelId: 'deepseek-chat', enabled: true, port: 'openai', capabilities: [] },
-      { id: 'm7', name: 'DeepSeek R1', modelId: 'deepseek-reasoner', enabled: true, port: 'openai', capabilities: ['reasoning'] },
+      { id: 'm6', name: 'DeepSeek Chat', modelId: 'deepseek-chat', enabled: true, port: 'openai', capabilities: [], apiKeyId: '1' },
+      { id: 'm7', name: 'DeepSeek R1', modelId: 'deepseek-reasoner', enabled: true, port: 'openai', capabilities: ['reasoning'], apiKeyId: '1' },
     ], 
     enabled: false, 
     isDefault: false 
@@ -237,8 +238,8 @@ const defaultProviders: Provider[] = [
     apiKeys: [{id: '1', name: 'default', key: ''}], 
     baseUrl: 'https://api.anthropic.com/v1', 
     models: [
-      { id: 'm8', name: 'Claude 3.5 Sonnet', modelId: 'claude-3-5-sonnet-20241022', enabled: true, port: 'anthropic', capabilities: ['tools', 'vision'] },
-      { id: 'm9', name: 'Claude 3 Opus', modelId: 'claude-3-opus-20240229', enabled: false, port: 'anthropic', capabilities: ['tools', 'vision'] },
+      { id: 'm8', name: 'Claude 3.5 Sonnet', modelId: 'claude-3-5-sonnet-20241022', enabled: true, port: 'anthropic', capabilities: ['tools', 'vision'], apiKeyId: '1' },
+      { id: 'm9', name: 'Claude 3 Opus', modelId: 'claude-3-opus-20240229', enabled: false, port: 'anthropic', capabilities: ['tools', 'vision'], apiKeyId: '1' },
     ], 
     enabled: false, 
     isDefault: false 
@@ -250,7 +251,7 @@ const defaultProviders: Provider[] = [
     apiKeys: [{id: '1', name: 'default', key: ''}], 
     baseUrl: 'https://api.moonshot.cn/v1', 
     models: [
-      { id: 'm10', name: 'Kimi K2.5', modelId: 'kimi-k2.5', enabled: true, port: 'openai', capabilities: [] },
+      { id: 'm10', name: 'Kimi K2.5', modelId: 'kimi-k2.5', enabled: true, port: 'openai', capabilities: [], apiKeyId: '1' },
     ], 
     enabled: false, 
     isDefault: false 
@@ -276,6 +277,7 @@ const SettingsPage = () => {
   const [editingModel, setEditingModel] = useState<Model | null>(null);
   const [modelModalVisible, setModelModalVisible] = useState(false);
   const [modelForm] = Form.useForm();
+  const [modelFormProviderId, setModelFormProviderId] = useState<string>('');
 
   // 外观设置状态
   const [theme, setTheme] = useState('light');
@@ -403,7 +405,17 @@ const SettingsPage = () => {
 
   const saveModel = () => {
     modelForm.validate().then((values: any) => {
-      if (!selected) return;
+      // 手动验证必填字段
+      const errors: string[] = [];
+      if (!values.name?.trim()) errors.push('请输入模型名称');
+      if (!values.modelId?.trim()) errors.push('请输入模型 ID');
+      
+      if (errors.length > 0) {
+        Message.error(errors[0]);
+        return;
+      }
+      
+      const targetProviderId = values.providerId || selectedId;
       
       const capabilities: string[] = [];
       if (values.cap_tools) capabilities.push('tools');
@@ -411,59 +423,103 @@ const SettingsPage = () => {
       if (values.cap_reasoning) capabilities.push('reasoning');
       
       const modelData = {
-        name: values.name,
-        modelId: values.modelId,
+        name: values.name.trim(),
+        modelId: values.modelId.trim(),
         port: values.port,
         capabilities,
+        apiKeyId: values.apiKeyId,
       };
       
       if (editingModel) {
-        updateProvider(selected.id, {
-          models: selected.models.map(m => 
-            m.id === editingModel.id 
-              ? { ...m, ...modelData }
-              : m
-          )
+        // 使用函数式更新确保基于最新状态
+        setProviders(prevProviders => {
+          const originalProvider = prevProviders.find(p => p.models.some(m => m.id === editingModel.id));
+          const targetProvider = prevProviders.find(p => p.id === targetProviderId);
+          
+          if (!targetProvider) return prevProviders;
+          
+          if (originalProvider && originalProvider.id !== targetProviderId) {
+            // 供应商改变：从原供应商删除，添加到新供应商
+            return prevProviders.map(p => {
+              if (p.id === originalProvider.id) {
+                return { ...p, models: p.models.filter(m => m.id !== editingModel.id) };
+              }
+              if (p.id === targetProviderId) {
+                const updatedModel: Model = { ...editingModel, ...modelData };
+                return { ...p, models: [...p.models, updatedModel] };
+              }
+              return p;
+            });
+          } else {
+            // 同一供应商内更新
+            return prevProviders.map(p => {
+              if (p.id === targetProviderId) {
+                return {
+                  ...p,
+                  models: p.models.map(m => 
+                    m.id === editingModel.id ? { ...m, ...modelData } : m
+                  )
+                };
+              }
+              return p;
+            });
+          }
         });
         Message.success('模型已更新');
       } else {
+        // 添加新模型
         const newModel: Model = {
           id: Date.now().toString(),
           ...modelData,
           enabled: true,
         };
-        updateProvider(selected.id, { models: [...selected.models, newModel] });
+        setProviders(prevProviders => 
+          prevProviders.map(p => 
+            p.id === targetProviderId 
+              ? { ...p, models: [...p.models, newModel] }
+              : p
+          )
+        );
         Message.success('模型添加成功');
       }
       
       setModelModalVisible(false);
       modelForm.resetFields();
       setEditingModel(null);
+      setModelFormProviderId('');
     });
   };
 
-  const deleteModel = (modelId: string) => {
-    if (!selected) return;
-    updateProvider(selected.id, { 
-      models: selected.models.filter(m => m.id !== modelId) 
+  const deleteModel = (providerId: string, modelId: string) => {
+    const provider = providers.find(p => p.id === providerId);
+    if (!provider) return;
+    updateProvider(providerId, { 
+      models: provider.models.filter(m => m.id !== modelId) 
     });
     Message.success('模型已删除');
   };
 
-  const toggleModel = (modelId: string, enabled: boolean) => {
-    if (!selected) return;
-    updateProvider(selected.id, {
-      models: selected.models.map(m => m.id === modelId ? { ...m, enabled } : m)
+  const toggleModel = (providerId: string, modelId: string, enabled: boolean) => {
+    const provider = providers.find(p => p.id === providerId);
+    if (!provider) return;
+    updateProvider(providerId, {
+      models: provider.models.map(m => m.id === modelId ? { ...m, enabled } : m)
     });
   };
 
-  const openModelModal = (model?: Model) => {
+  const openModelModal = (providerId?: string, model?: Model) => {
+    const effectiveProviderId = providerId || selectedId;
+    const effectiveProvider = providers.find(p => p.id === effectiveProviderId);
+    setModelFormProviderId(effectiveProviderId);
+    
     if (model) {
       setEditingModel(model);
       modelForm.setFieldsValue({
+        providerId: effectiveProviderId,
         name: model.name,
         modelId: model.modelId,
         port: model.port,
+        apiKeyId: model.apiKeyId || '1',
         cap_tools: model.capabilities.includes('tools'),
         cap_vision: model.capabilities.includes('vision'),
         cap_reasoning: model.capabilities.includes('reasoning'),
@@ -471,7 +527,9 @@ const SettingsPage = () => {
     } else {
       setEditingModel(null);
       modelForm.resetFields();
-      modelForm.setFieldValue('port', selected?.type || 'openai');
+      modelForm.setFieldValue('providerId', effectiveProviderId);
+      modelForm.setFieldValue('port', effectiveProvider?.type || 'openai');
+      modelForm.setFieldValue('apiKeyId', effectiveProvider?.apiKeys[0]?.id || '1');
       modelForm.setFieldValue('cap_tools', false);
       modelForm.setFieldValue('cap_vision', false);
       modelForm.setFieldValue('cap_reasoning', false);
@@ -1237,27 +1295,58 @@ const SettingsPage = () => {
   };
 
   const ChatModelsSettings = () => {
-    const currentProvider = providers.find(p => p.id === selectedId);
+    const enabledProviders = providers.filter(p => p.enabled);
+    
+    if (enabledProviders.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '48px 0' }}>
+          <IconSafe style={{ fontSize: 48, color: 'var(--color-text-4)', marginBottom: 16 }} />
+          <Paragraph type="secondary" style={{ fontSize: 14 }}>
+            暂无启用的供应商，请先启用供应商后再添加模型
+          </Paragraph>
+        </div>
+      );
+    }
+    
     return (
     <>
-      {currentProvider?.models.map(model => (
-        <Card key={model.id} style={{ marginBottom: 10, border: currentModelId === model.id ? '1px solid #206CCF' : undefined }} bodyStyle={{ padding: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Text bold style={{ fontSize: 14 }}>{model.name}</Text>
-              </div>
-              <Paragraph type="secondary" style={{ fontSize: 12, margin: '4px 0 0 0' }}>{currentProvider?.name}</Paragraph>
-            </div>
-            <Space size={4}>
-              <Button type="text" size="mini" icon={<IconSafe />} onClick={() => setCurrentModelId(model.id)} disabled={currentModelId === model.id} />
-              <Button type="text" size="mini" icon={<IconEdit />} onClick={() => openModelModal(model)} />
-              <Popconfirm title="删除模型？" onOk={() => deleteModel(model.id)}>
-                <Button type="text" size="mini" icon={<IconDelete />} status="danger" />
-              </Popconfirm>
-            </Space>
+      {enabledProviders.map(provider => (
+        <div key={provider.id} style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Text bold style={{ fontSize: 16 }}>{provider.name}</Text>
+            {provider.isDefault && <Tag color="arcoblue" size="small">默认</Tag>}
           </div>
-        </Card>
+          {provider.models.map(model => {
+            const apiKey = provider.apiKeys.find(k => k.id === model.apiKeyId);
+            return (
+              <Card key={model.id} style={{ marginBottom: 10, border: currentModelId === model.id ? '1px solid #206CCF' : undefined }} bodyStyle={{ padding: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Text bold style={{ fontSize: 14 }}>{model.name}</Text>
+                      {renderCapabilityIcons(model.capabilities)}
+                    </div>
+                    <Paragraph type="secondary" style={{ fontSize: 12, margin: '4px 0 0 0' }}>
+                      Key: {apiKey?.name || 'default'} {apiKey?.key ? `(已配置)` : '(未配置)'}
+                    </Paragraph>
+                  </div>
+                  <Space size={4}>
+                    <Button type="text" size="mini" icon={<IconSafe />} onClick={() => setCurrentModelId(model.id)} disabled={currentModelId === model.id} title="设为默认" />
+                    <Button type="text" size="mini" icon={<IconEdit />} onClick={() => openModelModal(provider.id, model)} title="编辑" />
+                    <Popconfirm title="删除模型？" onOk={() => deleteModel(provider.id, model.id)}>
+                      <Button type="text" size="mini" icon={<IconDelete />} status="danger" />
+                    </Popconfirm>
+                  </Space>
+                </div>
+              </Card>
+            );
+          })}
+          {provider.models.length === 0 && (
+            <Paragraph type="secondary" style={{ fontSize: 13, margin: '8px 0' }}>
+              暂无模型，点击右上角"添加模型"按钮添加
+            </Paragraph>
+          )}
+        </div>
       ))}
     </>
   );
@@ -1356,7 +1445,19 @@ const SettingsPage = () => {
               </Button>
             )}
             {chatActiveMenu === 'models' && (
-              <Button type="primary" icon={<IconPlus />} onClick={() => openModelModal()} style={{ borderRadius: '999px', padding: '4px 16px', display: 'flex', alignItems: 'center' }}>
+              <Button 
+                type="primary" 
+                icon={<IconPlus />} 
+                onClick={() => {
+                  const enabledProvider = providers.find(p => p.enabled);
+                  if (!enabledProvider) {
+                    Message.warning('请先启用至少一个供应商');
+                    return;
+                  }
+                  openModelModal(enabledProvider.id);
+                }} 
+                style={{ borderRadius: '999px', padding: '4px 16px', display: 'flex', alignItems: 'center' }}
+              >
                 添加模型
               </Button>
             )}
@@ -1836,14 +1937,23 @@ const SettingsPage = () => {
         title={editingModel ? '编辑模型' : '添加模型'}
         visible={modelModalVisible}
         onOk={saveModel}
-        onCancel={() => { setModelModalVisible(false); modelForm.resetFields(); setEditingModel(null); }}
+        onCancel={() => { setModelModalVisible(false); modelForm.resetFields(); setEditingModel(null); setModelFormProviderId(''); }}
         autoFocus={false}
         focusLock
       >
-        <div style={{ background: '#fafafa', borderRadius: '16px', padding: '24px', border: '1px solid var(--color-border-2)' }}>
+        <div style={{ background: '#fafafa', borderRadius: '16px', padding: '16px', border: '1px solid var(--color-border-2)' }}>
         <Form form={modelForm} layout="vertical">
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>供应商</Title>} field="providerId" initialValue={selectedId}>
-            <Select style={{ borderRadius: '8px' }}>
+            <Select 
+              style={{ borderRadius: '8px' }}
+              onChange={(value) => {
+                setModelFormProviderId(value as string);
+                const provider = providers.find(p => p.id === value);
+                if (provider && provider.apiKeys.length > 0) {
+                  modelForm.setFieldValue('apiKeyId', provider.apiKeys[0].id);
+                }
+              }}
+            >
               {providers.filter(p => p.enabled).map(p => (
                 <Option key={p.id} value={p.id}>{p.name}</Option>
               ))}
@@ -1855,14 +1965,25 @@ const SettingsPage = () => {
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型 ID</Title>} field="modelId">
             <Input placeholder="实际的 API ID，如：gpt-4o" style={{ borderRadius: '8px' }} />
           </FormItem>
-          <FormItem label={<Title heading={6} style={{ margin: 0 }}>端口选择</Title>} field="port" initialValue={selected?.type || 'openai'}>
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>端口</Title>} field="port" initialValue={selected?.type || 'openai'}>
             <Select style={{ borderRadius: '8px' }}>
               {PORT_OPTIONS.map(opt => (
                 <Option key={opt.value} value={opt.value}>{opt.label}</Option>
               ))}
             </Select>
           </FormItem>
-          <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型能力</Title>}>
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>API Key 方案</Title>} field="apiKeyId">
+            <Select style={{ borderRadius: '8px' }}>
+              {(() => {
+                const providerId = modelFormProviderId || modelForm.getFieldValue('providerId') || selectedId;
+                const provider = providers.find(p => p.id === providerId);
+                return provider?.apiKeys.map(key => (
+                  <Option key={key.id} value={key.id}>{key.name || 'default'}</Option>
+                ));
+              })()}
+            </Select>
+          </FormItem>
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型能力</Title>} style={{ marginBottom: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {CAPABILITIES.map(cap => (
                 <FormItem 
@@ -1871,12 +1992,10 @@ const SettingsPage = () => {
                   style={{ marginBottom: 0 }}
                   triggerPropName="checked"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <cap.icon style={{ color: 'rgb(32, 108, 207)', fontSize: 16 }} />
-                      <Text>{cap.label}</Text>
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                     <Checkbox />
+                    <cap.icon style={{ color: 'rgb(32, 108, 207)', fontSize: 16 }} />
+                    <Text style={{ fontSize: 14 }}>{cap.label}</Text>
                   </div>
                 </FormItem>
               ))}
