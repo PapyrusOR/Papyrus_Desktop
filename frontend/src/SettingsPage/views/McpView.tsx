@@ -13,7 +13,7 @@ import {
   IconDelete,
   IconEdit,
   IconSettings,
-  IconServer,
+  IconStorage,
 } from '@arco-design/web-react/icon';
 
 const { Title, Text, Paragraph } = Typography;
@@ -31,7 +31,7 @@ interface McpViewProps {
 
 // MCP 服务侧边栏子菜单项
 const MCP_MENU_ITEMS = [
-  { key: 'servers', label: '服务列表', icon: IconServer },
+  { key: 'servers', label: '服务列表', icon: IconStorage },
   { key: 'settings', label: '高级设置', icon: IconSettings },
 ];
 

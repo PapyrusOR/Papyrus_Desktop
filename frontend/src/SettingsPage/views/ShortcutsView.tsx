@@ -7,7 +7,6 @@ import {
   IconArrowLeft,
   IconEdit,
   IconBulb,
-  IconKeyboard,
   IconCommand,
 } from '@arco-design/web-react/icon';
 
@@ -19,7 +18,7 @@ interface ShortcutsViewProps {
 
 // 快捷键设置侧边栏子菜单项
 const SHORTCUTS_MENU_ITEMS = [
-  { key: 'general', label: '通用快捷键', icon: IconKeyboard },
+  { key: 'general', label: '通用快捷键', icon: IconEdit },
   { key: 'advanced', label: '高级快捷键', icon: IconCommand },
 ];
 
