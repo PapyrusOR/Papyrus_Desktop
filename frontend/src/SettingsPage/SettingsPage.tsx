@@ -123,7 +123,7 @@ const SettingsPage = () => {
 
   // 主页面 - 分类网格
   const MainView = () => (
-    <div className="settings-main">
+    <div className="settings-main" style={{ height: '100%', overflowY: 'auto' }}>
       <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>设置</Title>
       <div className="settings-categories-grid">
         {SETTING_CATEGORIES.map(category => (

@@ -761,6 +761,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
         overflow: 'hidden',
         position: 'relative',
         background: 'var(--color-bg-1)',
+        height: '100%',
       }}>
         <SettingsSidebar
           title="聊天设置"

@@ -18,7 +18,7 @@ interface AboutViewProps {
 
 const AboutView = ({ onBack }: AboutViewProps) => {
   return (
-    <div className="settings-detail">
+    <div className="settings-detail" style={{ height: '100%', overflowY: 'auto' }}>
       <div className="settings-detail-header-row">
         <Button 
           type="text" 

@@ -419,6 +419,7 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
         overflow: 'hidden',
         position: 'relative',
         background: 'var(--color-bg-1)',
+        height: '100%',
       }}>
         <SettingsSidebar
           title="外观与窗景"

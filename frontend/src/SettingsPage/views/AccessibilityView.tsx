@@ -130,6 +130,7 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
       overflow: 'hidden',
       position: 'relative',
       background: 'var(--color-bg-1)',
+      height: '100%',
     }}>
       {/* 左侧二级菜单 */}
       <div style={{
