@@ -61,17 +61,10 @@ const RadioGroup = Radio.Group;
 const SETTING_CATEGORIES = [
   {
     key: 'appearance',
-    title: '外观',
-    desc: '主题、颜色、字体大小',
-    icon: IconPalette,
-    color: '#206CCF',
-  },
-  {
-    key: 'scenery',
-    title: '窗景',
-    desc: '各界面背景窗景设置',
+    title: '外观与窗景',
+    desc: '主题、颜色、字体大小、背景窗景',
     icon: IconFileImage,
-    color: '#722ED1',
+    color: '#206CCF',
   },
   {
     key: 'general',
@@ -550,7 +543,7 @@ const SettingsPage = () => {
           返回
         </Button>
       </div>
-      <Title heading={2} className="settings-detail-title">外观</Title>
+      <Title heading={2} className="settings-detail-title">外观与窗景</Title>
       
       <div className="settings-section">
         <SettingItem title="主题" desc="选择应用的整体配色方案">
@@ -585,27 +578,104 @@ const SettingsPage = () => {
         </SettingItem>
 
       </div>
+
+      {/* 窗景设置区域 */}
+      <Title heading={3} style={{ margin: '32px 0 16px 0', fontSize: 18 }}>窗景设置</Title>
+      <div className="settings-section">
+        {/* 开始界面窗景 - 使用独立 hook */}
+        <div style={{ marginBottom: 24, padding: 16, border: '1px solid var(--color-border-2)', borderRadius: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text style={{ fontWeight: 600, fontSize: 15 }}>开始界面</Text>
+              <Paragraph type="secondary" style={{ fontSize: 12, margin: '4px 0 0 0' }}>
+                今日完成卡片中的窗景（经典模式）
+              </Paragraph>
+            </div>
+            <Switch 
+              size="small"
+              checked={startPageScenery.config.enabled} 
+              onChange={(checked) => startPageScenery.updateConfig({ enabled: checked })}
+            />
+          </div>
+          
+          {startPageScenery.config.enabled && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border-2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 13 }}>选择窗景图片</Text>
+                <Button
+                  type="primary"
+                  size="mini"
+                  icon={<IconPlus />}
+                  onClick={() => setAddSceneryModalVisible(true)}
+                  style={{ borderRadius: '999px' }}
+                >
+                  添加图片
+                </Button>
+              </div>
+              
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {allSceneries.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => startPageScenery.updateConfig({ image: item.image, name: item.name })}
+                    style={{
+                      width: 80,
+                      height: 45,
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border: startPageScenery.config.image === item.image ? '2px solid #206CCF' : '2px solid transparent',
+                      position: 'relative',
+                    }}
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    {startPageScenery.config.image === item.image && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 2,
+                          right: 2,
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: '#206CCF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Divider style={{ margin: '24px 0' }} />
+
+        {/* 各界面窗景设置（仅设置使用，与页面独立） */}
+        <Title heading={6} style={{ margin: '0 0 16px 0', fontSize: 14, color: 'var(--color-text-2)' }}>
+          各界面窗景配置（设置专用）
+        </Title>
+        
+        <SinglePageScenerySettings sceneryHook={notesScenery} title="笔记库界面" pageKey="notes" />
+        <SinglePageScenerySettings sceneryHook={scrollScenery} title="卷轴界面" pageKey="scroll" />
+        <SinglePageScenerySettings sceneryHook={filesScenery} title="文件库界面" pageKey="files" />
+        <SinglePageScenerySettings sceneryHook={extensionsScenery} title="扩展管理界面" pageKey="extensions" />
+        <SinglePageScenerySettings sceneryHook={chartsScenery} title="数据图表界面" pageKey="charts" />
+      </div>
     </div>
   );
   };
-
-  /**
-   * ============================================
-   * 窗景设置组件 - 设计标准
-   * ============================================
-   * 每个界面独立的窗景配置：
-   * - 开关控制
-   * - 透明度调节 (5% ~ 50%)
-   * - 图片选择（默认 + 自定义）
-   * - 添加自定义图片按钮（圆角）
-   * ============================================
-   */
-
-  /**
-   * ============================================
-   * 窗景设置组件 - 设计标准（仅设置使用，与实际页面独立）
-   * ============================================
-   */
 
   // 单页面窗景设置组件
   interface SceneryHook {
@@ -734,116 +804,6 @@ const SettingsPage = () => {
       </div>
     );
   };
-
-  // 窗景设置视图
-  const SceneryView = () => (
-    <div className="settings-detail">
-      <div className="settings-detail-header-row">
-        <Button 
-          type="text" 
-          icon={<IconArrowLeft />}
-          onClick={() => setActiveCategory(null)}
-          className="settings-back-btn"
-        >
-          返回
-        </Button>
-      </div>
-      <Title heading={2} className="settings-detail-title">窗景设置</Title>
-      
-      <div className="settings-section">
-        {/* 开始界面窗景 - 使用独立 hook */}
-        <div style={{ marginBottom: 24, padding: 16, border: '1px solid var(--color-border-2)', borderRadius: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <Text style={{ fontWeight: 600, fontSize: 15 }}>开始界面</Text>
-              <Paragraph type="secondary" style={{ fontSize: 12, margin: '4px 0 0 0' }}>
-                今日完成卡片中的窗景（经典模式）
-              </Paragraph>
-            </div>
-            <Switch 
-              size="small"
-              checked={startPageScenery.config.enabled} 
-              onChange={(checked) => startPageScenery.updateConfig({ enabled: checked })}
-            />
-          </div>
-          
-          {startPageScenery.config.enabled && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border-2)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontSize: 13 }}>选择窗景图片</Text>
-                <Button
-                  type="primary"
-                  size="mini"
-                  icon={<IconPlus />}
-                  onClick={() => setAddSceneryModalVisible(true)}
-                  style={{ borderRadius: '999px' }}
-                >
-                  添加图片
-                </Button>
-              </div>
-              
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {allSceneries.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => startPageScenery.updateConfig({ image: item.image, name: item.name })}
-                    style={{
-                      width: 80,
-                      height: 45,
-                      borderRadius: 6,
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      border: startPageScenery.config.image === item.image ? '2px solid #206CCF' : '2px solid transparent',
-                      position: 'relative',
-                    }}
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    {startPageScenery.config.image === item.image && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 2,
-                          right: 2,
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          background: '#206CCF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <Divider style={{ margin: '24px 0' }} />
-
-        {/* 各界面窗景设置（仅设置使用，与页面独立） */}
-        <Title heading={6} style={{ margin: '0 0 16px 0', fontSize: 14, color: 'var(--color-text-2)' }}>
-          各界面窗景配置（设置专用）
-        </Title>
-        
-        <SinglePageScenerySettings sceneryHook={notesScenery} title="笔记库界面" pageKey="notes" />
-        <SinglePageScenerySettings sceneryHook={scrollScenery} title="卷轴界面" pageKey="scroll" />
-        <SinglePageScenerySettings sceneryHook={filesScenery} title="文件库界面" pageKey="files" />
-        <SinglePageScenerySettings sceneryHook={extensionsScenery} title="扩展管理界面" pageKey="extensions" />
-        <SinglePageScenerySettings sceneryHook={chartsScenery} title="数据图表界面" pageKey="charts" />
-      </div>
-    </div>
-  );
 
   // 通用设置
   const GeneralView = () => (
@@ -1326,7 +1286,6 @@ const SettingsPage = () => {
     <div className="settings-page">
       {activeCategory === null && <MainView />}
       {activeCategory === 'appearance' && <AppearanceView />}
-      {activeCategory === 'scenery' && <SceneryView />}
       {activeCategory === 'general' && <GeneralView />}
       {activeCategory === 'chat' && <ChatView />}
       {activeCategory === 'mcp' && <McpView />}
