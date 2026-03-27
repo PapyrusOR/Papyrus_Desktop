@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Typography, Input, Tag, Button, Breadcrumb, Message, Modal } from '@arco-design/web-react';
-import SmartTextArea from '../../components/SmartTextArea';
+import { useState, useEffect, useRef } from 'react';
+import { Typography, Input, Tag, Button, Breadcrumb, Message, Modal, Dropdown } from '@arco-design/web-react';
+import SmartTextArea, { type SmartTextAreaRef } from '../../components/SmartTextArea';
 const BreadcrumbItem = Breadcrumb.Item;
 import { 
   IconLeft,
   IconDelete, 
-  IconCheck,
   IconEdit,
   IconFolder,
   IconHistory,
-  IconTags
+  IconTags,
+  IconPlus,
+  IconH1,
+  IconH2,
+  IconH3
 } from '@arco-design/web-react/icon';
 import type { Note, CreateNoteParams, UpdateNoteParams } from '../types';
 import { PRIMARY_COLOR } from '../constants';
@@ -38,6 +41,22 @@ export const NoteDetailView = ({
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [isEditing, setIsEditing] = useState(isCreateMode);
+  
+  // SmartTextArea ref
+  const textAreaRef = useRef<SmartTextAreaRef>(null);
+  
+  // 插入标题
+  const insertHeading = (level: number) => {
+    const heading = '#'.repeat(level) + ' ';
+    textAreaRef.current?.insertAtCursor(heading);
+  };
+  
+  // 下拉菜单项
+  const headingMenuItems = [
+    { key: 'h1', label: '一级标题', icon: <IconH1 />, onClick: () => insertHeading(1) },
+    { key: 'h2', label: '二级标题', icon: <IconH2 />, onClick: () => insertHeading(2) },
+    { key: 'h3', label: '三级标题', icon: <IconH3 />, onClick: () => insertHeading(3) },
+  ];
 
   // 初始化表单
   useEffect(() => {
@@ -56,10 +75,10 @@ export const NoteDetailView = ({
     }
   }, [note, isCreateMode, allFolders]);
 
-  const handleSave = () => {
+  const handleSave = (showMessage = true) => {
     if (!title.trim()) {
       Message.warning('请输入标题');
-      return;
+      return false;
     }
 
     if (isCreateMode) {
@@ -78,8 +97,19 @@ export const NoteDetailView = ({
         tags,
       }, false);
     }
-    Message.success('保存成功');
+    if (showMessage) {
+      Message.success('保存成功');
+    }
     setIsEditing(false);
+    return true;
+  };
+  
+  // 返回时自动保存
+  const handleBackWithSave = () => {
+    if ((isEditing || isCreateMode) && title.trim()) {
+      handleSave(false);
+    }
+    onBack();
   };
 
   const handleDelete = () => {
@@ -106,20 +136,40 @@ export const NoteDetailView = ({
     setTags(tags.filter(t => t !== tag));
   };
 
-  // 生成大纲
+  // 内容区域 ref
+  const contentRef = useRef<HTMLDivElement>(null);
+  
+  // 生成大纲，并记录每个标题的行索引
   const generateOutline = (text: string) => {
     const lines = text.split('\n');
-    const outline: { level: number; title: string }[] = [];
-    lines.forEach(line => {
+    const outline: { level: number; title: string; lineIndex: number }[] = [];
+    lines.forEach((line, index) => {
       const match = line.match(/^(#{1,3})\s+(.+)/);
       if (match) {
         outline.push({
           level: match[1].length,
           title: match[2],
+          lineIndex: index,
         });
       }
     });
     return outline;
+  };
+  
+  // 点击大纲跳转到对应位置
+  const scrollToHeading = (lineIndex: number) => {
+    if (!contentRef.current) return;
+    
+    // 在预览模式下，通过计算行高来估算位置
+    const lineHeight = 27; // 15px font-size * 1.8 line-height
+    const paddingTop = 32; // 内容区 padding-top
+    const metaHeight = 80; // 元信息区域高度估算
+    const targetScrollTop = paddingTop + metaHeight + (lineIndex * lineHeight);
+    
+    contentRef.current.scrollTo({
+      top: targetScrollTop,
+      behavior: 'smooth',
+    });
   };
 
   const outline = generateOutline(content);
@@ -141,7 +191,7 @@ export const NoteDetailView = ({
         <Button
           type='text'
           icon={<IconLeft />}
-          onClick={onBack}
+          onClick={handleBackWithSave}
         >
           返回
         </Button>
@@ -158,6 +208,64 @@ export const NoteDetailView = ({
             <BreadcrumbItem>{folder || note?.folder || '默认'}</BreadcrumbItem>
             <BreadcrumbItem>{title || note?.title || '新笔记'}</BreadcrumbItem>
           </Breadcrumb>
+        </div>
+
+        {/* 右侧操作按钮 */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          {(isEditing || isCreateMode) && (
+            <>
+              <Dropdown droplist={
+                <div style={{ 
+                  background: 'var(--color-bg-1)', 
+                  border: '1px solid var(--color-border-2)',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}>
+                  {headingMenuItems.map(item => (
+                    <div
+                      key={item.key}
+                      onClick={item.onClick}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        color: 'var(--color-text-1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--color-fill-2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              } position='bottom'>
+                <Button type='secondary' icon={<IconPlus />} />
+              </Dropdown>
+              {!isCreateMode && onDelete && (
+                <Button
+                  type='text'
+                  status='danger'
+                  icon={<IconDelete />}
+                  onClick={handleDelete}
+                />
+              )}
+            </>
+          )}
+          {!isCreateMode && !isEditing && (
+            <Button
+              type='primary'
+              icon={<IconEdit />}
+              onClick={() => setIsEditing(true)}
+            />
+          )}
         </div>
       </div>
 
@@ -188,6 +296,7 @@ export const NoteDetailView = ({
             outline.map((item, index) => (
               <div
                 key={index}
+                onClick={() => scrollToHeading(item.lineIndex)}
                 style={{
                   padding: '4px 8px',
                   paddingLeft: `${(item.level - 1) * 16 + 8}px`,
@@ -215,6 +324,7 @@ export const NoteDetailView = ({
 
         {/* 右侧：编辑/预览区 */}
         <div
+          ref={contentRef}
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -318,6 +428,7 @@ export const NoteDetailView = ({
           {/* 内容 */}
           {isEditing || isCreateMode ? (
             <SmartTextArea
+              ref={textAreaRef}
               value={content}
               onChange={setContent}
               placeholder='# 开始写作...'

@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState, useCallback, forwardRef } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Input, Spin } from '@arco-design/web-react';
 import { useCompletion } from '../hooks/useCompletion';
-import type { TextAreaProps } from '@arco-design/web-react/es/Input';
+import type { TextAreaProps, RefTextAreaType } from '@arco-design/web-react/es/Input';
 
 const { TextArea } = Input;
 
@@ -11,6 +11,11 @@ export interface SmartTextAreaProps extends Omit<TextAreaProps, 'onChange'> {
   enableCompletion?: boolean;
 }
 
+export interface SmartTextAreaRef {
+  insertAtCursor: (text: string) => void;
+  focus: () => void;
+}
+
 /**
  * 智能文本输入组件
  * 
@@ -18,10 +23,10 @@ export interface SmartTextAreaProps extends Omit<TextAreaProps, 'onChange'> {
  * 1. 实时预览模式：输入时自动显示灰色补全，Tab 接受
  * 2. Tab 触发模式：按 Tab 触发显示补全，Enter 接受
  */
-export const SmartTextArea = forwardRef<HTMLTextAreaElement, SmartTextAreaProps>(
+export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
   ({ value, onChange, enableCompletion = true, style, ...rest }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const textareaRef = useRef<RefTextAreaType>(null);
     const [textareaHeight, setTextareaHeight] = useState<number>(0);
     
     const {
@@ -33,20 +38,33 @@ export const SmartTextArea = forwardRef<HTMLTextAreaElement, SmartTextAreaProps>
       dismissCompletion,
     } = useCompletion();
 
-    // 合并 ref
-    useEffect(() => {
-      if (ref) {
-        if (typeof ref === 'function') {
-          ref(textareaRef.current);
-        } else {
-          (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = textareaRef.current;
-        }
-      }
-    }, [ref]);
+    // 暴露方法给父组件
+    useImperativeHandle(ref, () => ({
+      insertAtCursor: (text: string) => {
+        const textarea = textareaRef.current?.dom;
+        if (!textarea) return;
+        
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newValue = value.slice(0, start) + text + value.slice(end);
+        
+        onChange(newValue);
+        
+        // 设置光标位置到插入文本之后
+        setTimeout(() => {
+          const newPos = start + text.length;
+          textarea.setSelectionRange(newPos, newPos);
+          textarea.focus();
+        }, 0);
+      },
+      focus: () => {
+        textareaRef.current?.dom?.focus();
+      },
+    }), [value, onChange]);
 
     // 获取光标位置前的文本作为前缀
     const getPrefix = useCallback(() => {
-      const textarea = textareaRef.current;
+      const textarea = textareaRef.current?.dom;
       if (!textarea) return '';
       const cursorPos = textarea.selectionStart;
       return value.slice(0, cursorPos);
@@ -71,7 +89,7 @@ export const SmartTextArea = forwardRef<HTMLTextAreaElement, SmartTextAreaProps>
         if (shouldAccept && state.isVisible && state.suggestion) {
           e.preventDefault();
           const suggestion = acceptCompletion();
-          const textarea = textareaRef.current;
+          const textarea = textareaRef.current?.dom;
           if (textarea) {
             const cursorPos = textarea.selectionStart;
             const newValue = value.slice(0, cursorPos) + suggestion + value.slice(textarea.selectionEnd);
@@ -98,7 +116,7 @@ export const SmartTextArea = forwardRef<HTMLTextAreaElement, SmartTextAreaProps>
         // 在 Tab 触发模式下，Enter 接受补全
         e.preventDefault();
         const suggestion = acceptCompletion();
-        const textarea = textareaRef.current;
+        const textarea = textareaRef.current?.dom;
         if (textarea) {
           const cursorPos = textarea.selectionStart;
           const newValue = value.slice(0, cursorPos) + suggestion + value.slice(textarea.selectionEnd);
@@ -129,7 +147,7 @@ export const SmartTextArea = forwardRef<HTMLTextAreaElement, SmartTextAreaProps>
 
     // 更新 textarea 高度
     useEffect(() => {
-      const textarea = textareaRef.current;
+      const textarea = textareaRef.current?.dom;
       if (textarea) {
         setTextareaHeight(textarea.scrollHeight);
       }
@@ -140,7 +158,7 @@ export const SmartTextArea = forwardRef<HTMLTextAreaElement, SmartTextAreaProps>
     
     // 计算光标位置
     const getCursorOffset = () => {
-      const textarea = textareaRef.current;
+      const textarea = textareaRef.current?.dom;
       if (!textarea) return { top: 0, left: 0 };
       
       // 创建临时元素计算位置
@@ -215,7 +233,7 @@ export const SmartTextArea = forwardRef<HTMLTextAreaElement, SmartTextAreaProps>
         {enableCompletion && config.enabled && ghostText && !state.isLoading && (
           <GhostTextLayer
             text={ghostText}
-            textarea={textareaRef.current}
+            textarea={textareaRef.current?.dom || null}
             value={value}
           />
         )}
