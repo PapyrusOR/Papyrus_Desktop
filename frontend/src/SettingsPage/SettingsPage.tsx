@@ -1203,7 +1203,10 @@ const SettingsPage = () => {
           return (
             <Card key={provider.id} style={{ marginBottom: 12 }} bodyStyle={{ padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
+                <div 
+                  style={{ flex: 1, cursor: 'pointer' }} 
+                  onClick={() => toggleExpand(provider.id)}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <Text bold>{provider.name}</Text>
                     {provider.isDefault && <Tag color="arcoblue" size="small">默认</Tag>}
@@ -1213,7 +1216,7 @@ const SettingsPage = () => {
                     {provider.baseUrl || '未设置 Base URL'}
                   </Paragraph>
                 </div>
-                <Space>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                   <Button 
                     type="text" 
                     size="mini" 
@@ -1225,7 +1228,7 @@ const SettingsPage = () => {
                   <Popconfirm title="删除供应商？" onOk={() => deleteProvider(provider.id)} disabled={provider.isDefault}>
                     <Button type="text" size="mini" icon={<IconDelete />} status="danger" disabled={provider.isDefault} />
                   </Popconfirm>
-                </Space>
+                </div>
               </div>
 
               {isExpanded && (
