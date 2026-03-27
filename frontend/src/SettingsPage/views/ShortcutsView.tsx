@@ -19,35 +19,63 @@ interface ShortcutsViewProps {
 // 快捷键设置侧边栏子菜单项
 const SHORTCUTS_MENU_ITEMS = [
   { key: 'general', label: '通用快捷键', icon: IconEdit },
-  { key: 'advanced', label: '高级快捷键', icon: IconCommand },
+  { key: 'editor', label: '编辑器快捷键', icon: IconCommand },
+  { key: 'study', label: '学习模式快捷键', icon: IconCommand },
 ];
 
 const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
   const [activeMenu, setActiveMenu] = useState('general');
-  const [shortcuts, setShortcuts] = useState({
-    openChat: 'Ctrl+Shift+C',
-    newNote: 'Ctrl+N',
-    search: 'Ctrl+K',
-    toggleSidebar: 'Ctrl+B',
-  });
+
+  // 通用快捷键
+  const generalShortcuts = {
+    newNote: { label: '新建笔记', shortcut: 'Ctrl+N' },
+    newCard: { label: '新建卡片', shortcut: 'Ctrl+Shift+C' },
+    newWindow: { label: '新建窗口', shortcut: 'Ctrl+Shift+N' },
+    openNotes: { label: '打开笔记页', shortcut: 'Ctrl+O' },
+    openFiles: { label: '打开文件库', shortcut: 'Ctrl+K O' },
+    startReview: { label: '开始复习', shortcut: 'Ctrl+R' },
+    search: { label: '搜索', shortcut: 'Ctrl+K' },
+    save: { label: '保存', shortcut: 'Ctrl+S' },
+    saveAll: { label: '全部保存', shortcut: 'Ctrl+K S' },
+    preferences: { label: '首选项', shortcut: 'Ctrl+,' },
+    closeEditor: { label: '关闭编辑器', shortcut: 'Ctrl+F4' },
+    exit: { label: '退出', shortcut: 'Alt+F4' },
+    importTxt: { label: '从文本导入卡片', shortcut: 'Ctrl+Shift+I' },
+  };
+
+  // 编辑器快捷键
+  const editorShortcuts = {
+    undo: { label: '撤销', shortcut: 'Ctrl+Z' },
+    redo: { label: '重做', shortcut: 'Ctrl+Y' },
+    cut: { label: '剪切', shortcut: 'Ctrl+X' },
+    copy: { label: '复制', shortcut: 'Ctrl+C' },
+    paste: { label: '粘贴', shortcut: 'Ctrl+V' },
+    selectAll: { label: '全选', shortcut: 'Ctrl+A' },
+    find: { label: '查找', shortcut: 'Ctrl+F' },
+  };
+
+  // 学习模式快捷键
+  const studyShortcuts = {
+    revealAnswer: { label: '揭晓答案', shortcut: 'Space / Enter' },
+    rateForgot: { label: '评分 - 忘记', shortcut: '1' },
+    rateHard: { label: '评分 - 模糊', shortcut: '2' },
+    rateGood: { label: '评分 - 掌握', shortcut: '3' },
+    undoRate: { label: '撤销评分', shortcut: 'U' },
+    exitStudy: { label: '退出学习', shortcut: 'Esc' },
+  };
 
   // 通用快捷键内容
   const GeneralShortcuts = () => (
     <div className="settings-section">
-      {Object.entries(shortcuts).map(([key, value]) => (
+      {Object.entries(generalShortcuts).map(([key, { label, shortcut }], index, arr) => (
         <SettingItem 
           key={key}
-          title={{
-            openChat: '打开聊天面板',
-            newNote: '新建笔记',
-            search: '搜索',
-            toggleSidebar: '切换侧边栏',
-          }[key] || key}
-          divider={key !== 'toggleSidebar'}
+          title={label}
+          divider={index !== arr.length - 1}
         >
           <div className="settings-shortcut-input">
-            <span className="settings-shortcut-value">{value}</span>
-            <Button type="text" size="mini" icon={<IconEdit />} aria-label="编辑快捷键" />
+            <span className="settings-shortcut-value">{shortcut}</span>
+            <Button type="text" size="mini" icon={<IconEdit />} aria-label={`编辑${label}快捷键`} />
           </div>
         </SettingItem>
       ))}
@@ -61,23 +89,52 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
     </div>
   );
 
-  // 高级快捷键内容
-  const AdvancedShortcuts = () => (
+  // 编辑器快捷键内容
+  const EditorShortcuts = () => (
     <div className="settings-section">
-      <SettingItem 
-        title="开发者工具"
-        divider={false}
-      >
-        <div className="settings-shortcut-input">
-          <span className="settings-shortcut-value">Ctrl+Shift+I</span>
-          <Button type="text" size="mini" icon={<IconEdit />} aria-label="编辑快捷键" />
-        </div>
-      </SettingItem>
+      {Object.entries(editorShortcuts).map(([key, { label, shortcut }], index, arr) => (
+        <SettingItem 
+          key={key}
+          title={label}
+          divider={index !== arr.length - 1}
+        >
+          <div className="settings-shortcut-input">
+            <span className="settings-shortcut-value">{shortcut}</span>
+            <Button type="text" size="mini" icon={<IconEdit />} aria-label={`编辑${label}快捷键`} />
+          </div>
+        </SettingItem>
+      ))}
 
       <div className="settings-tip">
         <IconBulb style={{ color: 'var(--color-primary)' }} />
         <Text type="secondary" style={{ fontSize: 13 }}>
-          高级快捷键仅供进阶用户使用
+          编辑器快捷键在文本编辑区域生效
+        </Text>
+      </div>
+    </div>
+  );
+
+  // 学习模式快捷键内容
+  const StudyShortcuts = () => (
+    <div className="settings-section">
+      {Object.entries(studyShortcuts).map(([key, { label, shortcut }], index, arr) => (
+        <SettingItem 
+          key={key}
+          title={label}
+          desc={key === 'revealAnswer' ? '在卡片问题界面' : key.startsWith('rate') ? '在卡片答案界面' : undefined}
+          divider={index !== arr.length - 1}
+        >
+          <div className="settings-shortcut-input">
+            <span className="settings-shortcut-value">{shortcut}</span>
+            <Button type="text" size="mini" icon={<IconEdit />} aria-label={`编辑${label}快捷键`} />
+          </div>
+        </SettingItem>
+      ))}
+
+      <div className="settings-tip">
+        <IconBulb style={{ color: 'var(--color-primary)' }} />
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          学习模式快捷键仅在闪卡学习界面生效
         </Text>
       </div>
     </div>
@@ -87,8 +144,10 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
     switch (activeMenu) {
       case 'general':
         return <GeneralShortcuts />;
-      case 'advanced':
-        return <AdvancedShortcuts />;
+      case 'editor':
+        return <EditorShortcuts />;
+      case 'study':
+        return <StudyShortcuts />;
       default:
         return <GeneralShortcuts />;
     }
