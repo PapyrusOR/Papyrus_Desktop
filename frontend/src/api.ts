@@ -104,6 +104,14 @@ export type AIConfigRes = {
   config: AIConfig;
 };
 
+// ========== Completion Types ==========
+export type CompletionConfig = {
+  enabled: boolean;
+  require_confirm: boolean;
+  trigger_delay: number;
+  max_tokens: number;
+};
+
 // ========== Card API ==========
 export const api = {
   health: () => request<{ status: string }>('/health'),
@@ -171,5 +179,14 @@ export const api = {
     request<{ success: boolean; imported: number }>('/import', { 
       method: 'POST', 
       body: JSON.stringify(data) 
+    }),
+
+  // Completion
+  getCompletionConfig: () =>
+    request<{ success: boolean; config: CompletionConfig }>('/completion/config'),
+  saveCompletionConfig: (config: CompletionConfig) =>
+    request<{ success: boolean }>('/completion/config', {
+      method: 'POST',
+      body: JSON.stringify(config)
     }),
 };

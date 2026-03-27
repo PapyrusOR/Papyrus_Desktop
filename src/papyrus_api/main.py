@@ -25,6 +25,7 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from papyrus.core import cards as card_core
@@ -438,6 +439,26 @@ class TestConnectionResponse(BaseModel):
     message: str
 
 
+# ========== Completion Types ==========
+
+class CompletionRequest(BaseModel):
+    prefix: str = Field(..., description="当前输入的文本前缀")
+    context: str = Field(default="", description="笔记的完整内容作为上下文")
+    max_tokens: int = Field(default=50, description="最大生成token数")
+
+
+class CompletionConfigModel(BaseModel):
+    enabled: bool = True
+    require_confirm: bool = False  # 二次确认开关
+    trigger_delay: int = 500  # 防抖延迟(ms)
+    max_tokens: int = 50
+
+
+class CompletionConfigResponse(BaseModel):
+    success: bool
+    config: CompletionConfigModel
+
+
 # ========== Data Management Types ==========
 
 class BackupResponse(BaseModel):
@@ -756,3 +777,147 @@ def import_data_endpoint(payload: dict) -> ImportDataResponse:
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"导入失败: {e}")
+
+
+# ========== Completion Endpoints ==========
+
+# 内存存储补全配置（实际应用应持久化）
+_completion_config = CompletionConfigModel()
+
+
+@app.get("/api/completion/config", response_model=CompletionConfigResponse)
+def get_completion_config() -> CompletionConfigResponse:
+    """Get completion configuration."""
+    return CompletionConfigResponse(success=True, config=_completion_config)
+
+
+@app.post("/api/completion/config", response_model=dict)
+def save_completion_config(payload: CompletionConfigModel) -> dict:
+    """Save completion configuration."""
+    global _completion_config
+    _completion_config = payload
+    return {"success": True}
+
+
+@app.post("/api/completion")
+async def create_completion(payload: CompletionRequest):
+    """Create text completion using AI.
+    
+    Returns a streaming response with the completion text.
+    """
+    config = get_ai_config()
+    provider_config = config.get_provider_config()
+    
+    # 检查配置
+    if config.config["current_provider"] != "ollama":
+        api_key = provider_config.get("api_key", "")
+        if not api_key:
+            raise HTTPException(status_code=400, detail="AI API Key 未设置")
+    
+    # 构建提示词
+    system_prompt = """你是一个智能写作助手。根据用户提供的文本上下文，预测并续写接下来的内容。
+要求：
+1. 续写内容要自然流畅，与上下文保持一致
+2. 只输出续写的文本，不要解释
+3. 续写长度控制在50字以内
+4. 如果是列表、代码块等特殊格式，保持格式一致"""
+
+    user_prompt = f"""请根据以下内容续写：
+
+{payload.prefix}"""
+
+    # 根据提供商类型选择调用方式
+    provider_name = config.config["current_provider"]
+    
+    async def generate():
+        """生成补全内容的流式响应。"""
+        try:
+            if requests_available and requests is not None:
+                if provider_name == "ollama":
+                    # Ollama 流式调用
+                    base_url = provider_config.get("base_url", "http://localhost:11434")
+                    model = config.config.get("current_model", "llama2")
+                    
+                    data = {
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        "stream": True,
+                        "options": {"temperature": 0.7}
+                    }
+                    
+                    response = requests.post(
+                        f"{base_url}/api/chat",
+                        json=data,
+                        stream=True,
+                        timeout=60
+                    )
+                    
+                    for line in response.iter_lines():
+                        if line:
+                            try:
+                                chunk = json.loads(line)
+                                if "message" in chunk and "content" in chunk["message"]:
+                                    content = chunk["message"]["content"]
+                                    yield f"data: {json.dumps({'text': content})}\n\n"
+                            except json.JSONDecodeError:
+                                continue
+                else:
+                    # OpenAI 兼容流式调用
+                    base_url = provider_config.get("base_url", "https://api.openai.com/v1")
+                    api_key = provider_config.get("api_key", "")
+                    model = config.config.get("current_model", "gpt-3.5-turbo")
+                    
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    data = {
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": payload.max_tokens,
+                        "stream": True
+                    }
+                    
+                    response = requests.post(
+                        f"{base_url}/chat/completions",
+                        headers=headers,
+                        json=data,
+                        stream=True,
+                        timeout=60
+                    )
+                    
+                    for line in response.iter_lines():
+                        if line:
+                            line_str = line.decode('utf-8')
+                            if line_str.startswith('data: '):
+                                try:
+                                    chunk = json.loads(line_str[6:])
+                                    if "choices" in chunk and chunk["choices"]:
+                                        delta = chunk["choices"][0].get("delta", {})
+                                        content = delta.get("content", "")
+                                        if content:
+                                            yield f"data: {json.dumps({'text': content})}\n\n"
+                                except json.JSONDecodeError:
+                                    continue
+            
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )

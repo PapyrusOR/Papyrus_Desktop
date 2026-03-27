@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Typography, Input, Tag, Button, Breadcrumb, Message, Modal } from '@arco-design/web-react';
+import SmartTextArea from '../../components/SmartTextArea';
 const BreadcrumbItem = Breadcrumb.Item;
 import { 
   IconLeft,
@@ -316,10 +317,11 @@ export const NoteDetailView = ({
 
           {/* 内容 */}
           {isEditing || isCreateMode ? (
-            <Input.TextArea
+            <SmartTextArea
               value={content}
               onChange={setContent}
               placeholder='# 开始写作...'
+              enableCompletion={true}
               style={{
                 width: '100%',
                 minHeight: '500px',

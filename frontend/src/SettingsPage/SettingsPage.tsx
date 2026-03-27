@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Input,
   Select,
@@ -291,6 +291,12 @@ const SettingsPage = () => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [sendOnEnter, setSendOnEnter] = useState(true);
 
+  // 自动补全设置状态
+  const [completionEnabled, setCompletionEnabled] = useState(true);
+  const [completionRequireConfirm, setCompletionRequireConfirm] = useState(false);
+  const [completionTriggerDelay, setCompletionTriggerDelay] = useState(500);
+  const [completionMaxTokens, setCompletionMaxTokens] = useState(50);
+
   // MCP 服务状态
   const [mcpEnabled, setMcpEnabled] = useState(false);
   const [mcpServers, setMcpServers] = useState([
@@ -315,6 +321,21 @@ const SettingsPage = () => {
 
   const filtered = providers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
   const selected = providers.find(p => p.id === selectedId);
+
+  // 加载自动补全配置
+  useEffect(() => {
+    fetch('/api/completion/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.config) {
+          setCompletionEnabled(data.config.enabled);
+          setCompletionRequireConfirm(data.config.require_confirm);
+          setCompletionTriggerDelay(data.config.trigger_delay);
+          setCompletionMaxTokens(data.config.max_tokens);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const updateProvider = (id: string, updates: Partial<Provider>) => {
     setProviders(providers.map(p => p.id === id ? { ...p, ...updates } : p));
@@ -886,9 +907,83 @@ const SettingsPage = () => {
           <Switch checked={autoScroll} onChange={setAutoScroll} />
         </SettingItem>
 
-        <SettingItem title="Enter 发送" desc="按 Enter 键发送消息，Shift+Enter 换行" divider={false}>
+        <SettingItem title="Enter 发送" desc="按 Enter 键发送消息，Shift+Enter 换行">
           <Switch checked={sendOnEnter} onChange={setSendOnEnter} />
         </SettingItem>
+
+        <SettingItem title="笔记自动补全" desc="启用 AI 驱动的笔记内容自动补全功能">
+          <Switch checked={completionEnabled} onChange={setCompletionEnabled} />
+        </SettingItem>
+
+        {completionEnabled && (
+          <>
+            <SettingItem title="二次确认模式" desc="开启后需按 Tab 触发补全，Enter 确认；关闭时输入自动显示补全，Tab 直接接受">
+              <Switch 
+                checked={completionRequireConfirm} 
+                onChange={(checked) => {
+                  setCompletionRequireConfirm(checked);
+                  // 保存配置到后端
+                  fetch('/api/completion/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      enabled: completionEnabled,
+                      require_confirm: checked,
+                      trigger_delay: completionTriggerDelay,
+                      max_tokens: completionMaxTokens,
+                    }),
+                  });
+                }}
+              />
+            </SettingItem>
+
+            <SettingItem title="触发延迟" desc="实时预览模式下的防抖延迟（毫秒）">
+              <Slider
+                min={200}
+                max={2000}
+                step={100}
+                value={completionTriggerDelay}
+                onChange={(val) => {
+                  setCompletionTriggerDelay(val as number);
+                  fetch('/api/completion/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      enabled: completionEnabled,
+                      require_confirm: completionRequireConfirm,
+                      trigger_delay: val,
+                      max_tokens: completionMaxTokens,
+                    }),
+                  });
+                }}
+                style={{ width: 200 }}
+              />
+            </SettingItem>
+
+            <SettingItem title="最大补全长度" desc="每次补全的最大 token 数" divider={false}>
+              <Slider
+                min={10}
+                max={200}
+                step={10}
+                value={completionMaxTokens}
+                onChange={(val) => {
+                  setCompletionMaxTokens(val as number);
+                  fetch('/api/completion/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      enabled: completionEnabled,
+                      require_confirm: completionRequireConfirm,
+                      trigger_delay: completionTriggerDelay,
+                      max_tokens: val,
+                    }),
+                  });
+                }}
+                style={{ width: 200 }}
+              />
+            </SettingItem>
+          </>
+        )}
       </div>
 
       <div className="settings-section">
