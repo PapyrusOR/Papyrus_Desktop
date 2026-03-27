@@ -237,6 +237,18 @@ const defaultProviders: Provider[] = [
     enabled: false, 
     isDefault: false 
   },
+  { 
+    id: '5', 
+    type: 'moonshot', 
+    name: '月之暗面', 
+    apiKey: '', 
+    baseUrl: 'https://api.moonshot.cn/v1', 
+    models: [
+      { id: 'm10', name: 'Kimi K2.5', modelId: 'kimi-k2.5', enabled: true, port: 'openai', capabilities: [] },
+    ], 
+    enabled: false, 
+    isDefault: false 
+  },
 ];
 
 const SettingsPage = () => {

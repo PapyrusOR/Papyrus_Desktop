@@ -56,6 +56,11 @@ class AIConfig:
                     "base_url": "http://localhost:11434",
                     "models": ["llama2", "mistral", "qwen"],
                 },
+                "moonshot": {
+                    "api_key": "",
+                    "base_url": "https://api.moonshot.cn/v1",
+                    "models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
+                },
                 "custom": {
                     "api_key": "",
                     "base_url": "",

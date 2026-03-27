@@ -25,7 +25,7 @@ except ImportError:
 
 # Type definitions
 AttachmentType = Literal["image", "document"]
-ProviderName = Literal["openai", "anthropic", "ollama", "custom"]
+ProviderName = Literal["openai", "anthropic", "ollama", "moonshot", "custom"]
 
 # Constants
 IMAGE_EXTENSIONS: Final[set[str]] = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
