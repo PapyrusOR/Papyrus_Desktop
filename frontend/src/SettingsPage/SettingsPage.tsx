@@ -266,6 +266,7 @@ const SettingsPage = () => {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [addForm] = Form.useForm();
   const [newProviderType, setNewProviderType] = useState('openai');
+  const [apiKeys, setApiKeys] = useState([{ id: '1', key: '', name: '' }]);
   const [editingModel, setEditingModel] = useState<Model | null>(null);
   const [modelModalVisible, setModelModalVisible] = useState(false);
   const [modelForm] = Form.useForm();
@@ -1104,12 +1105,31 @@ const SettingsPage = () => {
                   <Divider style={{ margin: '16px 0' }} />
                   <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
                     <div>
-                      <Text style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>API Key</Text>
-                      <Input.Password value={provider.apiKey} onChange={(v) => updateProvider(provider.id, { apiKey: v })} placeholder="输入 API Key" />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12 }}>API Key</Text>
+                        <Button type="primary" icon={<IconPlus />} size="mini" style={{ background: '#206CCF', borderRadius: '4px' }} />
+                      </div>
+                      <Input.Password 
+                        defaultValue={provider.apiKey} 
+                        onPressEnter={(e) => updateProvider(provider.id, { apiKey: (e.target as HTMLInputElement).value })}
+                        onBlur={(e) => updateProvider(provider.id, { apiKey: e.target.value })}
+                        onFocus={() => {
+                          if (!isExpanded) toggleExpand(provider.id);
+                        }}
+                        placeholder="输入 API Key" 
+                        style={{ width: '100%' }}
+                        prefix={<span style={{ padding: '4px 10px', borderRight: '1px solid var(--color-border-2)', color: 'var(--color-text-2)', fontSize: 13, background: 'var(--color-fill-2)', marginLeft: '-4px', borderRadius: '4px 0 0 4px' }}>default</span>}
+                      />
                     </div>
                     <div>
                       <Text style={{ fontSize: 12, marginBottom: 4, display: 'block' }}>Base URL</Text>
-                      <Input value={provider.baseUrl} onChange={(v) => updateProvider(provider.id, { baseUrl: v })} placeholder="https://api.example.com/v1" />
+                      <Input 
+                        defaultValue={provider.baseUrl} 
+                        onPressEnter={(e) => updateProvider(provider.id, { baseUrl: (e.target as HTMLInputElement).value })}
+                        onBlur={(e) => updateProvider(provider.id, { baseUrl: e.target.value })}
+                        placeholder="https://api.example.com/v1" 
+                        style={{ width: '100%' }} 
+                      />
                     </div>
                   </div>
                 </>
@@ -1647,7 +1667,7 @@ const SettingsPage = () => {
         title="添加 Provider"
         visible={addModalVisible}
         onOk={addProvider}
-        onCancel={() => { setAddModalVisible(false); addForm.resetFields(); }}
+        onCancel={() => { setAddModalVisible(false); addForm.resetFields(); setApiKeys([{ id: '1', key: '', name: '' }]); }}
         autoFocus={false}
         focusLock
       >
@@ -1663,8 +1683,51 @@ const SettingsPage = () => {
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>名称</Title>} field="name">
             <Input placeholder={PROVIDER_PRESETS[newProviderType]?.name} style={{ borderRadius: '8px' }} />
           </FormItem>
-          <FormItem label={<Title heading={6} style={{ margin: 0 }}>API Key</Title>} field="apiKey">
-            <Input.Password placeholder="输入 API Key" style={{ borderRadius: '8px' }} />
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>API Key</Title>}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {apiKeys.map((item, index) => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Input.Password 
+                    placeholder="输入 API Key" 
+                    style={{ borderRadius: '8px', flex: 1 }}
+                    value={item.key}
+                    onChange={(v) => {
+                      const newKeys = [...apiKeys];
+                      newKeys[index].key = v;
+                      setApiKeys(newKeys);
+                    }}
+                  />
+                  <span style={{ color: 'var(--color-text-3)' }}>:</span>
+                  <Input 
+                    placeholder="自定义名称" 
+                    style={{ borderRadius: '8px', width: 120 }}
+                    value={item.name}
+                    onChange={(v) => {
+                      const newKeys = [...apiKeys];
+                      newKeys[index].name = v;
+                      setApiKeys(newKeys);
+                    }}
+                  />
+                  {index === 0 ? (
+                    <Button 
+                      type="primary" 
+                      icon={<IconPlus />} 
+                      size="small"
+                      onClick={() => setApiKeys([...apiKeys, { id: Date.now().toString(), key: '', name: '' }])}
+                      style={{ background: '#206CCF', borderRadius: '6px', padding: '0 8px' }}
+                    />
+                  ) : (
+                    <Button 
+                      type="text" 
+                      icon={<IconDelete />} 
+                      size="small"
+                      status="danger"
+                      onClick={() => setApiKeys(apiKeys.filter((_, i) => i !== index))}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           </FormItem>
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>Base URL</Title>} field="baseUrl">
             <Input placeholder={PROVIDER_PRESETS[newProviderType]?.baseUrl} style={{ borderRadius: '8px' }} />
