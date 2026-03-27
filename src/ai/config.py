@@ -59,7 +59,7 @@ class AIConfig:
                 "moonshot": {
                     "api_key": "",
                     "base_url": "https://api.moonshot.cn/v1",
-                    "models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
+                    "models": ["kimi-k2.5"],
                 },
                 "custom": {
                     "api_key": "",
