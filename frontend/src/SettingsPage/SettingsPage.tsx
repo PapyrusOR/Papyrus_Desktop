@@ -1651,24 +1651,26 @@ const SettingsPage = () => {
         autoFocus={false}
         focusLock
       >
+        <div style={{ background: '#fafafa', borderRadius: '16px', padding: '16px', border: '1px solid var(--color-border-2)' }}>
         <Form form={addForm} layout="vertical">
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>类型</Title>} field="type" initialValue="openai">
-            <Select value={newProviderType} onChange={setNewProviderType}>
+            <Select value={newProviderType} onChange={setNewProviderType} style={{ borderRadius: '8px' }}>
               {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
                 <Option key={key} value={key}>{preset.name}</Option>
               ))}
             </Select>
           </FormItem>
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>名称</Title>} field="name">
-            <Input placeholder={PROVIDER_PRESETS[newProviderType]?.name} />
+            <Input placeholder={PROVIDER_PRESETS[newProviderType]?.name} style={{ borderRadius: '8px' }} />
           </FormItem>
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>API Key</Title>} field="apiKey">
-            <Input.Password placeholder="输入 API Key" />
+            <Input.Password placeholder="输入 API Key" style={{ borderRadius: '8px' }} />
           </FormItem>
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>Base URL</Title>} field="baseUrl">
-            <Input placeholder={PROVIDER_PRESETS[newProviderType]?.baseUrl} />
+            <Input placeholder={PROVIDER_PRESETS[newProviderType]?.baseUrl} style={{ borderRadius: '8px' }} />
           </FormItem>
         </Form>
+        </div>
       </Modal>
 
       {/* 添加/编辑模型弹窗 */}
@@ -1680,22 +1682,30 @@ const SettingsPage = () => {
         autoFocus={false}
         focusLock
       >
+        <div style={{ background: '#fafafa', borderRadius: '16px', padding: '24px', border: '1px solid var(--color-border-2)' }}>
         <Form form={modelForm} layout="vertical">
-          <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型名称</Title>} field="name" rules={[{ required: true }]}>
-            <Input placeholder="如：GPT-4o" />
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>供应商</Title>} field="providerId" initialValue={selectedId}>
+            <Select style={{ borderRadius: '8px' }}>
+              {providers.filter(p => p.enabled).map(p => (
+                <Option key={p.id} value={p.id}>{p.name}</Option>
+              ))}
+            </Select>
           </FormItem>
-          <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型 ID</Title>} field="modelId" rules={[{ required: true }]}>
-            <Input placeholder="实际的 API ID，如：gpt-4o" />
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型名称</Title>} field="name">
+            <Input placeholder="如：GPT-4o" style={{ borderRadius: '8px' }} />
+          </FormItem>
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型 ID</Title>} field="modelId">
+            <Input placeholder="实际的 API ID，如：gpt-4o" style={{ borderRadius: '8px' }} />
           </FormItem>
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>端口选择</Title>} field="port" initialValue={selected?.type || 'openai'}>
-            <Select>
+            <Select style={{ borderRadius: '8px' }}>
               {PORT_OPTIONS.map(opt => (
                 <Option key={opt.value} value={opt.value}>{opt.label}</Option>
               ))}
             </Select>
           </FormItem>
           <FormItem label={<Title heading={6} style={{ margin: 0 }}>模型能力</Title>}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {CAPABILITIES.map(cap => (
                 <FormItem 
                   key={cap.key} 
@@ -1703,19 +1713,19 @@ const SettingsPage = () => {
                   style={{ marginBottom: 0 }}
                   triggerPropName="checked"
                 >
-                  <Checkbox style={{ width: '100%' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <cap.icon style={{ color: 'rgb(32, 108, 207)', fontSize: 16 }} />
-                        <Text>{cap.label}</Text>
-                      </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <cap.icon style={{ color: 'rgb(32, 108, 207)', fontSize: 16 }} />
+                      <Text>{cap.label}</Text>
                     </span>
-                  </Checkbox>
+                    <Checkbox />
+                  </div>
                 </FormItem>
               ))}
             </div>
           </FormItem>
         </Form>
+        </div>
       </Modal>
 
     </div>

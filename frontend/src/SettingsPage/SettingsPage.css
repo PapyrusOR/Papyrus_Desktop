@@ -382,7 +382,6 @@
 
 /* Arco Card 组件 - 沿用开始页面标准 */
 .settings-page .arco-card {
-  border-radius: 16px;
   border: 2px solid var(--color-text-3);
   background: transparent;
   transition: border-color 0.2s;
