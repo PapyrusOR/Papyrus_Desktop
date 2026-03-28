@@ -30,6 +30,7 @@ import {
   IconEye,
   IconDown,
   IconLeft,
+  IconUser,
 } from '@arco-design/web-react/icon';
 import { SettingsSidebar } from '../components';
 
@@ -68,6 +69,7 @@ const PROVIDER_PRESETS: Record<string, { name: string; baseUrl: string }> = {
 // 聊天设置侧边栏子菜单项
 const CHAT_MENU_ITEMS = [
   { key: 'general', label: '通用设置', icon: IconMessage },
+  { key: 'user', label: '用户设置', icon: IconUser },
   { key: 'providers', label: '供应商管理', icon: IconSafe },
   { key: 'models', label: '模型管理', icon: IconRobot },
   { key: 'completion', label: '自动补全', icon: IconBulb },
@@ -154,6 +156,36 @@ const renderCapabilityIcons = (capabilities: string[]) => {
   );
 };
 
+// 用户设置类型
+interface UserProfile {
+  userId: string;
+  avatarUrl: string | null;
+}
+
+// 从 localStorage 加载用户设置
+const loadUserProfile = (): UserProfile => {
+  try {
+    const saved = localStorage.getItem('papyrus_user_profile');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+    // ignore
+  }
+  return { userId: 'P', avatarUrl: null };
+};
+
+// 保存用户设置到 localStorage
+const saveUserProfile = (profile: UserProfile) => {
+  try {
+    localStorage.setItem('papyrus_user_profile', JSON.stringify(profile));
+    // 触发自定义事件，通知同页面内的其他组件更新
+    window.dispatchEvent(new CustomEvent('papyrus_user_profile_changed'));
+  } catch {
+    // ignore
+  }
+};
+
 const ChatView = ({ onBack }: ChatViewProps) => {
   const [activeMenu, setActiveMenu] = useState('general');
   
@@ -162,6 +194,9 @@ const ChatView = ({ onBack }: ChatViewProps) => {
   const [showTimestamp, setShowTimestamp] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const [sendOnEnter, setSendOnEnter] = useState(true);
+  
+  // 用户设置状态
+  const [userProfile, setUserProfile] = useState<UserProfile>(loadUserProfile());
   
   // 自动补全设置状态
   const [completionEnabled, setCompletionEnabled] = useState(true);
@@ -377,6 +412,50 @@ const ChatView = ({ onBack }: ChatViewProps) => {
     });
   };
 
+  // 处理头像文件选择
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+      Message.error('请选择图片文件');
+      return;
+    }
+    
+    // 验证文件大小 (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      Message.error('图片大小不能超过 2MB');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const avatarUrl = event.target?.result as string;
+      const newProfile = { ...userProfile, avatarUrl };
+      setUserProfile(newProfile);
+      saveUserProfile(newProfile);
+      Message.success('头像已更新');
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  // 处理用户ID修改
+  const handleUserIdChange = (value: string) => {
+    const userId = value.trim().slice(0, 10); // 最多10个字符
+    const newProfile = { ...userProfile, userId: userId || 'P' };
+    setUserProfile(newProfile);
+    saveUserProfile(newProfile);
+  };
+  
+  // 清除头像
+  const clearAvatar = () => {
+    const newProfile = { ...userProfile, avatarUrl: null };
+    setUserProfile(newProfile);
+    saveUserProfile(newProfile);
+    Message.success('已恢复默认头像');
+  };
+  
   // 通用设置内容
   const ChatGeneralSettings = () => (
     <>
@@ -697,6 +776,83 @@ const ChatView = ({ onBack }: ChatViewProps) => {
     );
   };
 
+  // 用户设置内容
+  const ChatUserSettings = () => (
+    <>
+      <SettingItem title="用户标识" desc="显示在聊天头像上的文字（最多10个字符）">
+        <Input
+          value={userProfile.userId}
+          onChange={handleUserIdChange}
+          maxLength={10}
+          style={{ width: 120 }}
+          placeholder="P"
+        />
+      </SettingItem>
+
+      <SettingItem title="头像" desc="自定义聊天中的用户头像图片" divider={false}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* 头像预览 */}
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              background: userProfile.avatarUrl ? 'transparent' : '#206CCF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 16,
+              color: '#fff',
+              fontWeight: 500,
+            }}
+          >
+            {userProfile.avatarUrl ? (
+              <img
+                src={userProfile.avatarUrl}
+                alt="avatar"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              userProfile.userId?.charAt(0) || 'P'
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Button
+              type="primary"
+              size="small"
+              style={{ borderRadius: '6px' }}
+              onClick={() => document.getElementById('avatar-input')?.click()}
+            >
+              选择图片
+            </Button>
+            {userProfile.avatarUrl && (
+              <Button
+                type="secondary"
+                size="small"
+                style={{ borderRadius: '6px' }}
+                onClick={clearAvatar}
+              >
+                恢复默认
+              </Button>
+            )}
+            <input
+              id="avatar-input"
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
+          </div>
+        </div>
+        <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
+          支持 JPG、PNG、GIF 格式，最大 2MB
+        </Paragraph>
+      </SettingItem>
+    </>
+  );
+
   // 模型参数内容
   const ChatParametersSettings = () => (
     <>
@@ -735,6 +891,8 @@ const ChatView = ({ onBack }: ChatViewProps) => {
     switch (activeMenu) {
       case 'general':
         return <ChatGeneralSettings />;
+      case 'user':
+        return <ChatUserSettings />;
       case 'providers':
         return <ChatProvidersSettings />;
       case 'models':

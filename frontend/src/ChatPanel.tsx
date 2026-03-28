@@ -68,6 +68,25 @@ const ALLOWED_FILE_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5;
 
+// 用户设置类型
+interface UserProfile {
+  userId: string;
+  avatarUrl: string | null;
+}
+
+// 从 localStorage 加载用户设置
+const loadUserProfile = (): UserProfile => {
+  try {
+    const saved = localStorage.getItem('papyrus_user_profile');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+    // ignore
+  }
+  return { userId: 'P', avatarUrl: null };
+};
+
 const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -77,11 +96,28 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [inputHeight, setInputHeight] = useState(118);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile>(loadUserProfile());
   const dragStartY = useRef<number>(0);
   const dragStartHeight = useRef<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 监听 localStorage 变化（用于设置页面修改后实时更新）
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setUserProfile(loadUserProfile());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    // 同时监听自定义事件（同页面内更新）
+    window.addEventListener('papyrus_user_profile_changed', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('papyrus_user_profile_changed', handleStorageChange);
+    };
+  }, []);
 
   // 滚动到底部
   const scrollToBottom = useCallback(() => {
@@ -570,9 +606,21 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
                     <Avatar 
                       size={28} 
                       className="tw-flex-shrink-0"
-                      style={{ backgroundColor: '#206CCF', fontSize: 12 }}
+                      style={{ 
+                        backgroundColor: userProfile.avatarUrl ? 'transparent' : '#206CCF', 
+                        fontSize: 12,
+                        overflow: 'hidden',
+                      }}
                     >
-                      P
+                      {userProfile.avatarUrl ? (
+                        <img 
+                          src={userProfile.avatarUrl} 
+                          alt="avatar" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        userProfile.userId?.charAt(0) || 'P'
+                      )}
                     </Avatar>
                     <div className="chat-message-bubble">{msg.content}</div>
                     <div className="chat-message-actions">

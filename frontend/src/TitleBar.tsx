@@ -1,8 +1,8 @@
-import { Button, Space, Menu, Dropdown, Avatar, Modal, Message, Divider, Input } from '@arco-design/web-react';
-import { IconMinus, IconExpand, IconClose } from '@arco-design/web-react/icon';
+import { Button, Space, Menu, Dropdown, Avatar, Modal, Message, Divider, Input, Popover } from '@arco-design/web-react';
+import { IconMinus, IconExpand, IconClose, IconUser, IconUpload, IconRefresh } from '@arco-design/web-react/icon';
 import './TitleBar.css';
 import { api, type SearchResult } from './api';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SearchBox from './SearchBox';
 import { useShortcuts } from './hooks/useShortcuts';
 
@@ -13,16 +13,122 @@ const Shortcut = ({ keys }: { keys: string }) => (
   </span>
 );
 
+interface UserProfile {
+  userId: string;
+  avatarUrl: string | null;
+}
+
 interface TitleBarProps {
   onPageChange?: (page: string) => void;
   onNewNote?: () => void;
   onSearchResult?: (result: SearchResult) => void;
 }
 
+const DEFAULT_PROFILE: UserProfile = {
+  userId: 'P',
+  avatarUrl: null,
+};
+
+const STORAGE_KEY = 'papyrus_user_profile';
+
 const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) => {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importContent, setImportContent] = useState('');
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [tempUserId, setTempUserId] = useState('P');
+  const [tempAvatarUrl, setTempAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { getShortcutDisplay } = useShortcuts();
+
+  // 从 localStorage 加载用户设置
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as UserProfile;
+        setUserProfile(parsed);
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+    }
+  }, []);
+
+  // 保存用户设置到 localStorage
+  const saveUserProfile = (profile: UserProfile) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Failed to save user profile:', error);
+      Message.error('保存用户设置失败');
+    }
+  };
+
+  // 打开用户设置弹窗
+  const handleOpenProfileModal = () => {
+    setTempUserId(userProfile.userId);
+    setTempAvatarUrl(userProfile.avatarUrl);
+    setProfileModalVisible(true);
+  };
+
+  // 关闭弹窗并保存
+  const handleCloseProfileModal = () => {
+    const newProfile: UserProfile = {
+      userId: tempUserId.trim() || 'P',
+      avatarUrl: tempAvatarUrl,
+    };
+    saveUserProfile(newProfile);
+    setProfileModalVisible(false);
+    Message.success('用户设置已保存');
+  };
+
+  // 处理头像上传
+  const handleAvatarUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 处理文件选择
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+      Message.error('请选择图片文件');
+      return;
+    }
+
+    // 验证文件大小（最大 2MB）
+    if (file.size > 2 * 1024 * 1024) {
+      Message.error('图片大小不能超过 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setTempAvatarUrl(base64);
+    };
+    reader.readAsDataURL(file);
+
+    // 清空 input 值，允许重复选择同一文件
+    e.target.value = '';
+  };
+
+  // 恢复默认设置
+  const handleResetDefault = () => {
+    setTempUserId('P');
+    setTempAvatarUrl(null);
+  };
+
+  // 处理用户名称输入
+  const handleUserIdChange = (value: string) => {
+    // 最多10个字符
+    if (value.length <= 10) {
+      setTempUserId(value);
+    }
+  };
 
   // 处理搜索结果点击
   const handleSearchResult = (result: SearchResult) => {
@@ -287,6 +393,30 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
     </Menu>
   );
 
+  // 渲染头像内容
+  const renderAvatar = (size: number = 28, avatarUrl: string | null, userId: string) => {
+    if (avatarUrl) {
+      return (
+        <Avatar 
+          size={size} 
+          className="tw-cursor-pointer"
+          style={{ fontSize: size * 0.4 }}
+        >
+          <img src={avatarUrl} alt={userId} />
+        </Avatar>
+      );
+    }
+    return (
+      <Avatar 
+        size={size} 
+        className="tw-cursor-pointer"
+        style={{ backgroundColor: '#206CCF', fontSize: size * 0.4 }} 
+      >
+        {userId.charAt(0).toUpperCase()}
+      </Avatar>
+    );
+  };
+
   return (
     <>
       <div className="titlebar">
@@ -317,15 +447,8 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
 
         {/* window controls */}
         <div className="titlebar-controls">
-          <div className="titlebar-avatar">
-            <Avatar 
-              size={28} 
-              className="tw-cursor-pointer"
-              style={{ backgroundColor: 'rgb(32, 108, 207)', fontSize: 12 }} 
-              aria-label="用户头像"
-            >
-              P
-            </Avatar>
+          <div className="titlebar-avatar" onClick={handleOpenProfileModal}>
+            {renderAvatar(28, userProfile.avatarUrl, userProfile.userId)}
           </div>
           <button className="titlebar-btn" aria-label="最小化">
             <IconMinus />
@@ -359,6 +482,70 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
             onChange={(value: string) => setImportContent(value)}
             rows={8}
           />
+        </div>
+      </Modal>
+
+      {/* 用户设置对话框 */}
+      <Modal
+        title="用户设置"
+        visible={profileModalVisible}
+        onOk={handleCloseProfileModal}
+        onCancel={() => setProfileModalVisible(false)}
+        okText="保存"
+        cancelText="取消"
+      >
+        <div className="tw-flex tw-flex-col tw-gap-6">
+          {/* 头像上传区域 */}
+          <div className="tw-flex tw-flex-col tw-items-center tw-gap-4">
+            <div 
+              className="tw-relative tw-cursor-pointer tw-group"
+              onClick={handleAvatarUpload}
+            >
+              {renderAvatar(80, tempAvatarUrl, tempUserId)}
+              <div className="tw-absolute tw-inset-0 tw-bg-black/40 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity">
+                <IconUpload className="tw-text-white tw-text-xl" />
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="tw-hidden"
+              onChange={handleFileChange}
+            />
+            <span className="tw-text-sm tw-text-arco-text-3">
+              点击上传头像（最大 2MB）
+            </span>
+          </div>
+
+          <Divider style={{ margin: '8px 0' }} />
+
+          {/* 用户名称输入 */}
+          <div className="tw-flex tw-flex-col tw-gap-2">
+            <label className="tw-text-sm tw-font-medium tw-text-arco-text-1">
+              用户标识
+            </label>
+            <Input
+              value={tempUserId}
+              onChange={handleUserIdChange}
+              placeholder="请输入用户标识"
+              maxLength={10}
+              showWordLimit
+            />
+            <span className="tw-text-xs tw-text-arco-text-3">
+              将显示为头像文字（最多10个字符）
+            </span>
+          </div>
+
+          {/* 恢复默认按钮 */}
+          <Button 
+            type="secondary" 
+            icon={<IconRefresh />}
+            onClick={handleResetDefault}
+            long
+          >
+            恢复默认设置
+          </Button>
         </div>
       </Modal>
     </>
