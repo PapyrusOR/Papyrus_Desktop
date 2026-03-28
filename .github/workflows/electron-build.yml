@@ -1,0 +1,112 @@
+name: Electron Build & Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - release/**
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  APP_NAME: "Papyrus"
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "Windows"
+            os: windows-latest
+            arch: x64
+            artifact_name: "Papyrus-win32-x64"
+            ext: ".exe"
+          - platform: "macOS"
+            os: macos-latest
+            arch: x64
+            artifact_name: "Papyrus-darwin-x64"
+            ext: ".app"
+          - platform: "Linux"
+            os: ubuntu-latest
+            arch: x64
+            artifact_name: "Papyrus-linux-x64"
+            ext: ""
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          cd frontend && npm ci
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Build Electron App
+        run: |
+          npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist-electron/*
+          retention-days: 7
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: Papyrus-*
+
+      - name: List Artifacts
+        run: |
+          echo "Build artifacts:"
+          ls -la artifacts/
+          find artifacts/ -type f -name "*" | head -20
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/Papyrus-win32-x64/**/*.exe
+            artifacts/Papyrus-win32-x64/**/*.zip
+            artifacts/Papyrus-darwin-x64/**/*.dmg
+            artifacts/Papyrus-darwin-x64/**/*.zip
+            artifacts/Papyrus-linux-x64/**/*.AppImage
+            artifacts/Papyrus-linux-x64/**/*.deb
+            artifacts/Papyrus-linux-x64/**/*.tar.gz
+          draft: true
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

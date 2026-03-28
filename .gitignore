@@ -1,58 +1,49 @@
-# --- Python ---
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+dist-electron/
+build/
+frontend/dist/
+
+# Python
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
 *.so
 .Python
-build/
-dist/
 *.egg-info/
-*.egg
-*.manifest
-pip-log.txt
-pip-delete-this-directory.txt
+dist-python/
+*.spec
 
-# Testing & Coverage
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-.pytest_cache/
-coverage.xml
-.mypy_cache/
+# Electron
+electron-download/
+electron.zip
 
-# Environments
-.env
-.env.local
-.venv/
-venv/
-env/
-
-# Logs
-*.log
-logs/
-
-# --- Node.js / Frontend ---
-node_modules/
-frontend/dist/
-.eslintcache
-
-# --- IDE / OS ---
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Data
+data/
+backup/
+*.bak
+Papyrusdata.json.bak
+
+# OS
 .DS_Store
 Thumbs.db
 
-# --- Papyrus specific ---
-data/
-backup/
-
-# --- Electron ---
-dist-electron/
-dist-python/
-*.blockmap
-latest-mac.yml
-latest-linux.yml
-latest.yml
+# Misc
+.env
+.env.local

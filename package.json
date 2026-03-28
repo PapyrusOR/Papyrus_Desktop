@@ -1,6 +1,6 @@
 {
   "name": "papyrus",
-  "version": "v2.0.0alpha1",
+  "version": "v2.0.0beta1",
   "description": "Papyrus - A modern note-taking and learning application",
   "main": "electron/main.js",
   "author": "Papyrus Team",
