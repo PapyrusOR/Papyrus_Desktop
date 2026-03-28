@@ -1,0 +1,138 @@
+{
+  "name": "papyrus",
+  "version": "v2.0.0alpha1",
+  "description": "Papyrus - A modern note-taking and learning application",
+  "main": "electron/main.js",
+  "author": "Papyrus Team",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev:frontend",
+    "dev:backend": "python -m uvicorn src.papyrus_api.main:app --reload --port 8000",
+    "electron:dev": "node scripts/build-electron.js dev",
+    "electron:build": "node scripts/build-electron.js build",
+    "electron:build:win": "node scripts/build-electron.js build:win",
+    "electron:build:mac": "node scripts/build-electron.js build:mac",
+    "electron:build:linux": "node scripts/build-electron.js build:linux",
+    "build:frontend": "cd frontend && npm run build",
+    "build:python": "pyinstaller Papyrus.spec --clean",
+    "postinstall": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.0",
+    "concurrently": "^8.2.2"
+  },
+  "build": {
+    "appId": "com.papyrus.app",
+    "productName": "Papyrus",
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "!frontend/node_modules/**/*",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-python",
+        "to": "python",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/python/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "publisherName": "Papyrus Team"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Papyrus"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "sign": false
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "category": "Office",
+      "maintainer": "Papyrus Team",
+      "vendor": "Papyrus Team",
+      "synopsis": "Modern note-taking and learning application",
+      "description": "Papyrus is a modern note-taking and learning application with AI integration and spaced repetition."
+    }
+  }
+}

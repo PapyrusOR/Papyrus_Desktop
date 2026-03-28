@@ -3,14 +3,18 @@ import {
   Switch,
   Button,
   Typography,
+  Input,
+  InputNumber,
+  Message,
 } from '@arco-design/web-react';
 import {
   IconArrowLeft,
   IconSettings,
   IconClockCircle,
   IconNotification,
+  IconFile,
 } from '@arco-design/web-react/icon';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const { Title, Text, Paragraph } = Typography;
 const Option = Select.Option;
@@ -50,7 +54,16 @@ const GENERAL_MENU_ITEMS = [
   { key: 'basic', label: '基础设置', icon: IconSettings },
   { key: 'startup', label: '启动与通知', icon: IconClockCircle },
   { key: 'language', label: '语言与地区', icon: IconNotification },
+  { key: 'logs', label: '日志', icon: IconFile },
 ];
+
+// 日志配置类型
+interface LogsConfig {
+  log_dir: string;
+  log_level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
+  log_rotation: boolean;
+  backup_count: number;
+}
 
 const GeneralView = ({ onBack }: GeneralViewProps) => {
   const [activeMenu, setActiveMenu] = useState('basic');
@@ -60,6 +73,15 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [reviewReminder, setReviewReminder] = useState(true);
   const [language, setLanguage] = useState('zh-CN');
+  
+  // 日志设置状态
+  const [logsConfig, setLogsConfig] = useState<LogsConfig>({
+    log_dir: '',
+    log_level: 'INFO',
+    log_rotation: true,
+    backup_count: 7,
+  });
+  const [logsLoading, setLogsLoading] = useState(false);
 
   // 基础设置内容
   const BasicSettings = () => (
@@ -115,6 +137,112 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
     </>
   );
 
+  // 加载日志配置
+  useEffect(() => {
+    fetch('/api/config/logs')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.config) {
+          setLogsConfig(data.config);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load logs config:', err);
+      });
+  }, []);
+
+  // 保存日志配置
+  const saveLogsConfig = async (updates: Partial<LogsConfig>) => {
+    const newConfig = { ...logsConfig, ...updates };
+    setLogsConfig(newConfig);
+    
+    try {
+      const res = await fetch('/api/config/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newConfig),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Message.success('设置已保存');
+      } else {
+        Message.error('保存失败');
+      }
+    } catch (err) {
+      Message.error('保存失败');
+    }
+  };
+
+  // 打开日志文件夹
+  const openLogsDir = async () => {
+    try {
+      setLogsLoading(true);
+      const res = await fetch('/api/logs/open-dir', { method: 'POST' });
+      const data = await res.json();
+      if (!data.success) {
+        Message.error('打开文件夹失败');
+      }
+    } catch (err) {
+      Message.error('打开文件夹失败');
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  // 日志设置内容
+  const LogsSettings = () => (
+    <>
+      <SettingItem title="日志文件夹路径" desc="设置日志文件的存储位置">
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Input
+            value={logsConfig.log_dir}
+            readOnly
+            placeholder="默认日志路径"
+            style={{ width: 280 }}
+          />
+          <Button
+            type="secondary"
+            size="small"
+            onClick={openLogsDir}
+            loading={logsLoading}
+          >
+            打开文件夹
+          </Button>
+        </div>
+      </SettingItem>
+
+      <SettingItem title="日志级别" desc="选择记录的日志详细程度">
+        <Select
+          value={logsConfig.log_level}
+          onChange={(value) => saveLogsConfig({ log_level: value })}
+          style={{ width: 160 }}
+        >
+          <Option value="DEBUG">DEBUG</Option>
+          <Option value="INFO">INFO</Option>
+          <Option value="WARNING">WARNING</Option>
+          <Option value="ERROR">ERROR</Option>
+        </Select>
+      </SettingItem>
+
+      <SettingItem title="日志轮转" desc="启用后自动按日期分割日志文件">
+        <Switch
+          checked={logsConfig.log_rotation}
+          onChange={(checked) => saveLogsConfig({ log_rotation: checked })}
+        />
+      </SettingItem>
+
+      <SettingItem title="保留日志文件数" desc="设置保留的历史日志文件数量（0表示不限制）" divider={false}>
+        <InputNumber
+          min={0}
+          max={365}
+          value={logsConfig.backup_count}
+          onChange={(value) => saveLogsConfig({ backup_count: value as number })}
+          style={{ width: 120 }}
+        />
+      </SettingItem>
+    </>
+  );
+
   const renderContent = () => {
     switch (activeMenu) {
       case 'basic':
@@ -123,6 +251,8 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
         return <StartupSettings />;
       case 'language':
         return <LanguageSettings />;
+      case 'logs':
+        return <LogsSettings />;
       default:
         return <BasicSettings />;
     }

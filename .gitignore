@@ -48,3 +48,11 @@ Thumbs.db
 # --- Papyrus specific ---
 data/
 backup/
+
+# --- Electron ---
+dist-electron/
+dist-python/
+*.blockmap
+latest-mac.yml
+latest-linux.yml
+latest.yml

@@ -92,6 +92,14 @@
   padding: 0 4px;
 }
 
+.chat-message-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 85%;
+}
+
 .chat-message-with-avatar {
   display: flex;
   flex-direction: column;
@@ -256,6 +264,16 @@ body[arco-theme="dark"] .chat-message-user .chat-message-bubble {
   color: var(--color-text-1);
 }
 
+.chat-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-toolbar-btn:disabled:hover {
+  background: none;
+  color: var(--color-text-3);
+}
+
 .chat-mode-btn {
   display: flex;
   align-items: center;
@@ -350,6 +368,110 @@ body[arco-theme="dark"] .chat-message-user .chat-message-bubble {
   outline-offset: -2px;
 }
 
+/* ============================================
+   文件上传样式
+   ============================================ */
+
+.chat-file-list {
+  padding: 8px 16px 4px;
+  border-bottom: 1px solid var(--color-border-2);
+  background: var(--color-fill-2);
+}
+
+.chat-file-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.chat-file-list-title {
+  font-size: 11px;
+  color: var(--color-text-3);
+  font-weight: 500;
+}
+
+.chat-file-list-clear {
+  font-size: 11px;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.chat-file-list-clear:hover {
+  background: var(--color-primary-light-1);
+}
+
+.chat-file-list-clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.chat-file-list-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 72px;
+  overflow-y: auto;
+}
+
+.chat-file-tag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 200px;
+  background: var(--color-bg-2) !important;
+  border-color: var(--color-border-2) !important;
+  color: var(--color-text-1) !important;
+  font-size: 12px;
+  padding: 2px 8px;
+  height: 26px;
+}
+
+.chat-file-tag .arco-tag-icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-2);
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.chat-file-tag .arco-tag-close-btn {
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--color-text-3);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.chat-file-tag .arco-tag-close-btn:hover {
+  color: var(--color-text-1);
+}
+
+.chat-file-tag-text {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* 深色模式文件标签样式 */
+body[arco-theme="dark"] .chat-file-tag {
+  background: var(--color-bg-3) !important;
+  border-color: var(--color-border-3) !important;
+}
+
+body[arco-theme="dark"] .chat-file-tag .arco-tag-icon {
+  color: var(--color-text-2);
+}
+
 /* 减少动画 - 无障碍支持 */
 @media (prefers-reduced-motion: reduce) {
   .chat-panel-header-btn,
@@ -357,7 +479,8 @@ body[arco-theme="dark"] .chat-message-user .chat-message-bubble {
   .chat-toolbar-btn,
   .chat-mode-btn,
   .chat-send-btn,
-  .chat-model-btn {
+  .chat-model-btn,
+  .chat-file-list-clear {
     transition: none;
   }
   

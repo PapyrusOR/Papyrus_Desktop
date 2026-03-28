@@ -23,23 +23,33 @@ class FeaturesConfig(TypedDict):
     context_length: int
 
 
+class LogConfig(TypedDict):
+    log_dir: str
+    log_level: str
+    max_log_files: int
+    log_rotation: bool
+
+
 class AIConfigData(TypedDict):
     providers: dict[str, ProviderConfig]
     current_provider: str
     current_model: str
     parameters: ParametersConfig
     features: FeaturesConfig
+    log: LogConfig
 
 
 class AIConfig:
     """AI配置管理器"""
 
     def __init__(self, data_dir: str) -> None:
+        self.data_dir: str = data_dir
         self.config_file: str = os.path.join(data_dir, "ai_config.json")
         self.config: AIConfigData = self._build_default_config()
         self.load_config()
 
     def _build_default_config(self) -> AIConfigData:
+        default_log_dir = os.path.join(self.data_dir, "logs")
         return {
             "providers": {
                 "openai": {
@@ -80,6 +90,12 @@ class AIConfig:
                 "auto_hint": False,
                 "auto_explain": False,
                 "context_length": 10,
+            },
+            "log": {
+                "log_dir": default_log_dir,
+                "log_level": "DEBUG",
+                "max_log_files": 10,
+                "log_rotation": False,
             },
         }
 
@@ -162,6 +178,28 @@ class AIConfig:
             "context_length": context_length,
         }
 
+    def _copy_log_config(self, source: LogConfig) -> LogConfig:
+        default_log_dir = os.path.join(self.data_dir, "logs")
+        
+        log_dir_obj = source.get("log_dir")
+        log_dir: str = self._to_str(log_dir_obj, default_log_dir) if log_dir_obj else default_log_dir
+        
+        log_level_obj = source.get("log_level")
+        log_level: str = self._to_str(log_level_obj, "DEBUG") if log_level_obj else "DEBUG"
+        
+        max_files_obj = source.get("max_log_files")
+        max_log_files: int = self._to_int(max_files_obj, 10)
+        
+        rotation_obj = source.get("log_rotation")
+        log_rotation: bool = bool(rotation_obj) if rotation_obj else False
+        
+        return {
+            "log_dir": log_dir,
+            "log_level": log_level,
+            "max_log_files": max_log_files,
+            "log_rotation": log_rotation,
+        }
+
     def _normalize_provider_config(self, raw: object, fallback: ProviderConfig) -> ProviderConfig:
         normalized = self._copy_provider_config(fallback)
         if not isinstance(raw, dict):
@@ -230,6 +268,32 @@ class AIConfig:
             "context_length": context_length,
         }
 
+    def _normalize_log_config(self, raw: object, fallback: LogConfig) -> LogConfig:
+        if not isinstance(raw, dict):
+            return self._copy_log_config(fallback)
+
+        raw_dict: dict[str, object] = raw
+        default_log_dir = os.path.join(self.data_dir, "logs")
+
+        log_dir_obj: object = raw_dict.get("log_dir")
+        log_dir = self._to_str(log_dir_obj, fallback.get("log_dir", default_log_dir)) if log_dir_obj is not None else fallback.get("log_dir", default_log_dir)
+
+        log_level_obj: object = raw_dict.get("log_level")
+        log_level = self._to_str(log_level_obj, fallback.get("log_level", "DEBUG")) if log_level_obj is not None else fallback.get("log_level", "DEBUG")
+
+        max_files_obj: object = raw_dict.get("max_log_files")
+        max_log_files = self._to_int(max_files_obj, fallback.get("max_log_files", 10))
+
+        rotation_obj: object = raw_dict.get("log_rotation")
+        log_rotation = bool(rotation_obj) if rotation_obj is not None else fallback.get("log_rotation", False)
+
+        return {
+            "log_dir": log_dir,
+            "log_level": log_level,
+            "max_log_files": max_log_files,
+            "log_rotation": log_rotation,
+        }
+
     def load_config(self) -> None:
         default = self._build_default_config()
 
@@ -276,6 +340,9 @@ class AIConfig:
                 ),
                 "features": self._normalize_features_config(
                     loaded_dict.get("features"), default["features"]
+                ),
+                "log": self._normalize_log_config(
+                    loaded_dict.get("log"), default["log"]
                 ),
             }
         except Exception:
@@ -331,3 +398,12 @@ class AIConfig:
 
     def get_parameters(self) -> ParametersConfig:
         return self.config["parameters"]
+
+    def get_log_config(self) -> LogConfig:
+        """获取日志配置。"""
+        return self.config["log"]
+
+    def set_log_config(self, config: LogConfig) -> None:
+        """设置日志配置并保存。"""
+        self.config["log"] = self._normalize_log_config(config, self._build_default_config()["log"])
+        self.save_config()

@@ -30,7 +30,7 @@ from papyrus.data.progress import init_progress_table
 from papyrus.paths import DATABASE_FILE
 from mcp.server import MCPServer
 from mcp.vault_tools import create_vault_tools
-from papyrus_api.deps import MCPLogger
+from papyrus_api.deps import MCPLogger, get_ai_config, init_logger_from_config
 
 # Import all routers
 from papyrus_api.routers import (
@@ -43,6 +43,7 @@ from papyrus_api.routers import (
     data_router,
     relations_router,
     progress_router,
+    logs_router,
 )
 
 # MCP Server 实例
@@ -53,6 +54,11 @@ _mcp_server: MCPServer | None = None
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """应用生命周期管理：启动/停止 MCP 服务器。"""
     global _mcp_server
+
+    # 初始化配置和日志记录器
+    ai_config = get_ai_config()
+    logger = init_logger_from_config(ai_config)
+    logger.info("Papyrus API server starting")
 
     # 初始化 VaultTools
     vault_tools = create_vault_tools(DATABASE_FILE)
@@ -71,15 +77,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         vault_tools=vault_tools,
     )
     _mcp_server.start()
+    logger.info("MCP server started on port 9100")
 
     yield
 
     # 关闭 MCP 服务器
     if _mcp_server:
         _mcp_server.stop()
+        logger.info("MCP server stopped")
 
 
-app = FastAPI(title="Papyrus API", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="Papyrus API", version="v2.0.0alpha1", lifespan=lifespan)
 
 # Frontend dev server (vite) defaults to 5173
 app.add_middleware(
@@ -111,3 +119,4 @@ app.include_router(ai_router, prefix="/api")
 app.include_router(data_router, prefix="/api")
 app.include_router(relations_router, prefix="/api")
 app.include_router(progress_router, prefix="/api")
+app.include_router(logs_router, prefix="/api")

@@ -112,6 +112,46 @@ export type CompletionConfig = {
   max_tokens: number;
 };
 
+// ========== Logs Config Types ==========
+export type LogsConfig = {
+  log_dir: string;
+  log_level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
+  log_rotation: boolean;
+  backup_count: number;
+};
+
+// ========== Chat Session Types ==========
+export type ChatSession = {
+  id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  message_count: number;
+};
+
+export type ListChatSessionsRes = {
+  success: boolean;
+  sessions: ChatSession[];
+};
+
+export type CreateChatSessionRes = {
+  success: boolean;
+  session: ChatSession;
+};
+
+export type SwitchChatSessionRes = {
+  success: boolean;
+  session: ChatSession;
+};
+
+export type RenameChatSessionRes = {
+  success: boolean;
+};
+
+export type DeleteChatSessionRes = {
+  success: boolean;
+};
+
 // ========== Card API ==========
 export const api = {
   health: () => request<{ status: string }>('/health'),
@@ -189,4 +229,30 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(config)
     }),
+
+  // Logs Config
+  getLogsConfig: () =>
+    request<{ success: boolean; config: LogsConfig }>('/config/logs'),
+  saveLogsConfig: (config: LogsConfig) =>
+    request<{ success: boolean }>('/config/logs', {
+      method: 'POST',
+      body: JSON.stringify(config)
+    }),
+  openLogsDir: () =>
+    request<{ success: boolean }>('/logs/open-dir', { method: 'POST' }),
+
+  // Chat Sessions
+  listChatSessions: () =>
+    request<ListChatSessionsRes>('/ai/sessions'),
+  createChatSession: () =>
+    request<CreateChatSessionRes>('/ai/sessions', { method: 'POST' }),
+  switchChatSession: (id: string) =>
+    request<SwitchChatSessionRes>(`/ai/sessions/${id}/switch`, { method: 'POST' }),
+  renameChatSession: (id: string, title: string) =>
+    request<RenameChatSessionRes>(`/ai/sessions/${id}`, { 
+      method: 'PUT', 
+      body: JSON.stringify({ title }) 
+    }),
+  deleteChatSession: (id: string) =>
+    request<DeleteChatSessionRes>(`/ai/sessions/${id}`, { method: 'DELETE' }),
 };

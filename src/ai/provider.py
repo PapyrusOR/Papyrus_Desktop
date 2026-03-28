@@ -10,7 +10,7 @@ import uuid
 import mimetypes
 import base64
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict, cast, Protocol, Literal, Final
+from typing import Any, TypedDict, cast, Protocol, Literal, Final, AsyncGenerator
 
 requests_available: bool
 
@@ -22,8 +22,8 @@ except ImportError:
     requests = None
     requests_available = False
 
-
 # Type definitions
+StreamEventType = Literal["content", "reasoning", "tool_start", "tool_result", "done", "error"]
 AttachmentType = Literal["image", "document"]
 ProviderName = Literal["openai", "anthropic", "ollama", "moonshot", "custom"]
 
@@ -65,6 +65,12 @@ class SessionSummary(TypedDict):
     created_at: float
     updated_at: float
     message_count: int
+
+
+class StreamChunk(TypedDict):
+    """流式输出块结构"""
+    type: StreamEventType
+    data: str | dict[str, Any]
 
 
 class AIProvider(ABC):
@@ -525,6 +531,203 @@ class AIManager:
         self._save_sessions()
 
         return response
+
+    async def chat_stream(
+        self,
+        user_message: str,
+        system_prompt: str | None = None,
+        attachments: list[str] | list[dict[str, str]] | None = None,
+    ) -> AsyncGenerator[StreamChunk, None]:
+        """发送消息并获取流式回复（支持附件）
+        
+        Yields:
+            StreamChunk: 流式输出块，包含类型和内容
+        """
+        if not requests_available or requests is None:
+            yield {"type": "error", "data": "requests库未安装，请运行: pip install requests"}
+            return
+
+        config_dict: dict[str, Any] = cast(dict[str, Any], self.config)
+        provider_name: str = str(config_dict.get("current_provider", "openai"))
+        provider_config: dict[str, Any] = config_dict.get("providers", {}).get(provider_name, {})
+
+        # 构建消息列表
+        messages: list[dict[str, Any]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+
+        context_length: int = int(config_dict.get("features", {}).get("context_length", 10))
+        if context_length > 0:
+            history: list[SessionMessage] = self.conversation_history[-(context_length * 2):]
+            for msg in history:
+                messages.append(self._message_to_provider_format(provider_name, msg))
+
+        attachments_meta: list[AttachmentMeta] = self._store_attachments(attachments)
+        messages.append(self._build_user_message_for_provider(provider_name, user_message, attachments_meta))
+
+        params: dict[str, Any] = config_dict.get("parameters", {})
+        model: str = str(config_dict.get("current_model", "gpt-3.5-turbo"))
+
+        try:
+            if provider_name == "ollama":
+                async for chunk in self._chat_stream_ollama(messages, model, params, provider_config):
+                    yield chunk
+            else:
+                async for chunk in self._chat_stream_openai(messages, model, params, provider_config):
+                    yield chunk
+
+            # 保存会话历史
+            active_session: SessionData = self._get_active_session()
+            # 注意：流式响应的内容需要由调用方在收集后添加到会话历史中
+            active_session["messages"].append({
+                "role": "user",
+                "content": user_message,
+                "attachments": attachments_meta,
+            })
+            active_session["updated_at"] = time.time()
+            self._save_sessions()
+
+            yield {"type": "done", "data": ""}
+
+        except Exception as e:
+            yield {"type": "error", "data": str(e)}
+
+    async def _chat_stream_openai(
+        self,
+        messages: list[dict[str, Any]],
+        model: str,
+        params: dict[str, Any],
+        provider_config: dict[str, Any],
+    ) -> AsyncGenerator[StreamChunk, None]:
+        """OpenAI 兼容 API 流式调用"""
+        base_url: str = str(provider_config.get("base_url", "https://api.openai.com/v1")).rstrip('/')
+        api_key: str = str(provider_config.get("api_key", ""))
+
+        headers: dict[str, str] = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        data: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            "temperature": params.get("temperature", 0.7),
+            "max_tokens": params.get("max_tokens", 2000),
+        }
+        if "top_p" in params:
+            data["top_p"] = params["top_p"]
+        if "presence_penalty" in params:
+            data["presence_penalty"] = params["presence_penalty"]
+        if "frequency_penalty" in params:
+            data["frequency_penalty"] = params["frequency_penalty"]
+
+        if requests is None:
+            raise Exception("requests库未安装，请运行: pip install requests")
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            headers=headers,
+            json=data,
+            stream=True,
+            timeout=120
+        )
+        response.raise_for_status()
+
+        for line in response.iter_lines():
+            if not line:
+                continue
+
+            line_str = line.decode('utf-8')
+            if line_str.startswith('data: '):
+                line_str = line_str[6:]
+            
+            if line_str == '[DONE]':
+                break
+
+            try:
+                chunk: dict[str, Any] = json.loads(line_str)
+                choices: list[dict[str, Any]] = chunk.get("choices", [])
+                if not choices:
+                    continue
+
+                delta: dict[str, Any] = choices[0].get("delta", {})
+
+                # 处理思维链内容 (如 DeepSeek R1)
+                reasoning_content: str | None = delta.get("reasoning_content")
+                if reasoning_content:
+                    yield {"type": "reasoning", "data": reasoning_content}
+
+                # 处理普通内容
+                content: str | None = delta.get("content")
+                if content:
+                    yield {"type": "content", "data": content}
+
+                # 处理工具调用
+                tool_calls: list[dict[str, Any]] | None = delta.get("tool_calls")
+                if tool_calls:
+                    for tool_call in tool_calls:
+                        yield {"type": "tool_start", "data": tool_call}
+
+            except json.JSONDecodeError:
+                continue
+            except Exception:
+                continue
+
+    async def _chat_stream_ollama(
+        self,
+        messages: list[dict[str, Any]],
+        model: str,
+        params: dict[str, Any],
+        provider_config: dict[str, Any],
+    ) -> AsyncGenerator[StreamChunk, None]:
+        """Ollama API 流式调用"""
+        base_url: str = str(provider_config.get("base_url", "http://localhost:11434")).rstrip('/')
+
+        data: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            "options": {
+                "temperature": params.get("temperature", 0.7),
+            }
+        }
+
+        if requests is None:
+            raise Exception("requests库未安装，请运行: pip install requests")
+        response = requests.post(
+            f"{base_url}/api/chat",
+            json=data,
+            stream=True,
+            timeout=120
+        )
+        response.raise_for_status()
+
+        for line in response.iter_lines():
+            if not line:
+                continue
+
+            try:
+                chunk: dict[str, Any] = json.loads(line.decode('utf-8'))
+
+                # 检查是否完成
+                if chunk.get("done", False):
+                    break
+
+                message: dict[str, Any] = chunk.get("message", {})
+                content: str = message.get("content", "")
+
+                if content:
+                    yield {"type": "content", "data": content}
+
+                # Ollama 工具调用处理
+                tool_calls: list[dict[str, Any]] | None = message.get("tool_calls")
+                if tool_calls:
+                    for tool_call in tool_calls:
+                        yield {"type": "tool_start", "data": tool_call}
+
+            except json.JSONDecodeError:
+                continue
+            except Exception:
+                continue
 
     def clear_history(self) -> None:
         """兼容旧调用：清空动作改为创建并切换到新会话"""

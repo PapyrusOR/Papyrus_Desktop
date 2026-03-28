@@ -1,0 +1,52 @@
+/**
+ * TypeScript type definitions for Electron API
+ * 
+ * This file provides type definitions for the electronAPI object
+ * exposed by the preload script.
+ */
+
+export interface ElectronAPI {
+  /** Get the application version */
+  getVersion(): Promise<string>;
+  
+  /** Get the current platform (win32, darwin, linux) */
+  getPlatform(): Promise<string>;
+  
+  /** Check if running in development mode */
+  isDev(): Promise<boolean>;
+  
+  /** Open an external URL in the default browser */
+  openExternal(url: string): Promise<void>;
+  
+  /** Open the application's data folder */
+  openDataFolder(): Promise<void>;
+  
+  /** Minimize the window to the system tray */
+  minimizeToTray(): Promise<void>;
+  
+  /** Check if the backend is healthy */
+  checkBackendHealth(): Promise<boolean>;
+  
+  /** Restart the backend process */
+  restartBackend(): Promise<boolean>;
+}
+
+export interface ElectronEnv {
+  /** Current Node environment */
+  NODE_ENV: string;
+  
+  /** Current platform */
+  PLATFORM: string;
+}
+
+declare global {
+  interface Window {
+    /** Electron API for main process communication */
+    electronAPI: ElectronAPI;
+    
+    /** Environment information */
+    electronEnv: ElectronEnv;
+  }
+}
+
+export {};

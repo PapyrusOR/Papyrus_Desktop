@@ -1,7 +1,7 @@
 {
   "name": "papyrus-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "v2.0.0alpha1",
   "type": "module",
   "scripts": {
     "dev": "node launcher.js",

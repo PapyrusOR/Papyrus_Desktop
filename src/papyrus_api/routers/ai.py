@@ -411,3 +411,367 @@ async def create_completion(payload: CompletionRequest) -> StreamingResponse:
             "X-Accel-Buffering": "no",
         }
     )
+
+
+# ============================================================================
+# 工具调用管理API
+# ============================================================================
+
+from ai.tool_manager import (
+    get_tool_manager,
+    ToolCallRecord,
+)
+from ai.tools import AIResponseParser
+
+
+class ToolCallConfigModel(BaseModel):
+    """工具调用配置模型。"""
+    mode: str = Field(default="manual", description="执行模式: auto 或 manual")
+    auto_execute_tools: list[str] = Field(
+        default_factory=lambda: ["search_cards", "get_card_stats"],
+        description="自动执行的工具列表",
+    )
+
+
+class ToolCallConfigResponse(BaseModel):
+    """工具调用配置响应。"""
+    success: bool
+    config: ToolCallConfigModel
+
+
+class ToolCallResponse(BaseModel):
+    """工具调用记录响应。"""
+    call_id: str
+    tool_name: str
+    params: dict[str, Any]
+    status: str
+    result: dict[str, Any] | None = None
+    created_at: float
+    executed_at: float | None = None
+    error: str | None = None
+
+
+class PendingCallsResponse(BaseModel):
+    """待审批工具调用列表响应。"""
+    success: bool
+    calls: list[ToolCallResponse]
+    count: int
+
+
+class ToolCallActionResponse(BaseModel):
+    """工具调用操作响应。"""
+    success: bool
+    call: ToolCallResponse | None = None
+    message: str | None = None
+    result: dict[str, Any] | None = None
+
+
+class ParseAIResponseRequest(BaseModel):
+    """解析AI响应请求。"""
+    response: str = Field(..., description="AI原始响应")
+    reasoning_content: str | None = Field(default=None, description="提供商返回的思维链内容")
+
+
+class ParseAIResponseResult(BaseModel):
+    """解析AI响应结果。"""
+    content: str
+    reasoning: str | None = None
+    tool_call: dict[str, Any] | None = None
+
+
+class ParseAIResponseResponse(BaseModel):
+    """解析AI响应响应。"""
+    success: bool
+    data: ParseAIResponseResult
+
+
+def _convert_call_to_response(call: ToolCallRecord) -> ToolCallResponse:
+    """将工具调用记录转换为响应模型。"""
+    return ToolCallResponse(
+        call_id=call["call_id"],
+        tool_name=call["tool_name"],
+        params=call["params"],
+        status=call["status"],
+        result=call.get("result"),
+        created_at=call["created_at"],
+        executed_at=call.get("executed_at"),
+        error=call.get("error"),
+    )
+
+
+@router.get("/tools/config", response_model=ToolCallConfigResponse)
+def get_tools_config_endpoint() -> ToolCallConfigResponse:
+    """获取工具调用配置。"""
+    manager = get_tool_manager()
+    config = manager.get_config()
+    return ToolCallConfigResponse(
+        success=True,
+        config=ToolCallConfigModel(
+            mode=config["mode"],
+            auto_execute_tools=config.get("auto_execute_tools", []),
+        ),
+    )
+
+
+@router.post("/tools/config", response_model=ToolCallConfigResponse)
+def save_tools_config_endpoint(payload: ToolCallConfigModel) -> ToolCallConfigResponse:
+    """配置工具调用模式。
+    
+    - mode: "auto" 表示自动执行所有工具
+    - mode: "manual" 表示需要人工审批
+    - auto_execute_tools: 在manual模式下自动执行的工具列表
+    """
+    manager = get_tool_manager()
+    manager.set_config({
+        "mode": payload.mode,
+        "auto_execute_tools": payload.auto_execute_tools,
+    })
+    return ToolCallConfigResponse(
+        success=True,
+        config=payload,
+    )
+
+
+@router.get("/tools/pending", response_model=PendingCallsResponse)
+def get_pending_tool_calls() -> PendingCallsResponse:
+    """获取待审批的工具调用列表。
+    
+    返回所有状态为 pending 的工具调用。
+    """
+    manager = get_tool_manager()
+    pending = manager.get_pending_calls()
+    return PendingCallsResponse(
+        success=True,
+        calls=[_convert_call_to_response(call) for call in pending],
+        count=len(pending),
+    )
+
+
+@router.post("/tools/approve/{call_id}", response_model=ToolCallActionResponse)
+def approve_tool_call(call_id: str) -> ToolCallActionResponse:
+    """批准并执行工具调用。
+    
+    批准指定的工具调用并立即执行。
+    
+    Args:
+        call_id: 工具调用ID
+        
+    Returns:
+        执行结果
+    """
+    manager = get_tool_manager()
+    
+    # 批准调用
+    call = manager.approve_call(call_id)
+    if not call:
+        raise HTTPException(
+            status_code=404,
+            detail=f"工具调用不存在或状态不正确: {call_id}",
+        )
+    
+    # 标记为执行中
+    manager.mark_executing(call_id)
+    
+    try:
+        # 执行工具调用
+        # TODO: 实际执行工具调用
+        # result = execute_tool_call(call["tool_name"], call["params"])
+        
+        return ToolCallActionResponse(
+            success=True,
+            call=_convert_call_to_response(call),
+            message="工具调用已批准",
+        )
+    except Exception as e:
+        manager.fail_call(call_id, str(e))
+        return ToolCallActionResponse(
+            success=False,
+            call=_convert_call_to_response(call),
+            message=f"执行失败: {e}",
+        )
+
+
+@router.post("/tools/reject/{call_id}", response_model=ToolCallActionResponse)
+def reject_tool_call(
+    call_id: str,
+    reason: str | None = None,
+) -> ToolCallActionResponse:
+    """拒绝工具调用。
+    
+    拒绝指定的工具调用，可以附带拒绝原因。
+    
+    Args:
+        call_id: 工具调用ID
+        reason: 拒绝原因（可选）
+        
+    Returns:
+        拒绝结果
+    """
+    manager = get_tool_manager()
+    call = manager.reject_call(call_id, reason)
+    
+    if not call:
+        raise HTTPException(
+            status_code=404,
+            detail=f"工具调用不存在或状态不正确: {call_id}",
+        )
+    
+    return ToolCallActionResponse(
+        success=True,
+        call=_convert_call_to_response(call),
+        message=f"工具调用已拒绝: {reason or '用户拒绝执行'}",
+    )
+
+
+@router.get("/tools/calls", response_model=dict[str, Any])
+def get_tool_calls(
+    limit: int = 100,
+    status: str | None = None,
+) -> dict[str, Any]:
+    """获取工具调用历史记录。
+    
+    Args:
+        limit: 返回的最大记录数
+        status: 按状态过滤（pending/approved/rejected/executing/success/failed）
+        
+    Returns:
+        工具调用记录列表
+    """
+    manager = get_tool_manager()
+    calls = manager.get_all_calls(limit=limit, status=status)
+    return {
+        "success": True,
+        "calls": [_convert_call_to_response(call) for call in calls],
+        "count": len(calls),
+    }
+
+
+@router.get("/tools/calls/{call_id}", response_model=ToolCallActionResponse)
+def get_tool_call_detail(call_id: str) -> ToolCallActionResponse:
+    """获取单个工具调用详情。
+    
+    Args:
+        call_id: 工具调用ID
+        
+    Returns:
+        工具调用详情
+    """
+    manager = get_tool_manager()
+    call = manager.get_call(call_id)
+    
+    if not call:
+        raise HTTPException(
+            status_code=404,
+            detail=f"工具调用不存在: {call_id}",
+        )
+    
+    return ToolCallActionResponse(
+        success=True,
+        call=_convert_call_to_response(call),
+    )
+
+
+@router.post("/tools/parse", response_model=ParseAIResponseResponse)
+def parse_ai_response_endpoint(payload: ParseAIResponseRequest) -> ParseAIResponseResponse:
+    """解析AI响应。
+    
+    解析AI响应，提取思维链、工具调用和普通内容。
+    
+    Args:
+        payload: 包含AI响应的请求
+        
+    Returns:
+        解析后的响应结构
+    """
+    result = AIResponseParser.parse_response(
+        payload.response,
+        payload.reasoning_content,
+    )
+    
+    # 将 ToolCall 转换为 dict 类型
+    tool_call = result["tool_call"]
+    tool_call_dict: dict[str, Any] | None = dict(tool_call) if tool_call is not None else None
+    
+    return ParseAIResponseResponse(
+        success=True,
+        data=ParseAIResponseResult(
+            content=result["content"],
+            reasoning=result["reasoning"],
+            tool_call=tool_call_dict,
+        ),
+    )
+
+
+@router.post("/tools/submit", response_model=ToolCallActionResponse)
+def submit_tool_call(
+    tool_name: str,
+    params: dict[str, Any],
+) -> ToolCallActionResponse:
+    """提交新的工具调用。
+    
+    创建新的工具调用，根据配置决定是直接执行还是放入待审批队列。
+    
+    Args:
+        tool_name: 工具名称
+        params: 工具参数
+        
+    Returns:
+        提交结果
+    """
+    manager = get_tool_manager()
+    
+    # 检查是否应该自动执行
+    if manager.should_auto_execute(tool_name):
+        # 自动执行
+        call_id = manager.create_pending_call(tool_name, params)
+        manager.approve_call(call_id)
+        manager.mark_executing(call_id)
+        
+        try:
+            # TODO: 实际执行工具调用
+            # result = execute_tool_call(tool_name, params)
+            # manager.complete_call(call_id, result)
+            
+            call = manager.get_call(call_id)
+            return ToolCallActionResponse(
+                success=True,
+                call=_convert_call_to_response(call) if call else None,
+                message="工具调用已自动执行",
+            )
+        except Exception as e:
+            manager.fail_call(call_id, str(e))
+            call = manager.get_call(call_id)
+            return ToolCallActionResponse(
+                success=False,
+                call=_convert_call_to_response(call) if call else None,
+                message=f"执行失败: {e}",
+            )
+    else:
+        # 放入待审批队列
+        call_id = manager.create_pending_call(tool_name, params)
+        call = manager.get_call(call_id)
+        
+        return ToolCallActionResponse(
+            success=True,
+            call=_convert_call_to_response(call) if call else None,
+            message="工具调用已提交，等待审批",
+        )
+
+
+@router.delete("/tools/history", response_model=dict[str, Any])
+def clear_tool_history(keep_pending: bool = True) -> dict[str, Any]:
+    """清理工具调用历史。
+    
+    Args:
+        keep_pending: 是否保留待审批的调用
+        
+    Returns:
+        清理结果
+    """
+    manager = get_tool_manager()
+    cleared = manager.clear_history(keep_pending=keep_pending)
+    return {
+        "success": True,
+        "cleared_count": cleared,
+        "message": f"已清理 {cleared} 条历史记录",
+    }

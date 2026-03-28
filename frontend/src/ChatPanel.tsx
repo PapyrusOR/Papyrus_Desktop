@@ -1,7 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
-import { Dropdown, Menu, Avatar, Tooltip, Empty } from '@arco-design/web-react';
-import { IconArrowUp, IconAt, IconImage, IconMessage, IconDown, IconBulb, IconRecordStop, IconTool, IconRefresh, IconEdit, IconCopy, IconDelete, IconTranslate, IconSave, IconPlus, IconHistory, IconClose } from '@arco-design/web-react/icon';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Dropdown, Menu, Avatar, Tooltip, Empty, Message as ArcoMessage, Tag } from '@arco-design/web-react';
+import { IconArrowUp, IconAt, IconFile, IconMessage, IconDown, IconBulb, IconRecordStop, IconTool, IconRefresh, IconEdit, IconCopy, IconDelete, IconTranslate, IconSave, IconPlus, IconHistory, IconClose, IconImage, IconFilePdf } from '@arco-design/web-react/icon';
 import IconAgentMode from './icons/IconAgentMode';
+import { ReasoningChain } from './components/ReasoningChain';
+import { ToolCallCard } from './components/ToolCallCard';
 import './ChatPanel.css';
 
 const models = [
@@ -22,11 +24,49 @@ const modes = [
   { key: 'chat', icon: <IconMessage />, label: 'Chat 模式' },
 ];
 
+/** 消息块类型 */
+type MessageBlockType = 'text' | 'reasoning' | 'tool_call';
+
+/** 消息块 */
+interface MessageBlock {
+  type: MessageBlockType;
+  content?: string;
+  toolName?: string;
+  toolStatus?: 'pending' | 'executing' | 'success' | 'failed';
+  toolParams?: Record<string, any>;
+  toolResult?: any;
+  toolError?: string;
+}
+
+/** 消息 */
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  blocks?: MessageBlock[];
 }
+
+/** 已选文件 */
+interface SelectedFile {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  type: 'image' | 'document' | 'unknown';
+}
+
+/** SSE 事件类型 */
+interface SSEEvent {
+  type: 'text' | 'reasoning' | 'tool_call' | 'tool_result' | 'error' | 'done';
+  data: any;
+}
+
+// 文件类型配置
+const ALLOWED_IMAGE_TYPES = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+const ALLOWED_DOCUMENT_TYPES = ['.pdf', '.txt', '.md', '.docx'];
+const ALLOWED_FILE_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILES = 5;
 
 const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
   const [text, setText] = useState('');
@@ -36,8 +76,442 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
   const [reasoning, setReasoning] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [inputHeight, setInputHeight] = useState(118);
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const dragStartY = useRef<number>(0);
   const dragStartHeight = useRef<number>(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 滚动到底部
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // 消息更新时滚动到底部
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // 获取文件扩展名
+  const getFileExtension = (filename: string): string => {
+    const ext = filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2).toLowerCase();
+    return ext ? `.${ext}` : '';
+  };
+
+  // 获取文件类型
+  const getFileType = (filename: string): 'image' | 'document' | 'unknown' => {
+    const ext = getFileExtension(filename);
+    if (ALLOWED_IMAGE_TYPES.includes(ext)) return 'image';
+    if (ALLOWED_DOCUMENT_TYPES.includes(ext)) return 'document';
+    return 'unknown';
+  };
+
+  // 格式化文件大小
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
+  // 获取文件类型图标
+  const getFileIcon = (type: 'image' | 'document' | 'unknown', name: string) => {
+    switch (type) {
+      case 'image':
+        return <IconImage />;
+      case 'document':
+        // PDF 文件使用 PDF 图标，其他文档使用通用文件图标
+        if (name.toLowerCase().endsWith('.pdf')) {
+          return <IconFilePdf />;
+        }
+        return <IconFile />;
+      default:
+        return <IconFile />;
+    }
+  };
+
+  // 处理文件选择
+  const handleFileSelect = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  // 验证并添加文件
+  const validateAndAddFiles = useCallback((files: FileList | null) => {
+    if (!files) return;
+
+    const newFiles: SelectedFile[] = [];
+    const errors: string[] = [];
+
+    // 检查总数限制
+    const currentCount = selectedFiles.length;
+    const remainingSlots = MAX_FILES - currentCount;
+
+    if (remainingSlots <= 0) {
+      ArcoMessage.error(`最多只能选择 ${MAX_FILES} 个文件`);
+      return;
+    }
+
+    Array.from(files).slice(0, remainingSlots).forEach((file) => {
+      const ext = getFileExtension(file.name);
+
+      // 检查文件类型
+      if (!ALLOWED_FILE_TYPES.includes(ext)) {
+        errors.push(`${file.name}: 不支持的文件类型`);
+        return;
+      }
+
+      // 检查文件大小
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: 超过10MB大小限制`);
+        return;
+      }
+
+      // 检查重复文件
+      const isDuplicate = selectedFiles.some(
+        (sf) => sf.name === file.name && sf.size === file.size
+      );
+      if (isDuplicate) {
+        errors.push(`${file.name}: 文件已存在`);
+        return;
+      }
+
+      newFiles.push({
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        name: file.name,
+        size: file.size,
+        type: getFileType(file.name),
+      });
+    });
+
+    // 显示错误信息
+    if (errors.length > 0) {
+      errors.slice(0, 3).forEach((err) => ArcoMessage.error(err));
+      if (errors.length > 3) {
+        ArcoMessage.error(`还有 ${errors.length - 3} 个文件未添加`);
+      }
+    }
+
+    // 添加新文件
+    if (newFiles.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...newFiles]);
+    }
+
+    // 如果有文件被截断（超过5个）
+    if (files.length > remainingSlots) {
+      ArcoMessage.warning(`已达到最大文件数限制 (${MAX_FILES})，多余文件未添加`);
+    }
+  }, [selectedFiles]);
+
+  // 处理文件输入变化
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    validateAndAddFiles(e.target.files);
+    // 重置 input 以便可以再次选择相同文件
+    e.target.value = '';
+  }, [validateAndAddFiles]);
+
+  // 删除已选文件
+  const removeFile = useCallback((fileId: string) => {
+    setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
+  }, []);
+
+  // 清空所有已选文件
+  const clearAllFiles = useCallback(() => {
+    setSelectedFiles([]);
+  }, []);
+
+  // 处理 SSE 流
+  const handleSSEStream = useCallback(async (response: Response, messageId: string) => {
+    const reader = response.body?.getReader();
+    if (!reader) return;
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim().startsWith('data: ')) {
+            try {
+              const jsonStr = line.trim().slice(6);
+              if (jsonStr === '[DONE]') continue;
+
+              const event: SSEEvent = JSON.parse(jsonStr);
+              
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                const lastMsg = newMessages.find((m) => m.id === messageId);
+                if (!lastMsg) return prev;
+
+                if (!lastMsg.blocks) {
+                  lastMsg.blocks = [];
+                }
+
+                switch (event.type) {
+                  case 'text':
+                    lastMsg.content += event.data;
+                    break;
+
+                  case 'reasoning':
+                    // 查找或创建 reasoning 块
+                    const reasoningBlock = lastMsg.blocks.find(
+                      (b) => b.type === 'reasoning'
+                    );
+                    if (reasoningBlock) {
+                      reasoningBlock.content = (reasoningBlock.content || '') + event.data;
+                    } else {
+                      lastMsg.blocks.push({
+                        type: 'reasoning',
+                        content: event.data,
+                      });
+                    }
+                    break;
+
+                  case 'tool_call':
+                    lastMsg.blocks.push({
+                      type: 'tool_call',
+                      toolName: event.data.name,
+                      toolStatus: 'pending',
+                      toolParams: event.data.params,
+                    });
+                    break;
+
+                  case 'tool_result':
+                    const toolBlock = lastMsg.blocks.find(
+                      (b) => b.type === 'tool_call' && b.toolName === event.data.name && b.toolStatus === 'pending'
+                    );
+                    if (toolBlock) {
+                      toolBlock.toolStatus = event.data.success ? 'success' : 'failed';
+                      toolBlock.toolResult = event.data.result;
+                      toolBlock.toolError = event.data.error;
+                    }
+                    break;
+
+                  case 'error':
+                    ArcoMessage.error(event.data.message || '发生错误');
+                    break;
+                }
+
+                return newMessages;
+              });
+            } catch (e) {
+              console.error('Failed to parse SSE event:', e);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }, []);
+
+  // 发送消息
+  const sendMessage = useCallback(async () => {
+    const trimmedText = text.trim();
+    if ((!trimmedText && selectedFiles.length === 0) || isGenerating) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: trimmedText || (selectedFiles.length > 0 ? `[发送了 ${selectedFiles.length} 个文件]` : ''),
+    };
+
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      blocks: [],
+    };
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
+    setText('');
+    setIsGenerating(true);
+
+    // 保存当前文件列表并清空
+    const filesToUpload = [...selectedFiles];
+    setSelectedFiles([]);
+
+    // 创建 AbortController
+    abortControllerRef.current = new AbortController();
+
+    try {
+      let response: Response;
+
+      // 如果有文件，使用 FormData 发送
+      if (filesToUpload.length > 0) {
+        const formData = new FormData();
+        formData.append('message', trimmedText);
+        formData.append('model', model);
+        formData.append('mode', mode);
+        formData.append('reasoning', String(reasoning));
+        formData.append('messages', JSON.stringify([...messages, userMessage].map((m) => ({
+          role: m.role,
+          content: m.content,
+        }))));
+        
+        filesToUpload.forEach((fileInfo) => {
+          formData.append('attachments', fileInfo.file);
+        });
+
+        response = await fetch('/api/ai/chat/stream', {
+          method: 'POST',
+          body: formData,
+          signal: abortControllerRef.current.signal,
+        });
+      } else {
+        // 纯文本消息使用 JSON
+        response = await fetch('/api/ai/chat/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [...messages, userMessage].map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+            model,
+            mode,
+            reasoning,
+          }),
+          signal: abortControllerRef.current.signal,
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // 检查是否是 SSE 响应
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('text/event-stream')) {
+        await handleSSEStream(response, assistantMessage.id);
+      } else {
+        // 普通 JSON 响应
+        const data = await response.json();
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMsg = newMessages.find((m) => m.id === assistantMessage.id);
+          if (lastMsg) {
+            lastMsg.content = data.content;
+            if (data.reasoning) {
+              lastMsg.blocks = [
+                ...(lastMsg.blocks || []),
+                { type: 'reasoning', content: data.reasoning },
+              ];
+            }
+          }
+          return newMessages;
+        });
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        console.error('Failed to send message:', error);
+        ArcoMessage.error('发送消息失败，请重试');
+      }
+    } finally {
+      setIsGenerating(false);
+      abortControllerRef.current = null;
+    }
+  }, [text, isGenerating, messages, model, mode, reasoning, selectedFiles, handleSSEStream]);
+
+  // 停止生成
+  const stopGeneration = useCallback(() => {
+    abortControllerRef.current?.abort();
+    setIsGenerating(false);
+  }, []);
+
+  // 处理工具批准
+  const handleToolApprove = useCallback((messageId: string, toolName: string) => {
+    // 发送批准请求到后端
+    fetch('/api/tool/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageId, toolName, approved: true }),
+    });
+
+    // 更新本地状态
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      const msg = newMessages.find((m) => m.id === messageId);
+      if (msg?.blocks) {
+        const block = msg.blocks.find(
+          (b) => b.type === 'tool_call' && b.toolName === toolName && b.toolStatus === 'pending'
+        );
+        if (block) {
+          block.toolStatus = 'executing';
+        }
+      }
+      return newMessages;
+    });
+  }, []);
+
+  // 处理工具拒绝
+  const handleToolReject = useCallback((messageId: string, toolName: string) => {
+    // 发送拒绝请求到后端
+    fetch('/api/tool/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageId, toolName, approved: false }),
+    });
+
+    // 更新本地状态
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      const msg = newMessages.find((m) => m.id === messageId);
+      if (msg?.blocks) {
+        const block = msg.blocks.find(
+          (b) => b.type === 'tool_call' && b.toolName === toolName && b.toolStatus === 'pending'
+        );
+        if (block) {
+          block.toolStatus = 'failed';
+          block.toolError = '用户拒绝了工具调用';
+        }
+      }
+      return newMessages;
+    });
+  }, []);
+
+  // 渲染消息块
+  const renderMessageBlock = (block: MessageBlock, messageId: string) => {
+    switch (block.type) {
+      case 'reasoning':
+        return (
+          <ReasoningChain
+            key={`reasoning-${messageId}`}
+            content={block.content || ''}
+            defaultExpanded={false}
+          />
+        );
+
+      case 'tool_call':
+        return (
+          <ToolCallCard
+            key={`tool-${messageId}-${block.toolName}`}
+            toolName={block.toolName || '未知工具'}
+            status={block.toolStatus || 'pending'}
+            params={block.toolParams}
+            result={block.toolResult}
+            error={block.toolError}
+            onApprove={() => handleToolApprove(messageId, block.toolName || '')}
+            onReject={() => handleToolReject(messageId, block.toolName || '')}
+            defaultExpanded={block.toolStatus === 'failed'}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     dragStartY.current = e.clientY;
@@ -112,7 +586,12 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
                 {msg.role === 'assistant' && (
                   <div className="chat-message-with-avatar tw-items-start">
                     <span className="chat-message-model-label">{models.find((m) => m.key === model)!.label}</span>
-                    <div className="chat-message-bubble">{msg.content}</div>
+                    <div className="chat-message-blocks">
+                      {msg.blocks?.map((block) => renderMessageBlock(block, msg.id))}
+                    </div>
+                    {msg.content && (
+                      <div className="chat-message-bubble">{msg.content}</div>
+                    )}
                     <div className="chat-message-actions">
                       <Tooltip content="重新生成" mini><button className="chat-message-action-btn"><IconRefresh /></button></Tooltip>
                       <Tooltip content="编辑" mini><button className="chat-message-action-btn"><IconEdit /></button></Tooltip>
@@ -125,17 +604,58 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
                 )}
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
       <div className="chat-input-resize-handle" onMouseDown={onDragStart} />
       <div className="chat-input-area" style={{ height: inputHeight }}>
+        {/* 已选文件列表 */}
+        {selectedFiles.length > 0 && (
+          <div className="chat-file-list">
+            <div className="chat-file-list-header">
+              <span className="chat-file-list-title">
+                已选择 {selectedFiles.length}/{MAX_FILES} 个文件
+              </span>
+              <button
+                className="chat-file-list-clear"
+                onClick={clearAllFiles}
+                aria-label="清空所有文件"
+              >
+                清空
+              </button>
+            </div>
+            <div className="chat-file-list-content">
+              {selectedFiles.map((file) => (
+                <Tag
+                  key={file.id}
+                  className="chat-file-tag"
+                  closable
+                  icon={getFileIcon(file.type, file.name)}
+                  onClose={() => removeFile(file.id)}
+                  aria-label={`${file.name} (${formatFileSize(file.size)})`}
+                >
+                  <Tooltip content={`${file.name} (${formatFileSize(file.size)})`} mini>
+                    <span className="chat-file-tag-text">{file.name}</span>
+                  </Tooltip>
+                </Tag>
+              ))}
+            </div>
+          </div>
+        )}
         <textarea
           className="chat-textarea"
-          placeholder="发送消息..."
+          placeholder={selectedFiles.length > 0 ? "添加消息描述（可选）..." : "发送消息..."}
           aria-label="消息输入框，按 Enter 发送"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
+          disabled={isGenerating}
         />
         <div className="chat-toolbar">
           <div className="chat-toolbar-left">
@@ -159,7 +679,16 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
                 <span>{currentMode.label}</span>
               </button>
             </Dropdown>
-            <button className="chat-toolbar-btn chat-toolbar-btn-dark" aria-label="发送图片"><IconImage aria-hidden="true" /></button>
+            <Tooltip content="上传文件" mini>
+              <button
+                className="chat-toolbar-btn chat-toolbar-btn-dark"
+                onClick={handleFileSelect}
+                aria-label="上传文件"
+                disabled={selectedFiles.length >= MAX_FILES || isGenerating}
+              >
+                <IconFile aria-hidden="true" />
+              </button>
+            </Tooltip>
             <button className="chat-toolbar-btn chat-toolbar-btn-dark" aria-label="@提及"><IconAt aria-hidden="true" /></button>
           </div>
           <div className="chat-toolbar-right">
@@ -176,14 +705,27 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
               <IconTool aria-hidden="true" />
             </button>
             <button
-              className={`chat-send-btn${isGenerating ? ' chat-send-btn-stop' : (!text.trim() ? ' chat-send-btn-disabled' : '')}`}
-              onClick={() => isGenerating && setIsGenerating(false)}
+              className={`chat-send-btn${isGenerating ? ' chat-send-btn-stop' : (!text.trim() && selectedFiles.length === 0 ? ' chat-send-btn-disabled' : '')}`}
+              onClick={() => isGenerating ? stopGeneration() : sendMessage()}
+              disabled={!isGenerating && !text.trim() && selectedFiles.length === 0}
+              title={isGenerating ? '停止生成' : '发送消息'}
+              aria-label={isGenerating ? '停止生成' : '发送消息'}
             >
               {isGenerating ? <IconRecordStop /> : <IconArrowUp />}
             </button>
           </div>
         </div>
       </div>
+      {/* 隐藏的文件输入 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={ALLOWED_FILE_TYPES.join(',')}
+        style={{ display: 'none' }}
+        onChange={handleFileInputChange}
+        aria-label="文件选择输入"
+      />
     </div>
   );
 };

@@ -64,6 +64,13 @@ class ToolCall(TypedDict):
     params: dict[str, object]
 
 
+class ParsedAIResponse(TypedDict):
+    """解析后的AI响应结构。"""
+    content: str
+    reasoning: str | None
+    tool_call: ToolCall | None
+
+
 class CardTools:
     """卡片操作工具集"""
 
@@ -384,3 +391,141 @@ class CardTools:
             self._log_event("tool.parse_error", {"error": str(exc)}, level="WARNING")
 
         return None
+
+
+class AIResponseParser:
+    """AI响应解析器 - 解析思维链和工具调用。"""
+
+    # 思维链标签正则表达式
+    REASONING_TAGS = [
+        (r"<think>(.*?)</think>", re.DOTALL),  # <think>...</think>
+        (r"<reasoning>(.*?)</reasoning>", re.DOTALL),  # <reasoning>...</reasoning>
+        (r"<thought>(.*?)</thought>", re.DOTALL),  # <thought>...</thought>
+    ]
+
+    # 工具调用JSON正则表达式
+    TOOL_CALL_PATTERNS = [
+        r"```json\s*(\{.*?\})\s*```",  # ```json {...} ```
+        r"```\s*(\{[^{}]*\"tool\"[^{}]*\})\s*```",  # ``` {"tool": ...} ```
+    ]
+
+    @classmethod
+    def parse_reasoning(cls, content: str) -> tuple[str, str | None]:
+        """解析思维链内容。
+
+        从AI响应中提取思维链（reasoning/thinking）内容，
+        支持 <think>、<reasoning>、<thought> 等标签格式。
+
+        Args:
+            content: AI原始响应内容
+
+        Returns:
+            (清洗后的内容, 思维链内容或None)
+        """
+        reasoning_parts: list[str] = []
+        cleaned_content = content
+
+        for pattern, flags in cls.REASONING_TAGS:
+            matches = re.findall(pattern, content, flags)
+            if matches:
+                for match in matches:
+                    if isinstance(match, tuple):
+                        reasoning_parts.extend(m.strip() for m in match if m)
+                    else:
+                        reasoning_parts.append(match.strip())
+                # 从内容中移除思维链标签
+                cleaned_content = re.sub(pattern, "", cleaned_content, flags=flags)
+
+        # 清理多余空行
+        cleaned_content = re.sub(r"\n{3,}", "\n\n", cleaned_content).strip()
+
+        reasoning = "\n\n".join(reasoning_parts) if reasoning_parts else None
+        return cleaned_content, reasoning
+
+    @classmethod
+    def parse_tool_call(cls, content: str) -> ToolCall | None:
+        """从内容中解析工具调用。
+
+        从AI响应中解析JSON格式的工具调用。
+
+        Args:
+            content: AI响应内容
+
+        Returns:
+            工具调用对象或None
+        """
+        for pattern in cls.TOOL_CALL_PATTERNS:
+            matches = re.findall(pattern, content, re.DOTALL)
+            for match in matches:
+                try:
+                    obj: object = json.loads(match)
+                    if (
+                        isinstance(obj, dict)
+                        and isinstance(obj.get("tool"), str)
+                        and isinstance(obj.get("params"), dict)
+                    ):
+                        return {
+                            "tool": cast(str, obj["tool"]),
+                            "params": cast(dict[str, object], obj["params"]),
+                        }
+                except json.JSONDecodeError:
+                    continue
+        return None
+
+    @classmethod
+    def parse_response(
+        cls,
+        response: str,
+        reasoning_content: str | None = None,
+    ) -> ParsedAIResponse:
+        """完整解析AI响应。
+
+        解析AI响应，提取思维链、工具调用和普通内容。
+
+        Args:
+            response: AI原始响应
+            reasoning_content: 提供商返回的reasoning_content字段（如DeepSeek R1）
+
+        Returns:
+            解析后的响应结构
+        """
+        # 首先尝试从标签中提取思维链
+        cleaned_content, reasoning = cls.parse_reasoning(response)
+
+        # 如果提供商提供了reasoning_content，优先使用
+        if reasoning_content and not reasoning:
+            reasoning = reasoning_content
+
+        # 解析工具调用（从清洗后的内容或原始内容）
+        tool_call = cls.parse_tool_call(cleaned_content) or cls.parse_tool_call(response)
+
+        return {
+            "content": cleaned_content,
+            "reasoning": reasoning,
+            "tool_call": tool_call,
+        }
+
+    @classmethod
+    def remove_tool_call_markers(cls, content: str) -> str:
+        """移除工具调用标记。
+
+        从内容中移除工具调用的JSON代码块。
+
+        Args:
+            content: 原始内容
+
+        Returns:
+            移除工具调用标记后的内容
+        """
+        cleaned = content
+        for pattern in cls.TOOL_CALL_PATTERNS:
+            cleaned = re.sub(pattern, "", cleaned, flags=re.DOTALL)
+        # 清理多余空行
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+        return cleaned
+
+
+# 兼容旧代码的函数
+parse_tool_call = AIResponseParser.parse_tool_call
+parse_reasoning = AIResponseParser.parse_reasoning
+parse_response = AIResponseParser.parse_response
