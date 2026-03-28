@@ -1,5 +1,5 @@
 import { Typography, Button, Tag } from '@arco-design/web-react';
-import { IconPlus, IconDownload } from '@arco-design/web-react/icon';
+import { IconPlus } from '@arco-design/web-react/icon';
 import type { Note, Folder } from '../types';
 import { NoteCard, FolderTab, AddCard, StatsBar } from '../components';
 import { PRIMARY_COLOR, UNIFIED_BTN_STYLE } from '../constants';
@@ -14,7 +14,6 @@ interface NoteListViewProps {
   onFolderChange: (folder: string) => void;
   onNoteClick: (note: Note) => void;
   onCreateClick: () => void;
-  onImportObsidian?: () => void;
 }
 
 export const NoteListView = ({
@@ -27,7 +26,6 @@ export const NoteListView = ({
   onFolderChange,
   onNoteClick,
   onCreateClick,
-  onImportObsidian,
 }: NoteListViewProps) => {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px' }}>
@@ -53,14 +51,6 @@ export const NoteListView = ({
           </Typography.Text>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <Button 
-            type='secondary' 
-            icon={<IconDownload />} 
-            onClick={onImportObsidian}
-            style={{ ...UNIFIED_BTN_STYLE }}
-          >
-            从 Obsidian 导入
-          </Button>
           <Button 
             type='primary' 
             icon={<IconPlus />} 

@@ -4,6 +4,8 @@ import {
   Typography,
   Message,
   Spin,
+  Modal,
+  Input,
 } from '@arco-design/web-react';
 import {
   IconArrowLeft,
@@ -12,6 +14,7 @@ import {
   IconDelete,
   IconCloud,
   IconFolder,
+  IconDownload,
 } from '@arco-design/web-react/icon';
 import { api } from '../../api';
 
@@ -30,6 +33,8 @@ const DATA_MENU_ITEMS = [
 const DataView = ({ onBack }: DataViewProps) => {
   const [activeMenu, setActiveMenu] = useState('backup');
   const [loading, setLoading] = useState(false);
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [vaultPath, setVaultPath] = useState('');
 
   // 创建备份
   const handleBackup = async () => {
@@ -67,6 +72,25 @@ const DataView = ({ onBack }: DataViewProps) => {
       Message.success('导出成功');
     } catch (err) {
       Message.error(`导出失败: ${err instanceof Error ? err.message : '未知错误'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 从 Obsidian 导入
+  const handleImportObsidian = async () => {
+    if (!vaultPath.trim()) {
+      Message.error('请输入 Vault 路径');
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await api.importObsidian(vaultPath.trim());
+      Message.success(`导入完成: ${result.imported} 条已导入, ${result.skipped} 条已跳过`);
+      setImportModalVisible(false);
+      setVaultPath('');
+    } catch (err) {
+      Message.error(`导入失败: ${err instanceof Error ? err.message : '未知错误'}`);
     } finally {
       setLoading(false);
     }
@@ -122,6 +146,30 @@ const DataView = ({ onBack }: DataViewProps) => {
             disabled={loading}
           >
             {loading ? <Spin size={14} /> : '导出数据'}
+          </Button>
+        </div>
+
+        <div className="settings-data-card">
+          <div className="settings-data-info">
+            <div 
+              className="settings-data-icon"
+              style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}
+            >
+              <IconDownload style={{ fontSize: 24 }} />
+            </div>
+            <div>
+              <Text bold style={{ fontSize: 15 }}>从 Obsidian 导入</Text>
+              <Paragraph type="secondary" style={{ fontSize: 13, margin: 0 }}>
+                导入 Obsidian Vault 中的 Markdown 文件
+              </Paragraph>
+            </div>
+          </div>
+          <Button 
+            shape="round"
+            onClick={() => setImportModalVisible(true)}
+            disabled={loading}
+          >
+            导入
           </Button>
         </div>
 
@@ -332,6 +380,32 @@ const DataView = ({ onBack }: DataViewProps) => {
         
         {renderContent()}
       </div>
+
+      {/* Obsidian 导入对话框 */}
+      <Modal
+        title="从 Obsidian 导入"
+        visible={importModalVisible}
+        onOk={handleImportObsidian}
+        onCancel={() => {
+          setImportModalVisible(false);
+          setVaultPath('');
+        }}
+        okText="导入"
+        cancelText="取消"
+        confirmLoading={loading}
+      >
+        <div style={{ marginTop: 16 }}>
+          <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+            请输入 Obsidian Vault 的完整路径，系统将导入其中的 Markdown 文件。
+          </Paragraph>
+          <Input
+            value={vaultPath}
+            onChange={setVaultPath}
+            placeholder="例如: C:\Users\用户名\Documents\Obsidian Vault"
+            disabled={loading}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };
