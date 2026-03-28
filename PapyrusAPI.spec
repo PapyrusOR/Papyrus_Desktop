@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec for Papyrus FastAPI Backend
+PyInstaller spec for Papyrus FastAPI Backend (Single File Mode)
 
 This spec file is used to build the Python backend as a standalone executable
 for use with the Electron frontend.
@@ -64,30 +64,48 @@ a = Analysis(
         'asyncio',
         'logging',
         'sqlite3',
-        # Project modules
+        # Third-party dependencies
+        'watchdog',
+        'watchdog.observers',
+        'watchdog.events',
+        # Project modules - ai
+        'ai',
         'ai.config',
         'ai.provider',
         'ai.sidebar_v3',
         'ai.tool_manager',
         'ai.tools',
+        # Project modules - logger
+        'logger',
+        # Project modules - mcp
+        'mcp',
         'mcp.server',
         'mcp.vault_tools',
+        # Project modules - papyrus
+        'papyrus',
         'papyrus.app',
+        'papyrus.core',
         'papyrus.core.cards',
+        'papyrus.data',
         'papyrus.data.database',
         'papyrus.data.notes_storage',
         'papyrus.data.progress',
         'papyrus.data.relations',
         'papyrus.data.storage',
+        'papyrus.integrations',
         'papyrus.integrations.ai',
         'papyrus.integrations.file_watcher',
         'papyrus.integrations.logging',
         'papyrus.integrations.mcp',
         'papyrus.integrations.obsidian',
+        'papyrus.logic',
         'papyrus.logic.sm2',
         'papyrus.paths',
         'papyrus.resources',
+        # Project modules - papyrus_api
+        'papyrus_api',
         'papyrus_api.deps',
+        'papyrus_api.routers',
         'papyrus_api.routers.ai',
         'papyrus_api.routers.cards',
         'papyrus_api.routers.data',
@@ -98,6 +116,7 @@ a = Analysis(
         'papyrus_api.routers.review',
         'papyrus_api.routers.search',
         'papyrus_api.routers.vault',
+        'papyrus_api.routers.update',
     ],
     hookspath=[],
     hooksconfig={},
@@ -125,12 +144,8 @@ a = Analysis(
     optimize=1,
 )
 
-# Remove duplicate entries
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-# Create the executable
+# Create the executable (Single File Mode - no COLLECT)
 exe = EXE(
-    pyz,
     a.scripts,
     a.binaries,
     a.zipfiles,
@@ -150,16 +165,4 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['assets/icon.ico'] if sys.platform == 'win32' else 'assets/icon.icns' if sys.platform == 'darwin' else 'assets/icon.png',
-)
-
-# Collect all files for distribution
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=True,
-    upx=True,
-    upx_exclude=[],
-    name='Papyrus',
 )

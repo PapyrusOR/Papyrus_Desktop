@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // TS + React 19 + Arco scaffold
 export default defineConfig({
+  base: './', // Required for Electron to load files locally
   plugins: [
     react({
       // keep classic runtime if you still want `import React from 'react'`

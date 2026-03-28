@@ -156,10 +156,17 @@ async function startBackend() {
 
     log(`Starting backend from: ${pythonExecutable}`);
     
+    // Set data directory to Electron's userData (writable location)
+    const env = {
+      ...process.env,
+      PAPYRUS_DATA_DIR: app.getPath('userData'),
+    };
+    
     backendProcess = spawn(pythonExecutable, [], {
       cwd: paths.pythonDistPath,
       stdio: 'pipe',
       detached: false,
+      env: env,
     });
   }
 

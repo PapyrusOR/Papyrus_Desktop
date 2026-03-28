@@ -53,7 +53,8 @@ jobs:
       - name: Build Application
         shell: bash
         run: |
-          pyinstaller Papyrus.spec
+          pip install -r requirements.txt
+          pyinstaller PapyrusAPI.spec --clean
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4

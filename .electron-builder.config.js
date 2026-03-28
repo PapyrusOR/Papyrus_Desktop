@@ -83,6 +83,7 @@ module.exports = {
   
   dmg: {
     sign: false,
+    artifactName: '${productName}-Apple Silicon-${arch}.${ext}',
     contents: [
       { x: 130, y: 220 },
       { x: 410, y: 220, type: 'link', path: '/Applications' },
@@ -100,6 +101,7 @@ module.exports = {
       { target: 'deb', arch: ['x64'] },
       { target: 'tar.gz', arch: ['x64'] },
     ],
+    artifactName: '${productName}-Linux-${arch}.${ext}',
     icon: 'assets/icon.png',
     category: 'Office',
     maintainer: 'Papyrus Team',

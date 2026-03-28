@@ -91,7 +91,7 @@ jobs:
         run: |
           pip install pyinstaller
           pip install -r requirements.txt
-          npm run build:python
+          pyinstaller PapyrusAPI.spec --clean
 
       - name: Build Electron App
         run: |

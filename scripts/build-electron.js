@@ -145,6 +145,33 @@ function buildFrontend() {
   success('Frontend built successfully');
 }
 
+// Check Python dependencies
+function checkPythonDependencies() {
+  const pythonCmd = commandExists('python') ? 'python' : (commandExists('python3') ? 'python3' : null);
+  if (!pythonCmd) {
+    return false;
+  }
+  
+  const requiredModules = ['fastapi', 'uvicorn', 'watchdog', 'requests', 'pydantic'];
+  const missing = [];
+  
+  for (const mod of requiredModules) {
+    try {
+      execSync(`${pythonCmd} -c "import ${mod}"`, { stdio: 'ignore' });
+    } catch {
+      missing.push(mod);
+    }
+  }
+  
+  if (missing.length > 0) {
+    log(`Missing Python modules: ${missing.join(', ')}`, 'yellow');
+    log('Installing requirements...', 'dim');
+    exec(`${pythonCmd} -m pip install -r requirements.txt`);
+  }
+  
+  return true;
+}
+
 // Build Python backend (optional)
 function buildPython() {
   logSection('Building Python Backend');
@@ -164,6 +191,9 @@ function buildPython() {
     log('Python not found. Skipping Python build.', 'yellow');
     return false;
   }
+  
+  // Check Python dependencies
+  checkPythonDependencies();
   
   // Clean previous build
   const distPythonPath = path.join('dist-python');
@@ -189,7 +219,14 @@ function buildPython() {
     error(`Python build failed: ${executableName} not found in dist-python`);
   }
   
-  success('Python backend built successfully');
+  // Verify executable size (should be > 10MB)
+  const stats = fs.statSync(executablePath);
+  const sizeMB = stats.size / 1024 / 1024;
+  if (sizeMB < 10) {
+    error(`Python build seems incomplete: ${executableName} is only ${sizeMB.toFixed(2)} MB (expected > 10 MB)`);
+  }
+  
+  success(`Python backend built successfully (${sizeMB.toFixed(2)} MB)`);
   return true;
 }
 

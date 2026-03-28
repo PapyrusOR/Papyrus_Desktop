@@ -122,3 +122,9 @@ app.include_router(relations_router, prefix="/api")
 app.include_router(progress_router, prefix="/api")
 app.include_router(logs_router, prefix="/api")
 app.include_router(update_router, prefix="/api")
+
+
+# Entry point for PyInstaller executable
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
