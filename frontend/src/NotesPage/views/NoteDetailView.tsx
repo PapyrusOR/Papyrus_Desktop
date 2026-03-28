@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Typography, Input, Tag, Button, Breadcrumb, Message, Modal, Dropdown } from '@arco-design/web-react';
 import SmartTextArea, { type SmartTextAreaRef } from '../../components/SmartTextArea';
 const BreadcrumbItem = Breadcrumb.Item;
@@ -180,6 +180,26 @@ export const NoteDetailView = ({
   };
 
   const outline = generateOutline(content);
+
+  // 触发字数统计事件
+  useEffect(() => {
+    const chars = content.length;
+    const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+    const headings = outline.length;
+    
+    window.dispatchEvent(new CustomEvent('papyrus_note_stats', {
+      detail: { chars, words, headings }
+    }));
+  }, [content, outline]);
+
+  // 组件卸载时清空统计
+  useEffect(() => {
+    return () => {
+      window.dispatchEvent(new CustomEvent('papyrus_note_stats', {
+        detail: { chars: 0, words: 0, headings: 0 }
+      }));
+    };
+  }, []);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
