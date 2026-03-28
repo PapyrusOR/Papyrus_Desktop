@@ -105,10 +105,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Papyrus-win32-x64/**/*.exe
-            artifacts/Papyrus-win32-x64/**/*.zip
-            artifacts/Papyrus-darwin-x64/**/*.dmg
-            artifacts/Papyrus-darwin-x64/**/*.zip
+            artifacts/Papyrus-win-x64/**/*.exe
+            artifacts/Papyrus-win-x64/**/*.zip
+            artifacts/Papyrus-macos-arm64/**/*.dmg
+            artifacts/Papyrus-macos-arm64/**/*.zip
             artifacts/Papyrus-linux-x64/**/*.AppImage
             artifacts/Papyrus-linux-x64/**/*.deb
             artifacts/Papyrus-linux-x64/**/*.tar.gz
