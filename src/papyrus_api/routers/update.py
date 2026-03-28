@@ -12,7 +12,7 @@ from pydantic import BaseModel
 router = APIRouter(tags=["update"])
 
 # 当前版本号 - 与 package.json 保持一致
-CURRENT_VERSION = "v2.0.0beta1"
+CURRENT_VERSION = "v2.0.0-beta.1"
 
 # GitHub 仓库信息
 GITHUB_OWNER = "Alpaca233114514"
@@ -198,10 +198,16 @@ def check_update() -> UpdateCheckResponse:
             )
         )
         
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
+        # 捕获所有异常（包括 requests 相关和网络错误）
+        error_msg = str(e)
+        if "requests" in type(e).__module__ or "http" in error_msg.lower() or "connection" in error_msg.lower():
+            message = f"网络错误：{error_msg}"
+        else:
+            message = f"检查更新失败：{error_msg}"
         return UpdateCheckResponse(
             success=False,
-            message=f"网络错误：{str(e)}",
+            message=message,
             data=VersionInfo(
                 current_version=CURRENT_VERSION,
                 latest_version=CURRENT_VERSION,

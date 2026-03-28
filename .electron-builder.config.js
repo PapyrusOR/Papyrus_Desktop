@@ -45,11 +45,10 @@ module.exports = {
     '**/*.dylib',
   ],
   
-  // Windows configuration
+  // Windows configuration - 仅 NSIS 安装器
   win: {
     target: [
       { target: 'nsis', arch: ['x64'] },
-      { target: 'portable', arch: ['x64'] },
     ],
     icon: 'assets/icon.ico',
     publisherName: 'Papyrus Team',
@@ -64,10 +63,7 @@ module.exports = {
     shortcutName: 'Papyrus',
     include: 'build/installer.nsh',
     deleteAppDataOnUninstall: false,
-  },
-  
-  portable: {
-    splashImage: 'assets/splash.bmp',
+    artifactName: '${productName}-Setup-${version}.${ext}',
   },
   
   // macOS configuration

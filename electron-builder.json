@@ -41,10 +41,6 @@
       {
         "target": "nsis",
         "arch": ["x64"]
-      },
-      {
-        "target": "portable",
-        "arch": ["x64"]
       }
     ],
     "icon": "assets/icon.ico",
@@ -58,10 +54,8 @@
     "createStartMenuShortcut": true,
     "shortcutName": "Papyrus",
     "include": "build/installer.nsh",
-    "deleteAppDataOnUninstall": false
-  },
-  "portable": {
-    "splashImage": "assets/splash.bmp"
+    "deleteAppDataOnUninstall": false,
+    "artifactName": "${productName}-Setup-${version}.${ext}"
   },
   "mac": {
     "target": [

@@ -33,6 +33,7 @@ jobs:
             arch: x64
             artifact_name: "Papyrus-Win-x64"
             ext: ".exe"
+            setup_pattern: "*-Setup-*.exe"
           - platform: "macos"
             os: macos-latest
             arch: arm64
@@ -46,10 +47,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e  # v4.3.0
         with:
           node-version: '24'
           cache: 'npm'
@@ -74,7 +75,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
         with:
           name: ${{ matrix.artifact_name }}
           path: dist-electron/*
@@ -90,7 +91,7 @@ jobs:
 
     steps:
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e  # v4.2.1
         with:
           path: artifacts
           pattern: Papyrus-*
@@ -102,16 +103,13 @@ jobs:
           find artifacts/ -type f -name "*" | head -20
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda  # v2.2.1
         with:
           files: |
-            artifacts/Papyrus-Win-x64/**/*.exe
-            artifacts/Papyrus-Win-x64/**/*.zip
+            artifacts/Papyrus-Win-x64/**/*-Setup-*.exe
             artifacts/Papyrus-Apple Silicon-arm64/**/*.dmg
-            artifacts/Papyrus-Apple Silicon-arm64/**/*.zip
             artifacts/Papyrus-Linux-x64/**/*.AppImage
             artifacts/Papyrus-Linux-x64/**/*.deb
-            artifacts/Papyrus-Linux-x64/**/*.tar.gz
           draft: true
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
           generate_release_notes: true

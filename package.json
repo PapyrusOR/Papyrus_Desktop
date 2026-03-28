@@ -1,6 +1,6 @@
 {
   "name": "papyrus",
-  "version": "v2.0.0beta1",
+  "version": "v2.0.0-beta.1",
   "description": "Papyrus - A modern note-taking and learning application",
   "main": "electron/main.js",
   "author": "Papyrus Team",
@@ -63,12 +63,6 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "icon": "assets/icon.ico",
@@ -79,7 +73,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Papyrus"
+      "shortcutName": "Papyrus",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [

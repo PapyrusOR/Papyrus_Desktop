@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("MCP server stopped")
 
 
-app = FastAPI(title="Papyrus API", version="v2.0.0alpha1", lifespan=lifespan)
+app = FastAPI(title="Papyrus API", version="v2.0.0-beta.1", lifespan=lifespan)
 
 # Frontend dev server (vite) defaults to 5173
 app.add_middleware(
