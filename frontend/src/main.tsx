@@ -7,6 +7,7 @@ import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
 import './theme.css';  // 全局主题样式
 import './a11y.css';  // 无障碍样式
+import './tailwind.css';  // Tailwind CSS
 
 import App from './App';
 
