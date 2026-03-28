@@ -179,7 +179,7 @@ function buildPython() {
   
   // Build with PyInstaller
   log('Building Python executable with PyInstaller...');
-  exec(`${pythonCmd} -m PyInstaller Papyrus.spec --clean`);
+  exec(`${pythonCmd} -m PyInstaller PapyrusAPI.spec --clean`);
   
   // Verify build output
   const executableName = process.platform === 'win32' ? 'Papyrus.exe' : 'Papyrus';
