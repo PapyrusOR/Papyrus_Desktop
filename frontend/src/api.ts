@@ -1,15 +1,22 @@
 const BASE = '/api';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? res.statusText);
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...init,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail ?? res.statusText);
+    }
+    return res.json();
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('Failed to fetch')) {
+      throw new Error('无法连接到服务器，请检查后端是否已启动');
+    }
+    throw err;
   }
-  return res.json();
 }
 
 // ========== Card Types ==========
@@ -19,11 +26,13 @@ export type Card = {
   a: string;
   next_review: number;
   interval: number;
+  tags?: string[];
 };
 
 export type ListCardsRes = { success: boolean; cards: Card[]; count: number };
 export type NextDueRes = { success: boolean; card: Card | null; due_count: number; total_count: number };
 export type RateRes = { success: boolean; card: Card; interval_days: number; ef: number; next: NextDueRes | null };
+export type UpdateCardRes = { success: boolean; card: Card };
 
 // ========== Note Types ==========
 export type Note = {
@@ -158,13 +167,18 @@ export const api = {
   
   // Cards
   listCards: () => request<ListCardsRes>('/cards'),
-  createCard: (q: string, a: string) => request<{ success: boolean; card: Card }>('/cards', { 
+  createCard: (q: string, a: string, tags?: string[]) => request<{ success: boolean; card: Card }>('/cards', { 
     method: 'POST', 
-    body: JSON.stringify({ q, a }) 
+    body: JSON.stringify({ q, a, tags }) 
   }),
   deleteCard: (id: string) => request<{ success: boolean }>(`/cards/${id}`, { method: 'DELETE' }),
-  nextDue: () => request<NextDueRes>('/review/next'),
-  rateCard: (id: string, grade: 1 | 2 | 3) => request<RateRes>(`/review/${id}/rate`, { 
+  updateCard: (id: string, data: { q?: string; a?: string; tags?: string[] }) => 
+    request<UpdateCardRes>(`/cards/${id}`, { 
+      method: 'PATCH', 
+      body: JSON.stringify(data) 
+    }),
+  nextDue: (tag?: string) => request<NextDueRes>(tag ? `/review/next?tag=${encodeURIComponent(tag)}` : '/review/next'),
+  rateCard: (id: string, grade: 1 | 2 | 3, tag?: string) => request<RateRes>(tag ? `/review/${id}/rate?tag=${encodeURIComponent(tag)}` : `/review/${id}/rate`, { 
     method: 'POST', 
     body: JSON.stringify({ grade }) 
   }),

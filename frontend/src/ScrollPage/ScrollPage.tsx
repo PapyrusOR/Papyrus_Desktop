@@ -1,9 +1,9 @@
-import { Typography, Button, Empty, Spin } from '@arco-design/web-react';
-import { IconPlus, IconClockCircle, IconBook, IconPlayCircle, IconEye } from '@arco-design/web-react/icon';
+import { Typography, Button, Empty, Spin, Modal, Input, Select, Message } from '@arco-design/web-react';
+import { IconPlus, IconClockCircle, IconBook, IconPlayCircle, IconEye, IconEdit } from '@arco-design/web-react/icon';
 import { useState, useEffect } from 'react';
 import FlashcardStudy from './FlashcardStudy';
 
-import { api, type Card } from '../api';
+import { api, type Card as CardType } from '../api';
 import { type SceneryContent } from '../StartPage/sceneryContent';
 import { usePageScenery } from '../hooks/useScenery';
 import { useSceneryColor, getAdaptivePrimaryColor } from '../hooks/useSceneryColor';
@@ -168,7 +168,7 @@ const useCardStyle = (hovered: boolean) => ({
 });
 
 // 卷帙卡片
-const CollectionCard = ({ collection }: { collection: Collection }) => {
+const CollectionCard = ({ collection, onClick, onManage }: { collection: Collection; onClick?: () => void; onManage?: (e: React.MouseEvent) => void }) => {
   const [hovered, setHovered] = useState(false);
   const cardStyle = useCardStyle(hovered);
 
@@ -179,9 +179,11 @@ const CollectionCard = ({ collection }: { collection: Collection }) => {
       aria-label={`${collection.title}，包含 ${collection.scrollCount} 个卷轴，共 ${collection.totalCards} 张卡片`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          onClick?.();
         }
       }}
       style={{
@@ -194,6 +196,7 @@ const CollectionCard = ({ collection }: { collection: Collection }) => {
         flexDirection: 'column',
         justifyContent: 'space-between',
         boxSizing: 'border-box',
+        position: 'relative',
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -207,7 +210,7 @@ const CollectionCard = ({ collection }: { collection: Collection }) => {
           fontSize: '12px',
           fontWeight: 600,
         }}>
-          {collection.scrollCount} 个卷轴
+          {collection.totalCards} 张卡片
         </div>
         <Typography.Text bold style={{ fontSize: '16px', lineHeight: 1.3 }}>
           {collection.title}
@@ -220,14 +223,51 @@ const CollectionCard = ({ collection }: { collection: Collection }) => {
           {collection.totalCards} 张卡片
         </Typography.Text>
       </div>
+
+      {hovered && onManage && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onManage(e);
+          }}
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: 'var(--color-fill-3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <IconEdit style={{ fontSize: '12px', color: 'var(--color-text-2)' }} />
+        </div>
+      )}
     </div>
   );
 };
 
 // 从卡片生成集合
 function generateCollections(cards: CardType[]): Collection[] {
-  // 不再生成默认卷帙，只返回空数组
-  return [];
+  const tagMap = new Map<string, number>();
+  cards.forEach(card => {
+    const tags = card.tags && card.tags.length > 0 ? card.tags : ['未分类'];
+    tags.forEach(tag => {
+      tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
+    });
+  });
+  const collections: Collection[] = Array.from(tagMap.entries()).map(([tag, count]) => ({
+    id: tag,
+    title: tag,
+    scrollCount: 1,
+    totalCards: count,
+  }));
+  collections.sort((a, b) => b.totalCards - a.totalCards);
+  return collections;
 }
 
 // 卷轴卡片
@@ -411,6 +451,13 @@ const ScrollPage = () => {
   const [masteredCount, setMasteredCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState<CardType[]>([]);
+  const [filterTag, setFilterTag] = useState<string | undefined>(undefined);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [manageModalVisible, setManageModalVisible] = useState(false);
+  const [manageCollectionId, setManageCollectionId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { config: sceneryConfig } = usePageScenery('scroll');
 
@@ -437,6 +484,7 @@ const ScrollPage = () => {
         }
       } catch (err) {
         console.error('获取统计失败:', err);
+        Message.error('获取统计数据失败，请稍后重试');
       } finally {
         setLoading(false);
       }
@@ -447,7 +495,8 @@ const ScrollPage = () => {
     }
   }, [isStudying]);
 
-  const startStudy = () => {
+  const startStudy = (tag?: string) => {
+    setFilterTag(tag);
     setIsDemo(false);
     setIsStudying(true);
   };
@@ -513,7 +562,7 @@ const ScrollPage = () => {
         flexDirection: 'column',
         overflow: 'hidden',
       }}>
-        <FlashcardStudy onExit={() => setIsStudying(false)} demo={isDemo} />
+        <FlashcardStudy onExit={() => setIsStudying(false)} demo={isDemo} filterTag={filterTag} />
       </div>
     );
   }
@@ -546,7 +595,7 @@ const ScrollPage = () => {
             type='primary'
             size='large'
             icon={<IconPlayCircle />}
-            onClick={startStudy}
+            onClick={() => startStudy()}
             disabled={dueCount === 0}
             style={{
               height: '40px',
@@ -580,8 +629,21 @@ const ScrollPage = () => {
           <Empty description="暂无卷帙" />
         ) : (
           <div style={shelfContainerStyle}>
-            {collections.map(c => <CollectionCard key={c.id} collection={c} />)}
-            <AddCard label='新建卷帙' />
+            {collections.map(c => (
+              <CollectionCard 
+                key={c.id} 
+                collection={c} 
+                onClick={() => startStudy(c.id)}
+                onManage={(e) => {
+                  e.stopPropagation();
+                  setManageCollectionId(c.id);
+                  setManageModalVisible(true);
+                }}
+              />
+            ))}
+            <div onClick={() => setCreateModalVisible(true)}>
+              <AddCard label='新建卷帙' />
+            </div>
           </div>
         )}
       </section>
@@ -605,6 +667,162 @@ const ScrollPage = () => {
       </section>
 
       <div style={{ height: '32px' }} />
+
+      {/* 新建卷帙模态框 */}
+      <Modal
+        title="新建卷帙"
+        visible={createModalVisible}
+        onOk={async () => {
+          const name = newCollectionName.trim();
+          if (!name) {
+            Message.error('请输入卷帙名称');
+            return;
+          }
+          if (selectedCardIds.length === 0) {
+            Message.error('请至少选择一张卡片');
+            return;
+          }
+          setIsSubmitting(true);
+          try {
+            let successCount = 0;
+            for (const cardId of selectedCardIds) {
+              const card = cards.find(c => c.id === cardId);
+              if (card) {
+                const newTags = [...(card.tags || []), name];
+                const res = await api.updateCard(cardId, { tags: newTags });
+                if (res.success) successCount++;
+              }
+            }
+            Message.success(`成功创建卷帙，已分配 ${successCount} 张卡片`);
+            setCreateModalVisible(false);
+            setNewCollectionName('');
+            setSelectedCardIds([]);
+            // 刷新卡片列表
+            const cardsRes = await api.listCards();
+            if (cardsRes.success) setCards(cardsRes.cards);
+          } catch (err) {
+            Message.error('创建卷帙失败');
+          } finally {
+            setIsSubmitting(false);
+          }
+        }}
+        onCancel={() => {
+          setCreateModalVisible(false);
+          setNewCollectionName('');
+          setSelectedCardIds([]);
+        }}
+        confirmLoading={isSubmitting}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <Typography.Text style={{ display: 'block', marginBottom: 8 }}>卷帙名称</Typography.Text>
+            <Input 
+              value={newCollectionName} 
+              onChange={setNewCollectionName} 
+              placeholder="例如：英语单词"
+              maxLength={20}
+            />
+          </div>
+          <div>
+            <Typography.Text style={{ display: 'block', marginBottom: 8 }}>选择卡片</Typography.Text>
+            <Select
+              mode="multiple"
+              value={selectedCardIds}
+              onChange={setSelectedCardIds}
+              placeholder="请选择要加入卷帙的卡片"
+              style={{ width: '100%' }}
+              options={cards.map(c => ({ label: c.q.slice(0, 40) || '无标题', value: c.id }))}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* 管理卷帙模态框 */}
+      <Modal
+        title={`管理卷帙：${manageCollectionId || ''}`}
+        visible={manageModalVisible && !!manageCollectionId}
+        onCancel={() => {
+          setManageModalVisible(false);
+          setManageCollectionId(null);
+        }}
+        footer={[
+          <Button key="close" onClick={() => { setManageModalVisible(false); setManageCollectionId(null); }}>
+            关闭
+          </Button>,
+          <Button 
+            key="delete" 
+            type="primary" 
+            status="danger"
+            onClick={async () => {
+              if (!manageCollectionId) return;
+              Modal.confirm({
+                title: '删除卷帙',
+                content: `确定要删除卷帙「${manageCollectionId}」吗？卡片不会被删除，只是移除此标签。`,
+                onOk: async () => {
+                  try {
+                    const targetCards = cards.filter(c => (c.tags || []).includes(manageCollectionId));
+                    for (const card of targetCards) {
+                      const newTags = (card.tags || []).filter(t => t !== manageCollectionId);
+                      await api.updateCard(card.id, { tags: newTags });
+                    }
+                    Message.success('卷帙已删除');
+                    setManageModalVisible(false);
+                    setManageCollectionId(null);
+                    const cardsRes = await api.listCards();
+                    if (cardsRes.success) setCards(cardsRes.cards);
+                  } catch {
+                    Message.error('删除卷帙失败');
+                  }
+                }
+              });
+            }}
+          >
+            删除卷帙
+          </Button>
+        ]}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 300, overflowY: 'auto' }}>
+          {cards
+            .filter(c => manageCollectionId && (c.tags || []).includes(manageCollectionId))
+            .map(card => (
+              <div 
+                key={card.id} 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '12px 16px',
+                  background: 'var(--color-fill-2)',
+                  borderRadius: 8,
+                }}
+              >
+                <Typography.Text style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {card.q.slice(0, 60) || '无标题'}
+                </Typography.Text>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={async () => {
+                    try {
+                      const newTags = (card.tags || []).filter(t => t !== manageCollectionId);
+                      await api.updateCard(card.id, { tags: newTags });
+                      Message.success('已移出卷帙');
+                      const cardsRes = await api.listCards();
+                      if (cardsRes.success) setCards(cardsRes.cards);
+                    } catch {
+                      Message.error('移除失败');
+                    }
+                  }}
+                >
+                  移除
+                </Button>
+              </div>
+            ))}
+          {cards.filter(c => manageCollectionId && (c.tags || []).includes(manageCollectionId)).length === 0 && (
+            <Empty description="该卷帙暂无卡片" />
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };

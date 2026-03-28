@@ -19,6 +19,7 @@ class CreateCardIn(BaseModel):
     a: str | None = None
     question: str | None = None
     answer: str | None = None
+    tags: list[str] | None = None
 
 
 class CardsListResponse(BaseModel):
@@ -61,7 +62,7 @@ def create_card(payload: CreateCardIn) -> CreateCardResponse:
 
     data_file = get_data_file()
     try:
-        card = card_core.create_card(data_file, q=q, a=a)
+        card = card_core.create_card(data_file, q=q, a=a, tags=payload.tags or [])
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -79,6 +80,31 @@ def delete_card(card_id: str) -> DeleteCardResponse:
     if not ok:
         raise HTTPException(status_code=404, detail="card not found")
     return DeleteCardResponse(success=True)
+
+
+class UpdateCardIn(BaseModel):
+    q: str | None = None
+    a: str | None = None
+    tags: list[str] | None = None
+
+class UpdateCardResponse(BaseModel):
+    success: bool
+    card: CardDict
+
+@router.patch("/{card_id}", response_model=UpdateCardResponse)
+def update_card_route(card_id: str, payload: UpdateCardIn) -> UpdateCardResponse:
+    """Update a card."""
+    data_file = get_data_file()
+    card = card_core.update_card(
+        data_file,
+        card_id,
+        q=payload.q,
+        a=payload.a,
+        tags=payload.tags,
+    )
+    if card is None:
+        raise HTTPException(status_code=404, detail="card not found")
+    return UpdateCardResponse(success=True, card=card)
 
 
 @router.post("/import/txt", response_model=ImportTxtResponse)

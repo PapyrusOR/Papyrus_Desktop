@@ -1,4 +1,4 @@
-import { Typography, Button } from '@arco-design/web-react';
+import { Typography, Button, Message } from '@arco-design/web-react';
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import RecentScrolls from './RecentScrolls';
 import RecentNotes from './RecentNotes';
@@ -109,9 +109,11 @@ function useStartPageData(): StartPageData {
               : 100,
           });
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
           setScenery(null);
+          const msg = err instanceof Error ? err.message : '获取数据失败';
+          Message.error(msg);
         }
       } finally {
         if (!cancelled) {
@@ -184,7 +186,7 @@ const ShelfSection = ({ label, children }: { label: string; children: ReactNode 
   </section>
 );
 
-const ShelfSections = () => {
+const ShelfSections = ({ onStudyTag }: { onStudyTag?: (tag: string) => void }) => {
   const { ref, height } = useCardHeight();
 
   return (
@@ -203,7 +205,7 @@ const ShelfSections = () => {
         <ReviewQueue height={height} />
       </ShelfSection>
       <ShelfSection label='最近使用的卷帙'>
-        <RecentScrolls height={height} />
+        <RecentScrolls height={height} onStudyTag={onStudyTag} />
       </ShelfSection>
       <ShelfSection label='最近使用的笔记'>
         <RecentNotes height={height} />
@@ -505,6 +507,7 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
   const data = useStartPageData();
   const done = !data.loading && data.stats.cardsDue === 0;
   const [isStudying, setIsStudying] = useState(false);
+  const [studyTag, setStudyTag] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     onDoneChange?.(done);
@@ -514,7 +517,7 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
   if (isStudying) {
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <FlashcardStudy onExit={() => setIsStudying(false)} demo={false} />
+        <FlashcardStudy onExit={() => setIsStudying(false)} demo={false} filterTag={studyTag} />
       </div>
     );
   }
@@ -538,7 +541,10 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
             dateLabel={data.dateLabel}
             solarTerm={data.solarTerm}
             loading={data.loading}
-            onStartStudy={() => setIsStudying(true)}
+            onStartStudy={() => {
+              setStudyTag(undefined);
+              setIsStudying(true);
+            }}
           />
         )}
       </div>
@@ -551,7 +557,12 @@ const StartPage = ({ onDoneChange }: StartPageProps) => {
           书架
         </Typography.Title>
 
-        <ShelfSections />
+        <ShelfSections
+          onStudyTag={(tag) => {
+            setStudyTag(tag);
+            setIsStudying(true);
+          }}
+        />
 
         <div style={{ height: '64px' }} />
       </div>

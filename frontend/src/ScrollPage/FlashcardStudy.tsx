@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Typography, Button, Spin, Empty, Switch } from '@arco-design/web-react';
+import { Typography, Button, Spin, Empty, Switch, Message } from '@arco-design/web-react';
 import { IconArrowLeft, IconCheckCircle, IconCloseCircle, IconMinusCircle, IconUndo } from '@arco-design/web-react/icon';
 import { api, type Card, type NextDueRes } from '../api';
 
 interface FlashcardStudyProps {
   onExit: () => void;
   demo?: boolean; // 演示模式，使用样板数据
+  filterTag?: string;
 }
 
 type StudyState = 'loading' | 'empty' | 'question' | 'answer' | 'submitting';
@@ -146,7 +147,7 @@ const ResultToast = ({ grade, onUndo, canUndo }: ResultToastProps) => {
   );
 };
 
-export default function FlashcardStudy({ onExit, demo = false }: FlashcardStudyProps) {
+export default function FlashcardStudy({ onExit, demo = false, filterTag }: FlashcardStudyProps) {
   const [studyState, setStudyState] = useState<StudyState>('loading');
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [dueCount, setDueCount] = useState(0);
@@ -176,7 +177,7 @@ export default function FlashcardStudy({ onExit, demo = false }: FlashcardStudyP
   // 加载下一张卡片（API 模式）
   const loadRealCard = useCallback(async () => {
     try {
-      const res: NextDueRes = await api.nextDue();
+      const res: NextDueRes = await api.nextDue(filterTag);
       setDueCount(res.due_count);
       setTotalCount(res.total_count);
       
@@ -189,9 +190,11 @@ export default function FlashcardStudy({ onExit, demo = false }: FlashcardStudyP
       }
     } catch (err) {
       console.error('加载卡片失败:', err);
+      const msg = err instanceof Error ? err.message : '加载卡片失败';
+      Message.error(msg);
       setStudyState('empty');
     }
-  }, []);
+  }, [filterTag]);
 
   // 初始加载
   useEffect(() => {
@@ -261,7 +264,7 @@ export default function FlashcardStudy({ onExit, demo = false }: FlashcardStudyP
     
     // 真实模式：调用 API
     try {
-      const res = await api.rateCard(currentCard.id, grade);
+      const res = await api.rateCard(currentCard.id, grade, filterTag);
       
       setStats(prev => ({
         studied: prev.studied + 1,
@@ -287,9 +290,11 @@ export default function FlashcardStudy({ onExit, demo = false }: FlashcardStudyP
       }
     } catch (err) {
       console.error('评分失败:', err);
+      const msg = err instanceof Error ? err.message : '评分失败';
+      Message.error(msg);
       setStudyState('answer');
     }
-  }, [currentCard, studyState, isDemo, loadDemoCard, loadRealCard]);
+  }, [currentCard, studyState, isDemo, loadDemoCard, loadRealCard, filterTag]);
 
   // 撤销评分
   const undoRating = useCallback(() => {

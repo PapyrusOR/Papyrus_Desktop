@@ -1,4 +1,4 @@
-import { Typography, Spin } from '@arco-design/web-react';
+import { Typography, Spin, Message } from '@arco-design/web-react';
 import { useState, useEffect } from 'react';
 import { api, type Card } from '../api';
 
@@ -14,11 +14,12 @@ interface Collection {
 const SECONDARY_COLOR = '#9FD4FD';
 const PRIMARY_COLOR = '#206CCF';
 
-const CollectionCard = ({ collection }: { collection: Collection }) => {
+const CollectionCard = ({ collection, onClick }: { collection: Collection; onClick?: () => void }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
+      onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -90,15 +91,55 @@ const CollectionCard = ({ collection }: { collection: Collection }) => {
 interface RecentScrollsProps {
   /** 与上方窗景卡片保持一致的高度 */
   height: number;
+  onStudyTag?: (tag: string) => void;
 }
 
-// 辅助函数：从卡片内容提取分类（基于问题的前几个字或预设分类）
+const PRESET_COLORS = [
+  '#206CCF', '#3B82F6', '#0EA5E9', '#06B6D4', '#10B981',
+  '#84CC16', '#EAB308', '#F59E0B', '#F97316', '#EF4444',
+  '#EC4899', '#D946EF', '#8B5CF6', '#6366F1', '#64748B',
+];
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+// 辅助函数：从卡片 tags 生成分组
 function categorizeCards(cards: Card[]): Collection[] {
-  // 不再生成默认分类，只返回空数组
-  return [];
+  const tagMap = new Map<string, Card[]>();
+  for (const card of cards) {
+    const tags = card.tags && card.tags.length > 0 ? card.tags : ['未分类'];
+    for (const tag of tags) {
+      if (!tagMap.has(tag)) {
+        tagMap.set(tag, []);
+      }
+      tagMap.get(tag)!.push(card);
+    }
+  }
+
+  const nowSec = Date.now() / 1000;
+  const collections: Collection[] = [];
+  for (const [tag, tagCards] of tagMap.entries()) {
+    const dueCount = tagCards.filter(c => (c.next_review ?? Infinity) <= nowSec).length;
+    collections.push({
+      id: tag,
+      title: tag,
+      scrollCount: tagCards.length,
+      dueCount,
+      lastUsed: '最近使用',
+      color: PRESET_COLORS[hashString(tag) % PRESET_COLORS.length],
+    });
+  }
+
+  return collections.sort((a, b) => b.scrollCount - a.scrollCount);
 }
 
-const RecentScrolls = ({ height }: RecentScrollsProps) => {
+const RecentScrolls = ({ height, onStudyTag }: RecentScrollsProps) => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -109,6 +150,8 @@ const RecentScrolls = ({ height }: RecentScrollsProps) => {
         if (response.success) {
           const cats = categorizeCards(response.cards);
           setCollections(cats);
+        } else {
+          Message.error('获取卡片列表失败');
         }
       } catch (err) {
         console.error('获取卡片列表失败:', err);
@@ -161,7 +204,7 @@ const RecentScrolls = ({ height }: RecentScrollsProps) => {
       paddingBottom: '4px',
     }}>
       {collections.map(c => (
-        <CollectionCard key={c.id} collection={c} />
+        <CollectionCard key={c.id} collection={c} onClick={() => onStudyTag?.(c.id)} />
       ))}
     </div>
   );

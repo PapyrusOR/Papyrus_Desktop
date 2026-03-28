@@ -16,6 +16,7 @@ import {
   Tooltip,
   Checkbox,
   Input,
+  Message,
 } from '@arco-design/web-react';
 import {
   IconMessage,
@@ -790,65 +791,70 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       </SettingItem>
 
       <SettingItem title="头像" desc="自定义聊天中的用户头像图片" divider={false}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* 头像预览 */}
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              overflow: 'hidden',
-              background: userProfile.avatarUrl ? 'transparent' : '#206CCF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 16,
-              color: '#fff',
-              fontWeight: 500,
-            }}
-          >
-            {userProfile.avatarUrl ? (
-              <img
-                src={userProfile.avatarUrl}
-                alt="avatar"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            ) : (
-              userProfile.userId?.charAt(0) || 'P'
-            )}
-          </div>
-          
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Button
-              type="primary"
-              size="small"
-              style={{ borderRadius: '6px' }}
-              onClick={() => document.getElementById('avatar-input')?.click()}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* 头像预览 */}
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: userProfile.avatarUrl ? 'transparent' : '#206CCF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 16,
+                color: '#fff',
+                fontWeight: 500,
+                flexShrink: 0,
+              }}
             >
-              选择图片
-            </Button>
-            {userProfile.avatarUrl && (
+              {userProfile.avatarUrl ? (
+                <img
+                  src={userProfile.avatarUrl}
+                  alt="avatar"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                userProfile.userId?.charAt(0) || 'P'
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <Button
-                type="secondary"
+                type="primary"
+                shape="round"
                 size="small"
-                style={{ borderRadius: '6px' }}
-                onClick={clearAvatar}
+                style={{ height: '32px', padding: '0 16px', fontSize: '13px' }}
+                onClick={() => document.getElementById('avatar-input')?.click()}
               >
-                恢复默认
+                选择图片
               </Button>
-            )}
-            <input
-              id="avatar-input"
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleAvatarChange}
-            />
+              {userProfile.avatarUrl && (
+                <Button
+                  type="secondary"
+                  shape="round"
+                  size="small"
+                  style={{ height: '32px', padding: '0 16px', fontSize: '13px' }}
+                  onClick={clearAvatar}
+                >
+                  恢复默认
+                </Button>
+              )}
+              <input
+                id="avatar-input"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleAvatarChange}
+              />
+            </div>
           </div>
+          <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
+            支持 JPG、PNG、GIF 格式，最大 2MB
+          </Paragraph>
         </div>
-        <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
-          支持 JPG、PNG、GIF 格式，最大 2MB
-        </Paragraph>
       </SettingItem>
     </>
   );

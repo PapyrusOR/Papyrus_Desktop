@@ -43,13 +43,13 @@ class RateCardResponse(BaseModel):
 
 
 @router.get("/next", response_model=NextDueResponse | NextDueEmptyResponse)
-def get_next_due() -> NextDueResponse | NextDueEmptyResponse:
+def get_next_due(tag: str | None = None) -> NextDueResponse | NextDueEmptyResponse:
     """获取下一张待复习的卡片。
     
     如果没有到期的卡片，返回空卡片和统计信息。
     """
     data_file = get_data_file()
-    res = card_core.get_next_due(data_file)
+    res = card_core.get_next_due(data_file, tag=tag)
     if res is None:
         cards = card_core.list_cards(data_file)
         return NextDueEmptyResponse(
@@ -63,7 +63,7 @@ def get_next_due() -> NextDueResponse | NextDueEmptyResponse:
 
 
 @router.post("/{card_id}/rate", response_model=RateCardResponse)
-def rate_card(card_id: str, payload: RateCardIn) -> RateCardResponse:
+def rate_card(card_id: str, payload: RateCardIn, tag: str | None = None) -> RateCardResponse:
     """对复习卡片进行评分。
     
     Args:
@@ -79,5 +79,5 @@ def rate_card(card_id: str, payload: RateCardIn) -> RateCardResponse:
     record_card_reviewed(DATABASE_FILE)
 
     # also return the next due snapshot for convenience
-    nxt = card_core.get_next_due(data_file)
+    nxt = card_core.get_next_due(data_file, tag=tag)
     return RateCardResponse(success=True, **res, next=nxt)
