@@ -15,7 +15,21 @@ on:
       branch:
         description: 'Branch to build'
         required: true
-        default: 'v2.0.0beta1：UI重写测试1'
+        default: 'main'
+      create_release:
+        description: 'Create release'
+        required: true
+        default: false
+        type: boolean
+      include_python:
+        description: 'Include Python backend (bigger size)'
+        required: true
+        default: false
+        type: boolean
+      tag:
+        description: 'Tag name for release (e.g., v2.0.0-beta.1)'
+        required: false
+        default: ''
 
 env:
   APP_NAME: "Papyrus"
@@ -47,10 +61,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e  # v4.3.0
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
@@ -68,6 +82,17 @@ jobs:
           cd frontend
           npm run build
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Build Python Backend
+        run: |
+          pip install pyinstaller
+          pip install -r requirements.txt
+          npm run build:python
+
       - name: Build Electron App
         run: |
           npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }}
@@ -75,7 +100,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: dist-electron/*
@@ -85,13 +110,17 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 暂时禁用发布，需要时手动开启
+    if: false
+    # if: |
+    #   startsWith(github.ref, 'refs/tags/v') || 
+    #   (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
     permissions:
       contents: write
 
     steps:
       - name: Download All Artifacts
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e  # v4.2.1
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
           pattern: Papyrus-*
@@ -103,15 +132,16 @@ jobs:
           find artifacts/ -type f -name "*" | head -20
 
       - name: Create Release
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda  # v2.2.1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/Papyrus-Win-x64/**/*-Setup-*.exe
             artifacts/Papyrus-Apple Silicon-arm64/**/*.dmg
             artifacts/Papyrus-Linux-x64/**/*.AppImage
             artifacts/Papyrus-Linux-x64/**/*.deb
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
-          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          prerelease: ${{ contains(github.event.inputs.tag, 'alpha') || contains(github.event.inputs.tag, 'beta') || contains(github.event.inputs.tag, 'rc') || contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

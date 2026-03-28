@@ -15,7 +15,7 @@
     "electron:build:mac": "node scripts/build-electron.js build:mac",
     "electron:build:linux": "node scripts/build-electron.js build:linux",
     "build:frontend": "cd frontend && npm run build",
-    "build:python": "pyinstaller Papyrus.spec --clean",
+    "build:python": "pyinstaller Papyrus.spec --clean --distpath dist-python",
     "postinstall": "cd frontend && npm install"
   },
   "devDependencies": {
