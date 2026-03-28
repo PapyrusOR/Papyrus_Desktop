@@ -6,9 +6,16 @@ on:
       - main
       - develop
       - release/**
+      - v2*
+      - feature/*
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'v2.0.0beta1：UI重写测试1'
 
 env:
   APP_NAME: "Papyrus"
