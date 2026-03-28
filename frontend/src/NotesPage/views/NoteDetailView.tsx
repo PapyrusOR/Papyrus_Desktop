@@ -65,6 +65,23 @@ export const NoteDetailView = ({
     { key: 'h3', label: '三级标题', icon: <IconH3 />, onClick: () => insertHeading(3) },
   ];
 
+  // 锁定状态 - 监听全局编辑锁定
+  const [isGloballyLocked, setIsGloballyLocked] = useState(false);
+  
+  useEffect(() => {
+    const handleLockChange = (e: CustomEvent<{ locked: boolean }>) => {
+      setIsGloballyLocked(e.detail.locked);
+      // 如果全局锁定且当前正在编辑，自动保存并退出编辑模式
+      if (e.detail.locked && isEditing && !isCreateMode) {
+        handleSave(false);
+        setIsEditing(false);
+      }
+    };
+    
+    window.addEventListener('papyrus_edit_lock_changed', handleLockChange as EventListener);
+    return () => window.removeEventListener('papyrus_edit_lock_changed', handleLockChange as EventListener);
+  }, [isEditing, isCreateMode]);
+
   // 初始化表单
   useEffect(() => {
     if (note) {
@@ -113,11 +130,14 @@ export const NoteDetailView = ({
   
   // 返回时自动保存
   const handleBackWithSave = () => {
-    if ((isEditing || isCreateMode) && title.trim()) {
+    if ((isEditing || isCreateMode) && title.trim() && !isGloballyLocked) {
       handleSave(false);
     }
     onBack();
   };
+  
+  // 计算实际是否处于可编辑状态（考虑全局锁定）
+  const isEditable = (isEditing || isCreateMode) && !isGloballyLocked;
 
   const handleDelete = () => {
     if (note && onDelete) {
@@ -239,7 +259,7 @@ export const NoteDetailView = ({
 
         {/* 右侧操作按钮 */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-          {(isEditing || isCreateMode) && (
+          {(isEditable) && (
             <>
               <Dropdown droplist={
                 <div style={{ 
@@ -291,6 +311,8 @@ export const NoteDetailView = ({
               type='primary'
               icon={<IconEdit />}
               onClick={() => setIsEditing(true)}
+              disabled={isGloballyLocked}
+              title={isGloballyLocked ? '编辑已被全局锁定' : ''}
             />
           )}
           {!isCreateMode && (
@@ -391,7 +413,7 @@ export const NoteDetailView = ({
               alignItems: 'center',
             }}
           >
-            {isEditing || isCreateMode ? (
+            {isEditable ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <IconFolder style={{ fontSize: '14px', color: 'var(--color-text-2)' }} />
@@ -447,7 +469,7 @@ export const NoteDetailView = ({
           </div>
 
           {/* 标题 */}
-          {isEditing || isCreateMode ? (
+          {isEditable ? (
             <Input
               value={title}
               onChange={setTitle}
@@ -471,7 +493,7 @@ export const NoteDetailView = ({
           )}
 
           {/* 内容 */}
-          {isEditing || isCreateMode ? (
+          {isEditable ? (
             <SmartTextArea
               ref={textAreaRef}
               value={content}
@@ -556,7 +578,7 @@ export const NoteDetailView = ({
               noteId={note.id}
               onNavigateToNote={(targetId) => {
                 // 保存当前笔记后跳转
-                if ((isEditing || isCreateMode) && title.trim()) {
+                if (isEditable && title.trim()) {
                   handleSave(false);
                 }
                 onBack();

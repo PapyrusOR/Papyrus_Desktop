@@ -52,6 +52,13 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
 
   const toggleDark = () => setDark(!dark);
 
+  // 锁定/解锁编辑状态变更时触发事件
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('papyrus_edit_lock_changed', {
+      detail: { locked }
+    }));
+  }, [locked]);
+
   return (
     <nav className={`sidebar${collapsed ? '' : ' sidebar-expanded'}`} aria-label="主导航">
       <button
