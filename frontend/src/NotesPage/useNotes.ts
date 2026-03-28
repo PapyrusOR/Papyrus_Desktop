@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { api } from '../api';
+import { useWebSocket } from '../hooks/useWebSocket';
 import type { Note, Folder, CreateNoteParams, UpdateNoteParams } from './types';
 
 
@@ -78,6 +79,17 @@ export const useNotes = (): UseNotesReturn => {
       setIsLoading(false);
     }
   }, []);
+
+  // WebSocket 实时监听文件变更
+  useWebSocket({
+    onFileChange: (event) => {
+      // 数据库文件变更时自动刷新
+      if (event.path.includes('.db') || event.path.includes('sqlite')) {
+        console.log('[WebSocket] 检测到数据变更，自动刷新');
+        refreshNotes();
+      }
+    },
+  });
 
   // 初始加载
   useEffect(() => {

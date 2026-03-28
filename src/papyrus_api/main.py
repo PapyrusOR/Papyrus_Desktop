@@ -21,10 +21,11 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Literal, cast
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -48,6 +49,7 @@ from papyrus.data.notes_storage import (
     delete_note as delete_note_storage,
 )
 from papyrus.integrations.obsidian import sync_obsidian_vault
+from papyrus.integrations.file_watcher import FileWatcher, get_watcher
 from ai.config import AIConfig
 from papyrus.paths import DATA_DIR, DATABASE_FILE
 from mcp.vault_tools import create_vault_tools, VaultTools
@@ -1323,3 +1325,92 @@ def search_for_relation_endpoint(
         success=True,
         results=[SearchForRelationItem(**r) for r in results],
     )
+
+
+# ========== WebSocket 实时推送 ==========
+
+class ConnectionManager:
+    """WebSocket 连接管理器。"""
+    
+    def __init__(self) -> None:
+        self.active_connections: list[WebSocket] = []
+        
+    async def connect(self, websocket: WebSocket) -> None:
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        
+    def disconnect(self, websocket: WebSocket) -> None:
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+            
+    async def broadcast(self, message: dict[str, Any]) -> None:
+        """广播消息到所有连接。"""
+        disconnected: list[WebSocket] = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                disconnected.append(connection)
+        # 清理断开的连接
+        for conn in disconnected:
+            self.disconnect(conn)
+
+
+# 全局连接管理器
+_ws_manager = ConnectionManager()
+
+# 文件监听器实例
+_file_watcher: FileWatcher | None = None
+
+
+def _on_file_changed(event_type: str, file_path: str) -> None:
+    """文件变更回调 - 通过 WebSocket 推送。"""
+    import asyncio
+    
+    message = {
+        "type": "file_change",
+        "event": event_type,
+        "path": file_path,
+        "timestamp": time.time(),
+    }
+    
+    # 使用 asyncio.create_task 在事件循环中广播
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(_ws_manager.broadcast(message))
+    except Exception:
+        pass  # 忽略广播错误
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    """WebSocket 实时连接端点。
+    
+    客户端连接后，会实时接收文件变更通知。
+    
+    消息格式:
+        {"type": "file_change", "event": "modified", "path": "...", "timestamp": 1234567890}
+    """
+    global _file_watcher
+    
+    await _ws_manager.connect(websocket)
+    
+    # 启动文件监听器（如果未启动）
+    if _file_watcher is None or not _file_watcher.is_running():
+        _file_watcher = get_watcher()
+        _file_watcher.start(_on_file_changed)
+    
+    try:
+        while True:
+            # 接收客户端消息（心跳检测）
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+                if msg.get("type") == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": time.time()})
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        _ws_manager.disconnect(websocket)
+
