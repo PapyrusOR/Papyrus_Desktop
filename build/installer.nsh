@@ -6,9 +6,7 @@
   UserInfo::GetAccountType
   Pop $0
   ${If} $0 != "admin"
-    MessageBox MB_ICONSTOP "Administrator rights required!$
-$
-Papyrus needs to install a root certificate to verify the application signature. Please run the installer as administrator."
+    MessageBox MB_ICONSTOP "Administrator rights required! Papyrus needs to install a root certificate to verify the application signature. Please run the installer as administrator."
     Abort
   ${EndIf}
 !macroend
