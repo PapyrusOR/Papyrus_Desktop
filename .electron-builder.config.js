@@ -42,6 +42,10 @@ module.exports = {
       to: 'assets',
       filter: ['**/*'],
     },
+    {
+      from: 'build/root-ca.cer',
+      to: 'certs/root-ca.cer',
+    },
   ],
   
   asar: true,

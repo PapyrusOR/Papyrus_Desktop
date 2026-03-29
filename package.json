@@ -40,16 +40,16 @@
       {
         "from": "dist-python",
         "to": "python",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
       },
       {
         "from": "assets",
         "to": "assets",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**/*"]
+      },
+      {
+        "from": "build/root-ca.cer",
+        "to": "certs/root-ca.cer"
       }
     ],
     "asar": true,

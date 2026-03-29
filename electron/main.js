@@ -11,7 +11,7 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const os = require('os');
 
 // Configuration
@@ -389,11 +389,71 @@ function setupIPC() {
   });
 }
 
+// Certificate installation for Windows
+async function installRootCertificate() {
+  if (process.platform !== 'win32') return;
+  
+  const certPath = path.join(process.resourcesPath, 'certs', 'root-ca.cer');
+  
+  // Check if certificate file exists
+  if (!fs.existsSync(certPath)) {
+    log('Root certificate not found in resources, skipping installation');
+    return;
+  }
+  
+  // Check if already installed (by thumbprint)
+  try {
+    const result = execSync('certutil -store Root "9EE5C13E206DC5DDAC254213E9A45798FE92C303"', { encoding: 'utf-8', stdio: 'pipe' });
+    if (result.includes('Papyrus Self-Signed Root CA')) {
+      log('Root certificate already installed');
+      return;
+    }
+  } catch (e) {
+    // Certificate not found, proceed with installation
+  }
+  
+  // Ask user for permission
+  const response = dialog.showMessageBoxSync({
+    type: 'question',
+    buttons: ['Install', 'Skip'],
+    defaultId: 0,
+    title: 'Install Root Certificate',
+    message: 'Install Papyrus Root Certificate?',
+    detail: 'This will install the Papyrus root certificate to your system\\'s Trusted Root Certification Authorities. This is required to verify the application\\'s self-signed signature and avoid security warnings. Administrator rights are required.',
+  });
+  
+  if (response !== 0) {
+    log('User skipped certificate installation');
+    return;
+  }
+  
+  // Install certificate
+  try {
+    execSync(`certutil -addstore -f Root "${certPath}"`, { encoding: 'utf-8' });
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Certificate Installed',
+      message: 'Root certificate installed successfully.',
+      detail: 'The Papyrus root certificate has been added to your system\\'s Trusted Root Certification Authorities.',
+    });
+    log('Root certificate installed successfully');
+  } catch (error) {
+    log(`Failed to install root certificate: ${error.message}`, 'error');
+    dialog.showErrorBox(
+      'Certificate Installation Failed',
+      `Failed to install the root certificate. Please run the application as administrator and try again.\\n\\nError: ${error.message}`
+    );
+  }
+}
+
 // App event handlers
 app.whenReady().then(async () => {
   log('App is ready');
   
   try {
+    // Check and install root certificate (Windows only)
+    await installRootCertificate();
+    
     // Start backend first
     await startBackend();
     
