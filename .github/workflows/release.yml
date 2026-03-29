@@ -22,8 +22,7 @@ jobs:
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    # 暂时禁用，需要时删除下面这行
-    if: false
+
     strategy:
       fail-fast: false
       matrix:
