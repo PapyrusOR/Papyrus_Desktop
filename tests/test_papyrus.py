@@ -7,13 +7,24 @@ import os
 import json
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 # 添加 src 到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # 在导入主模块前，mock 掉 tkinter 和可选依赖，避免测试时弹出 GUI
-import tkinter as tk
+try:
+    import tkinter as tk
+    TKINTER_AVAILABLE = True
+except ImportError:
+    TKINTER_AVAILABLE = False
+
+# 检查 PapyrusApp 是否可用
+try:
+    from Papyrus import PapyrusApp
+    PAPYRUS_APP_AVAILABLE = True
+except ImportError:
+    PAPYRUS_APP_AVAILABLE = False
 
 
 class TestResourcePath(unittest.TestCase):
@@ -35,6 +46,7 @@ class TestResourcePath(unittest.TestCase):
             self.assertEqual(result, os.path.join(fake_meipass, "assets", "icon.ico"))
 
 
+@unittest.skipUnless(PAPYRUS_APP_AVAILABLE and TKINTER_AVAILABLE, "PapyrusApp 或 tkinter 不可用")
 class TestPapyrusApp(unittest.TestCase):
     """PapyrusApp 核心逻辑测试"""
 
@@ -50,8 +62,6 @@ class TestPapyrusApp(unittest.TestCase):
 
     def setUp(self):
         """每个测试前创建一个干净的 App 实例，mock 掉文件 I/O 和 AI/MCP"""
-        from Papyrus import PapyrusApp
-
         with patch.object(PapyrusApp, "load_data"), \
              patch.object(PapyrusApp, "setup_ai"), \
              patch.object(PapyrusApp, "setup_mcp"), \

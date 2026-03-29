@@ -215,6 +215,12 @@ class MCPServer:
         if self.logger is not None:
             self.logger.info(f"MCP 服务器已启动: http://{self.host}:{self.port}")
 
+    def get_actual_port(self) -> int:
+        """获取实际绑定的端口（当使用端口 0 时）"""
+        if self._httpd is None:
+            return self.port
+        return self._httpd.server_address[1]
+
     def stop(self) -> None:
         """关闭服务器"""
         if self._httpd is None:

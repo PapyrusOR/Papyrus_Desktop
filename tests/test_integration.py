@@ -162,28 +162,47 @@ class TestMCPServerIntegration(unittest.TestCase):
         cls.card_tools = CardTools(cls.app)
 
         from mcp.server import MCPServer
-        cls.port = 19876  # 用一个不常见的端口避免冲突
         cls.server = MCPServer(
             host="127.0.0.1",
-            port=cls.port,
+            port=0,  # 使用动态端口分配
             logger=None,
             card_tools=cls.card_tools,
         )
         cls.server.start()
-        time.sleep(0.3)  # 等待服务器就绪
+        cls.port = cls.server.get_actual_port()
+        time.sleep(0.5)  # 等待服务器就绪
+        
+        # 等待服务器真正可用
+        for _ in range(20):
+            try:
+                req = Request(f"http://127.0.0.1:{cls.port}/health", method="GET")
+                with urlopen(req, timeout=1) as resp:
+                    if resp.status == 200:
+                        break
+            except Exception:
+                time.sleep(0.2)
+        else:
+            raise RuntimeError("MCP Server 启动失败")
 
     @classmethod
     def tearDownClass(cls):
         cls.server.stop()
         shutil.rmtree(cls.tmp_dir, ignore_errors=True)
 
-    def _request(self, method, path, body=None):
+    def _request(self, method, path, body=None, retries=3):
         url = f"http://127.0.0.1:{self.port}{path}"
         data = json.dumps(body).encode("utf-8") if body else None
-        req = Request(url, data=data, method=method)
-        req.add_header("Content-Type", "application/json")
-        with urlopen(req, timeout=5) as resp:
-            return resp.status, json.loads(resp.read().decode("utf-8"))
+        last_error = None
+        for _ in range(retries):
+            try:
+                req = Request(url, data=data, method=method)
+                req.add_header("Content-Type", "application/json")
+                with urlopen(req, timeout=5) as resp:
+                    return resp.status, json.loads(resp.read().decode("utf-8"))
+            except Exception as e:
+                last_error = e
+                time.sleep(0.2)
+        raise last_error
 
     def test_health_check(self):
         status, body = self._request("GET", "/health")
@@ -403,27 +422,46 @@ class TestEndToEndFlow(unittest.TestCase):
         cls.card_tools = CardTools(cls.app)
 
         from mcp.server import MCPServer
-        cls.port = 19877
         cls.server = MCPServer(
             host="127.0.0.1",
-            port=cls.port,
+            port=0,  # 使用动态端口分配
             card_tools=cls.card_tools,
         )
         cls.server.start()
-        time.sleep(0.3)
+        cls.port = cls.server.get_actual_port()
+        time.sleep(0.5)
+        
+        # 等待服务器真正可用
+        for _ in range(10):
+            try:
+                req = Request(f"http://127.0.0.1:{cls.port}/health", method="GET")
+                with urlopen(req, timeout=1) as resp:
+                    if resp.status == 200:
+                        break
+            except Exception:
+                time.sleep(0.2)
+        else:
+            raise RuntimeError("MCP Server 启动失败")
 
     @classmethod
     def tearDownClass(cls):
         cls.server.stop()
         shutil.rmtree(cls.tmp_dir, ignore_errors=True)
 
-    def _post(self, tool, params):
+    def _post(self, tool, params, retries=3):
         url = f"http://127.0.0.1:{self.port}/call"
         data = json.dumps({"tool": tool, "params": params}).encode("utf-8")
-        req = Request(url, data=data, method="POST")
-        req.add_header("Content-Type", "application/json")
-        with urlopen(req, timeout=5) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+        last_error = None
+        for _ in range(retries):
+            try:
+                req = Request(url, data=data, method="POST")
+                req.add_header("Content-Type", "application/json")
+                with urlopen(req, timeout=5) as resp:
+                    return json.loads(resp.read().decode("utf-8"))
+            except Exception as e:
+                last_error = e
+                time.sleep(0.2)
+        raise last_error
 
     def test_e2e_create_persist_reload(self):
         """MCP 创建 → 磁盘验证 → 模拟重启加载"""

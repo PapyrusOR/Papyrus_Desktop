@@ -10,22 +10,23 @@ from unittest.mock import patch, MagicMock
 # 添加 src 到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-# Mock MCP 服务器和相关依赖
-sys.modules['mcp'] = MagicMock()
-sys.modules['mcp.server'] = MagicMock()
-sys.modules['mcp.vault_tools'] = MagicMock()
-
 from fastapi.testclient import TestClient
 
 
 def create_test_client():
     """创建测试客户端， mocking 掉 MCP 服务器"""
-    with patch('papyrus_api.main.MCPServer') as mock_mcp:
-        mock_instance = MagicMock()
-        mock_mcp.return_value = mock_instance
-        
-        from papyrus_api.main import app
-        return TestClient(app), mock_instance
+    # Mock MCP 服务器和相关依赖
+    with patch.dict('sys.modules', {
+        'mcp': MagicMock(),
+        'mcp.server': MagicMock(),
+        'mcp.vault_tools': MagicMock(),
+    }):
+        with patch('papyrus_api.main.MCPServer') as mock_mcp:
+            mock_instance = MagicMock()
+            mock_mcp.return_value = mock_instance
+            
+            from papyrus_api.main import app
+            return TestClient(app), mock_instance
 
 
 class TestHealthEndpoint(unittest.TestCase):

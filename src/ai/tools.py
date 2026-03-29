@@ -232,6 +232,7 @@ class CardTools:
         return {
             "success": True,
             "message": f"找到 {len(results)} 张相关卡片",
+            "count": len(results),
             "results": results,
         }
 

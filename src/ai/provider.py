@@ -479,7 +479,7 @@ class AIManager:
 
     def get_provider(self) -> AIProvider:
         """获取当前提供商实例"""
-        config_dict: dict[str, Any] = cast(dict[str, Any], self.config)
+        config_dict: dict[str, Any] = cast(dict[str, Any], self.config.config if hasattr(self.config, 'config') else self.config)
         provider_name: str = str(config_dict.get("current_provider", "openai"))
         providers: dict[str, Any] = config_dict.get("providers", {})
         provider_config: dict[str, Any] = providers.get(provider_name, {})
@@ -494,7 +494,7 @@ class AIManager:
 
     def chat(self, user_message: str, system_prompt: str | None = None, attachments: list[str] | list[dict[str, str]] | None = None) -> str:
         """发送消息并获取回复（支持附件）"""
-        config_dict: dict[str, Any] = cast(dict[str, Any], self.config)
+        config_dict: dict[str, Any] = cast(dict[str, Any], self.config.config if hasattr(self.config, 'config') else self.config)
         provider_name: str = str(config_dict.get("current_provider", "openai"))
 
         messages: list[dict[str, Any]] = []
@@ -547,7 +547,7 @@ class AIManager:
             yield {"type": "error", "data": "requests库未安装，请运行: pip install requests"}
             return
 
-        config_dict: dict[str, Any] = cast(dict[str, Any], self.config)
+        config_dict: dict[str, Any] = cast(dict[str, Any], self.config.config if hasattr(self.config, 'config') else self.config)
         provider_name: str = str(config_dict.get("current_provider", "openai"))
         provider_config: dict[str, Any] = config_dict.get("providers", {}).get(provider_name, {})
 
