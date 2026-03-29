@@ -18,8 +18,8 @@ import os
 block_cipher = None
 
 # Get the project root directory
-# PyInstaller 6.x: use __file__ instead of SPECFILE
-project_root = os.path.dirname(os.path.abspath(__file__))
+# When running pyinstaller from project root, use current working directory
+project_root = os.getcwd()
 
 # Analysis configuration
 a = Analysis(
@@ -155,7 +155,7 @@ exe = EXE(
     name='Papyrus',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,
+    strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,

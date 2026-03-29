@@ -167,7 +167,7 @@ if (-not $SkipPython) {
     Remove-Item -Recurse -Force "build" -ErrorAction SilentlyContinue
     
     # 构建
-    & $pythonCmd -m PyInstaller PapyrusAPI.spec --clean
+    & $pythonCmd -m PyInstaller PapyrusAPI.spec --clean --distpath dist-python
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Python build failed"
         exit 1
