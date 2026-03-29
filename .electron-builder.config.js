@@ -4,6 +4,14 @@
  */
 
 const path = require('path');
+const fs = require('fs');
+
+// Check if running in CI environment
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+
+// Certificate configuration (only for local builds)
+const certificateFile = 'build/code-signing.pfx';
+const hasCertificate = fs.existsSync(certificateFile);
 
 module.exports = {
   appId: 'com.papyrus.app',
@@ -53,8 +61,11 @@ module.exports = {
     icon: 'assets/icon.ico',
     publisherName: 'Papyrus Team',
     verifyUpdateCodeSignature: false,
-    certificateFile: 'build/code-signing.pfx',
-    certificatePassword: 'papyrus123',
+    // Only sign locally (CI builds are unsigned)
+    ...(hasCertificate && !isCI ? {
+      certificateFile: certificateFile,
+      certificatePassword: process.env.CERTIFICATE_PASSWORD || 'papyrus123',
+    } : {}),
   },
   
   nsis: {
