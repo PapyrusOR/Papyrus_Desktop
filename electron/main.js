@@ -527,6 +527,37 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
   }
 });
 
+// Kill all Papyrus processes (for Windows installer/updater)
+function killAllPapyrusProcesses() {
+  if (process.platform !== 'win32') return;
+  
+  try {
+    log('Killing any existing Papyrus processes...');
+    // Kill Papyrus.exe (main app)
+    try {
+      execSync('taskkill /F /IM Papyrus.exe 2>nul', { stdio: 'pipe' });
+      log('Killed Papyrus.exe processes');
+    } catch (e) {
+      // No processes found or already killed
+    }
+    // Kill PapyrusAPI.exe (backend)
+    try {
+      execSync('taskkill /F /IM PapyrusAPI.exe 2>nul', { stdio: 'pipe' });
+      log('Killed PapyrusAPI.exe processes');
+    } catch (e) {
+      // No processes found or already killed
+    }
+    // Kill any python processes spawned by Papyrus (by window title or check parent)
+    // Wait a bit for processes to fully terminate
+    execSync('timeout /t 1 /nobreak >nul 2>&1', { stdio: 'pipe' });
+  } catch (error) {
+    log(`Error killing processes: ${error.message}`, 'error');
+  }
+}
+
+// Run process cleanup before single instance check
+killAllPapyrusProcesses();
+
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 
