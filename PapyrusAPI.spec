@@ -21,6 +21,15 @@ block_cipher = None
 # When running pyinstaller from project root, use current working directory
 project_root = os.getcwd()
 
+# Prepare datas - only include directories that exist
+datas = [
+    ('assets', 'assets'),
+]
+
+# Include data directory if it exists (for CI environments)
+if os.path.exists('data'):
+    datas.append(('data', 'data'))
+
 # Analysis configuration
 a = Analysis(
     ['src/papyrus_api/main.py'],  # Entry point for the API server
@@ -29,12 +38,7 @@ a = Analysis(
         os.path.join(project_root, 'src'),
     ],
     binaries=[],
-    datas=[
-        # Include assets
-        ('assets', 'assets'),
-        # Include any data files
-        ('data', 'data'),
-    ],
+    datas=datas,
     hiddenimports=[
         # FastAPI and related
         'fastapi',
