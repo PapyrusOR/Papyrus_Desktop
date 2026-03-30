@@ -234,21 +234,70 @@ function buildPython() {
 function devMode() {
   logSection('Starting Development Mode');
   
-  // Check if concurrently is available
-  const hasConcurrently = commandExists('concurrently');
+  const waitOn = require('wait-on');
+  const { spawn } = require('child_process');
   
-  if (hasConcurrently) {
-    log('Starting frontend and backend concurrently...');
-    exec('npx concurrently -k -n "FRONTEND,BACKEND,ELECTRON" -c "cyan,green,magenta" '
-      + '"cd frontend && npm run dev:frontend" '
-      + '"python -m uvicorn src.papyrus_api.main:app --reload --port 8000" '
-      + '"wait-on http://localhost:5173 http://localhost:8000/api/health && npx electron ."');
-  } else {
-    // Manual mode - just start Electron
-    log('Starting Electron...');
-    log('Please make sure frontend (npm run dev:frontend) and backend (python -m uvicorn src.papyrus_api.main:app --reload --port 8000) are running separately.', 'yellow');
-    exec('npx electron .');
-  }
+  // Start frontend
+  log('Starting frontend...');
+  const frontend = spawn('npm', ['run', 'dev:frontend'], {
+    cwd: path.join(process.cwd(), 'frontend'),
+    stdio: 'inherit',
+    shell: true
+  });
+  
+  // Start backend with proper PYTHONPATH
+  log('Starting backend...');
+  const backendEnv = { ...process.env, PYTHONPATH: 'src' };
+  const backend = spawn('python', ['-m', 'uvicorn', 'src.papyrus_api.main:app', '--reload', '--port', '8000'], {
+    stdio: 'inherit',
+    shell: true,
+    env: backendEnv
+  });
+  
+  // Wait for both services to be ready
+  log('Waiting for services to be ready...');
+  waitOn({
+    resources: ['http://localhost:5173', 'http://localhost:8000/api/health'],
+    timeout: 60000,
+    interval: 1000
+  }, (err) => {
+    if (err) {
+      log('Services failed to start in time', 'red');
+      frontend.kill();
+      backend.kill();
+      process.exit(1);
+    }
+    
+    log('Services ready, starting Electron...');
+    
+    // Get electron executable path from electron package
+    const electronModule = require('electron');
+    // Handle both v41+ (API object) and older versions (path string)
+    const electronPath = typeof electronModule === 'string' 
+      ? electronModule 
+      : require('path').join(__dirname, '..', 'node_modules', 'electron', 'dist', 'electron.exe');
+    
+    const electron = spawn(electronPath, ['.'], {
+      stdio: 'inherit',
+      shell: false,
+      cwd: process.cwd(),
+      env: process.env
+    });
+    
+    // Handle cleanup
+    process.on('SIGINT', () => {
+      electron.kill();
+      frontend.kill();
+      backend.kill();
+      process.exit(0);
+    });
+    
+    electron.on('close', () => {
+      frontend.kill();
+      backend.kill();
+      process.exit(0);
+    });
+  });
 }
 
 // Build Electron app

@@ -16,10 +16,13 @@
     "electron:build:linux": "node scripts/build-electron.js build:linux",
     "build:frontend": "cd frontend && npm run build",
     "build:python": "pyinstaller PapyrusAPI.spec --clean --distpath dist-python",
-    "postinstall": "cd frontend && npm install"
+    "postinstall": "cd frontend && npm install",
+    "build:portable": "electron-builder --win portable --x64 --publish=never",
+    "build:installer": "electron-builder --win nsis --x64 --publish=never",
+    "build:all": "electron-builder --win portable --win nsis --x64 --publish=never"
   },
   "devDependencies": {
-    "electron": "^30.0.0",
+    "electron": "^41.1.0",
     "electron-builder": "^24.13.0",
     "concurrently": "^8.2.2"
   },

@@ -407,8 +407,8 @@ const ChartsPage = () => {
       try {
         const [cardsRes, streakRes, heatmapRes] = await Promise.all([
           api.listCards(),
-          fetch('http://127.0.0.1:8000/api/progress/streak').then(r => r.json()),
-          fetch('http://127.0.0.1:8000/api/progress/heatmap').then(r => r.json()),
+          fetch('/api/progress/streak').then(r => r.json()),
+          fetch('/api/progress/heatmap').then(r => r.json()),
         ]);
         if (cardsRes.success) {
           setCards(cardsRes.cards);

@@ -134,16 +134,24 @@ async function startBackend() {
     // Development mode: use Python directly
     log('Starting backend in development mode...');
     
-    backendProcess = spawn('python', [
+    // Try python first, then python3
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const cwd = path.join(__dirname, '..');
+    log(`Python command: ${pythonCmd}, cwd: ${cwd}`);
+    
+    backendProcess = spawn(pythonCmd, [
       '-m', 'uvicorn',
       'src.papyrus_api.main:app',
       '--host', CONFIG.backendHost,
-      '--port', CONFIG.backendPort.toString(),
-      '--reload'
+      '--port', CONFIG.backendPort.toString()
     ], {
-      cwd: path.join(__dirname, '..'),
+      cwd: cwd,
       stdio: 'pipe',
-      shell: process.platform === 'win32',
+      shell: false,
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: 'utf-8',
+      }
     });
   } else {
     // Production mode: use PyInstaller executable (one-dir mode)
@@ -252,6 +260,9 @@ function createWindow() {
     mainWindow.loadFile(indexPath);
   }
 
+  // Remove default menu bar
+  mainWindow.setMenu(null);
+  
   // Window event handlers
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();

@@ -29,8 +29,17 @@ frontend/dist/
 
 # Electron build
 dist-electron/
-electron-download/
 electron.zip
+
+# Electron download - 所有内容都不提交（自行下载）
+electron-download/
+
+# Test files (Electron v41 适配测试)
+test-*.js
+test-*.mjs
+test-*.html
+test-*.ps1
+test-*.bat
 
 # PyInstaller (保留配置文件)
 !Papyrus.spec

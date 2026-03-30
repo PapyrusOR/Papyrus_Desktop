@@ -17,7 +17,8 @@ def run_app() -> None:
         from papyrus_api.main import app  # noqa: F811
 
         print("Papyrus API server starting on http://127.0.0.1:8000")
-        uvicorn.run(app, host="127.0.0.1", port=8000)
+        # Disable default logging config to avoid TTY issues in packaged mode
+        uvicorn.run(app, host="127.0.0.1", port=8000, log_config=None)
     except ImportError:
         print("[ERROR] uvicorn is not installed. Run: pip install \"uvicorn>=0.27.0\"")
     except Exception as e:

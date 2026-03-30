@@ -106,7 +106,7 @@ app.add_middleware(
 
 
 # Health check endpoint
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health() -> dict[str, str]:
     """健康检查端点。"""
     return {"status": "ok"}
@@ -131,4 +131,4 @@ app.include_router(mcp_router, prefix="/api")
 # Entry point for PyInstaller executable
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_config=None)

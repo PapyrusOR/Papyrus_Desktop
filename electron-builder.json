@@ -37,11 +37,14 @@
     "**/*.so",
     "**/*.dylib"
   ],
-  "electronDownload": {
-    "mirror": "https://npmmirror.com/mirrors/electron/"
-  },
+  "electronDist": "electron-download/dist",
+  "electronVersion": "41.1.0",
   "win": {
     "target": [
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      },
       {
         "target": "nsis",
         "arch": ["x64"]
@@ -49,7 +52,8 @@
     ],
     "icon": "assets/icon.ico",
     "publisherName": "Papyrus Team",
-    "verifyUpdateCodeSignature": false
+    "verifyUpdateCodeSignature": false,
+    "signAndEditExecutable": false
   },
   "nsis": {
     "oneClick": false,
