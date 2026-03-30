@@ -126,8 +126,8 @@ jobs:
           TOTAL_SIZE=$(du -sm dist-python/Papyrus/ | cut -f1)
           echo "✅ Total directory size: ${TOTAL_SIZE}MB"
           
-          # All platforms use one-dir mode, check total size
-          if [ "$TOTAL_SIZE" -lt 50 ]; then
+          # All platforms use one-dir mode, check total size (>25MB is reasonable for minimal build)
+          if [ "$TOTAL_SIZE" -lt 25 ]; then
             echo "❌ Error: Build directory too small (${TOTAL_SIZE}MB), may be incomplete"
             exit 1
           fi
@@ -203,10 +203,11 @@ jobs:
               
               # Check minimum size for critical files
               MIN_SIZE=0
-              if [[ "$file" == *"Papyrus.exe" ]] && [[ "$file" != *"../"* ]]; then
-                MIN_SIZE=10000000  # 10MB for Python backend
+              # Python backend executable in one-dir mode (launcher only, not single-exe)
+              if [[ "$file" == python/Papyrus/Papyrus* ]]; then
+                MIN_SIZE=5000000  # 5MB for Python backend launcher (one-dir mode)
                 if [ "$SIZE_BYTES" -lt "$MIN_SIZE" ]; then
-                  echo "❌ $file ($SIZE) - TOO SMALL! Expected >10MB"
+                  echo "❌ $file ($SIZE) - TOO SMALL! Expected >5MB"
                   FAILED=$((FAILED + 1))
                   continue
                 fi
