@@ -130,6 +130,13 @@ async function waitForBackend(timeout = CONFIG.backendStartupTimeout) {
 async function startBackend() {
   const paths = getPaths();
   
+  // Log environment info for debugging
+  log(`Environment Info:`);
+  log(`  isDevMode: ${isDevMode}`);
+  log(`  resourcesPath: ${paths.resourcesPath}`);
+  log(`  pythonDistPath: ${paths.pythonDistPath}`);
+  log(`  userData: ${app.getPath('userData')}`);
+  
   if (isDevMode) {
     // Development mode: use Python directly
     log('Starting backend in development mode...');
@@ -158,7 +165,31 @@ async function startBackend() {
     // Production mode: use PyInstaller executable (one-dir mode)
     const { executablePath, executableDir } = getPythonExecutableInfo(paths.pythonDistPath);
     
+    log(`Production mode paths:`);
+    log(`  executablePath: ${executablePath}`);
+    log(`  executableDir: ${executableDir}`);
+    log(`  __dirname: ${__dirname}`);
+    log(`  process.resourcesPath: ${process.resourcesPath}`);
+    
+    // Check if executable exists
     if (!fs.existsSync(executablePath)) {
+      log(`ERROR: Python executable not found at: ${executablePath}`, 'error');
+      
+      // Try to list what's in the directory for debugging
+      try {
+        const parentDir = path.dirname(paths.pythonDistPath);
+        log(`Contents of ${parentDir}:`, 'error');
+        if (fs.existsSync(parentDir)) {
+          fs.readdirSync(parentDir).forEach(file => {
+            log(`  - ${file}`, 'error');
+          });
+        } else {
+          log(`  Directory does not exist`, 'error');
+        }
+      } catch (e) {
+        log(`Failed to list directory: ${e.message}`, 'error');
+      }
+      
       throw new Error(`Python executable not found at: ${executablePath}`);
     }
 
@@ -169,6 +200,8 @@ async function startBackend() {
       ...process.env,
       PAPYRUS_DATA_DIR: app.getPath('userData'),
     };
+    
+    log(`Backend env PAPYRUS_DATA_DIR: ${env.PAPYRUS_DATA_DIR}`);
     
     // Note: In one-dir mode, cwd must be the directory containing the executable
     // so it can find the _internal folder
@@ -250,6 +283,16 @@ function createWindow() {
     titleBarStyle: 'hidden',
     // Disable system caption buttons overlay (use custom TitleBar instead)
     titleBarOverlay: false,
+    // Show DevTools in production for debugging (remove this in stable release)
+    ...(process.env.DEBUG_PROD ? { 
+      webPreferences: { 
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js'),
+        webSecurity: !isDevMode,
+        devTools: true 
+      }
+    } : {}),
   });
 
   // Load content
@@ -526,7 +569,13 @@ app.whenReady().then(async () => {
     
   } catch (error) {
     log(`Failed to initialize: ${error.message}`, 'error');
-    dialog.showErrorBox('Initialization Error', `Failed to start the application: ${error.message}`);
+    log(`Stack trace: ${error.stack}`, 'error');
+    
+    // Show detailed error dialog
+    const logPath = path.join(app.getPath('userData'), 'logs');
+    const errorDetails = `Error: ${error.message}\n\nLog location: ${logPath}\n\nStack:\n${error.stack}`;
+    
+    dialog.showErrorBox('Initialization Error', errorDetails);
     app.quit();
   }
 });

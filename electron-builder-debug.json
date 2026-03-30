@@ -1,0 +1,33 @@
+{
+  "appId": "com.papyrus.app",
+  "productName": "Papyrus-Debug",
+  "directories": {
+    "output": "dist-electron-debug",
+    "buildResources": "build"
+  },
+  "files": [
+    "electron/**/*",
+    "frontend/dist/**/*",
+    "!frontend/node_modules/**/*",
+    "!**/*.map"
+  ],
+  "extraResources": [
+    {
+      "from": "dist-python",
+      "to": "python",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "assets/icon.ico"
+  },
+  "portable": {
+    "artifactName": "${productName}-Debug-${version}.exe"
+  }
+}
