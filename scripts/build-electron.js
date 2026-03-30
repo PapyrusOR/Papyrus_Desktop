@@ -270,12 +270,9 @@ function devMode() {
     
     log('Services ready, starting Electron...');
     
-    // Get electron executable path from electron package
-    const electronModule = require('electron');
-    // Handle both v41+ (API object) and older versions (path string)
-    const electronPath = typeof electronModule === 'string' 
-      ? electronModule 
-      : require('path').join(__dirname, '..', 'node_modules', 'electron', 'dist', 'electron.exe');
+    // Get electron executable path
+    // Note: require('electron') may have encoding issues, construct path manually
+    const electronPath = require('path').join(__dirname, '..', 'node_modules', 'electron', 'dist', 'electron.exe');
     
     const electron = spawn(electronPath, ['.'], {
       stdio: 'inherit',
