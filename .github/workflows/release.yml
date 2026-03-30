@@ -146,16 +146,16 @@ jobs:
             "assets/icon.ico"
             "assets/icon.png"
             "certs/root-ca.cer"
-            "python/Papyrus/Papyrus.exe"
           )
           EXPECTED_DIRS=(
             "python/Papyrus/_internal"
           )
           
-          # Determine resources directory based on platform
+          # Determine resources directory and platform-specific files
           if [ "${{ matrix.platform }}" = "windows" ]; then
             RESOURCES_DIR="dist-electron/win-unpacked/resources"
             EXPECTED_FILES+=(
+              "python/Papyrus/Papyrus.exe"
               "../Papyrus.exe"
               "../chrome_100_percent.pak"
               "../ffmpeg.dll"
@@ -164,12 +164,14 @@ jobs:
             APP_NAME="dist-electron/mac-arm64/Papyrus.app"
             RESOURCES_DIR="${APP_NAME}/Contents/Resources"
             EXPECTED_FILES+=(
+              "python/Papyrus/Papyrus"
               "../MacOS/Papyrus"
             )
           else
             # Linux
             RESOURCES_DIR="dist-electron/linux-unpacked/resources"
             EXPECTED_FILES+=(
+              "python/Papyrus/Papyrus"
               "../papyrus"
             )
           fi
