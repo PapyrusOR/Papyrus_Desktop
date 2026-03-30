@@ -10,6 +10,11 @@ import subprocess
 import json
 from pathlib import Path
 
+# Fix Unicode output on Windows
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+
 
 def run_tests(test_path: str, timeout: int = 120) -> dict:
     """运行 pytest 并返回结果"""
