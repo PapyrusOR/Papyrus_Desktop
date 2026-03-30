@@ -42,11 +42,11 @@ const getPaths = () => {
     ? path.join(__dirname, '..') 
     : process.resourcesPath;
   
-  // In production, asar-unpacked files are in app.asar.unpacked
+  // In production, extraResources are placed directly in resources directory
   // In development, python is in dist-python
   const pythonDistPath = isDevMode
     ? path.join(__dirname, '..', 'dist-python')
-    : path.join(process.resourcesPath, 'app.asar.unpacked', 'python');
+    : path.join(process.resourcesPath, 'python');
 
   return {
     resourcesPath,
@@ -68,12 +68,13 @@ function getIconName() {
   }
 }
 
-// Get Python executable info (one-dir mode)
+// Get Python executable info
 function getPythonExecutableInfo(pythonDistPath) {
-  // In one-dir mode, the executable is inside the Papyrus folder
   const executableName = process.platform === 'win32' ? 'Papyrus.exe' : 'Papyrus';
-  const executableDir = path.join(pythonDistPath, 'Papyrus');
-  const executablePath = path.join(executableDir, executableName);
+  // PyInstaller one-file mode: executable is directly in pythonDistPath
+  const executablePath = path.join(pythonDistPath, executableName);
+  // For one-file mode, cwd should be the same directory as the executable
+  const executableDir = pythonDistPath;
   return { executablePath, executableDir };
 }
 
