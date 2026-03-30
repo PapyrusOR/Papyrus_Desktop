@@ -124,7 +124,7 @@
 | 前端 | React + TypeScript | 19 |
 | UI 库 | Arco Design | - |
 | 构建 | Vite | - |
-| 桌面 | Electron | 41+ |
+| 桌面 | Electron | 41.1.0 |
 | 算法 | SM-2 | - |
 | 存储 | JSON + SQLite | - |
 
@@ -390,7 +390,7 @@ interface AIConfig {
 - ✅ AI 集成（OpenAI/Anthropic/Ollama）
 - ✅ Obsidian 导入
 - ✅ 无障碍支持
-- ✅ Electron 桌面封装 (v41)
+- ✅ Electron 桌面封装 (v41.1.0)
 - ✅ 窗口模式支持（小窗/全屏自适应）
 
 **待完成**:
@@ -433,4 +433,4 @@ interface AIConfig {
 | 版本 | 日期 | 更新内容 | 作者 |
 |------|------|----------|------|
 | v1.0 | 2026-03-29 | 初始版本 | - |
-| v1.1 | 2026-03-29 | 添加窗口模式支持、更新 Electron v41 | - |
+| v1.1 | 2026-03-29 | 添加窗口模式支持、更新 Electron v41.1.0 | - |
