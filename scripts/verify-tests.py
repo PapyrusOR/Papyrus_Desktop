@@ -4,6 +4,7 @@
 运行关键测试并验证其结果，确保测试本身的正确性
 """
 
+import os
 import sys
 import subprocess
 import json
@@ -21,12 +22,24 @@ def run_tests(test_path: str, timeout: int = 120) -> dict:
     ]
     cmd = [c for c in cmd if c]  # Remove empty strings
     
+    # 设置环境变量，确保模块导入正确
+    env = os.environ.copy()
+    project_root = Path(__file__).parent.parent
+    src_path = str(project_root / "src")
+    
+    # 添加 src 到 PYTHONPATH
+    if "PYTHONPATH" in env:
+        env["PYTHONPATH"] = f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
+    else:
+        env["PYTHONPATH"] = src_path
+    
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         timeout=timeout,
-        cwd=str(Path(__file__).parent.parent)
+        cwd=str(project_root),
+        env=env
     )
     
     return {
@@ -109,12 +122,23 @@ def verify_test_categories():
                 all_critical_passed = False
             results.append({**category, "status": "failed"})
             
-            # 打印错误摘要
-            if "passed" in result['stdout']:
+            # 打印详细错误信息
+            print(f"   错误详情:")
+            if result['stderr']:
+                # 只显示前 10 行错误输出
+                err_lines = result['stderr'].strip().split('\n')[:10]
+                for line in err_lines:
+                    print(f"      {line}")
+            
+            # 从 stdout 中提取失败的测试用例
+            if 'FAILED' in result['stdout']:
                 lines = result['stdout'].split('\n')
                 for line in lines:
-                    if 'FAILED' in line or 'ERROR' in line:
+                    if 'FAILED' in line or 'ERROR' in line or 'ModuleNotFoundError' in line:
                         print(f"      {line.strip()}")
+            
+            # 显示 Python 路径用于调试
+            print(f"   PYTHONPATH: {os.environ.get('PYTHONPATH', '未设置')}")
     
     # 验证关键不变量
     print("\n" + "=" * 60)
