@@ -228,7 +228,7 @@ def verify_electron_paths() -> bool:
     if not main_js.exists():
         return False
     
-    content = main_js.read_text()
+    content = main_js.read_text(encoding='utf-8')
     
     # 检查关键路径配置
     checks = [
@@ -246,7 +246,7 @@ def verify_pyinstaller_output() -> bool:
     if not spec_file.exists():
         return False
     
-    content = spec_file.read_text()
+    content = spec_file.read_text(encoding='utf-8')
     
     # 检查关键配置
     checks = [
