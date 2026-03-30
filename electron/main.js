@@ -13,6 +13,12 @@ const path = require('path');
 const fs = require('fs');
 const { spawn, exec, execSync } = require('child_process');
 const os = require('os');
+const { createDiagnosticWindow } = require('./diagnostic-window');
+
+// In-memory log storage for diagnostics
+const startupLogs = [];
+const originalLog = console.log;
+const originalError = console.error;
 
 // Configuration
 const CONFIG = {
@@ -73,14 +79,22 @@ function log(message, level = 'info') {
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
   console.log(logMessage);
   
+  // Store in memory for diagnostics
+  startupLogs.push({ timestamp, message, level });
+  
   // Also log to file in production
   if (!isDevMode) {
-    const logDir = path.join(app.getPath('userData'), 'logs');
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
+    try {
+      const logDir = path.join(app.getPath('userData'), 'logs');
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      const logFile = path.join(logDir, `main-${new Date().toISOString().split('T')[0]}.log`);
+      fs.appendFileSync(logFile, logMessage + '\n');
+    } catch (e) {
+      // If file logging fails, at least we have console
+      console.error('Failed to write to log file:', e);
     }
-    const logFile = path.join(logDir, `main-${new Date().toISOString().split('T')[0]}.log`);
-    fs.appendFileSync(logFile, logMessage + '\n');
   }
 }
 
@@ -571,12 +585,28 @@ app.whenReady().then(async () => {
     log(`Failed to initialize: ${error.message}`, 'error');
     log(`Stack trace: ${error.stack}`, 'error');
     
-    // Show detailed error dialog
-    const logPath = path.join(app.getPath('userData'), 'logs');
-    const errorDetails = `Error: ${error.message}\n\nLog location: ${logPath}\n\nStack:\n${error.stack}`;
+    // Gather diagnostic information
+    const paths = getPaths();
+    const { executablePath, executableDir } = getPythonExecutableInfo(paths.pythonDistPath);
     
-    dialog.showErrorBox('Initialization Error', errorDetails);
-    app.quit();
+    const diagnosticPaths = {
+      resourcesPath: paths.resourcesPath,
+      pythonDistPath: paths.pythonDistPath,
+      pythonExecutable: executablePath,
+      pythonExecutableDir: executableDir,
+      userData: app.getPath('userData'),
+      __dirname: __dirname,
+      processResourcesPath: process.resourcesPath,
+    };
+    
+    // Show diagnostic window
+    createDiagnosticWindow(startupLogs, diagnosticPaths, error);
+    
+    // Also show simple error dialog
+    dialog.showErrorBox(
+      'Initialization Error', 
+      `Failed to start: ${error.message}\n\nDiagnostic window opened with details.`
+    );
   }
 });
 
