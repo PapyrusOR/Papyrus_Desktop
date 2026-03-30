@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""精简版 PyInstaller 配置 - 仅包含 API 必需模块"""
+"""精简版 PyInstaller 配置 - 仅包含 API 必需模块 (One-Dir 模式)"""
 import sys
 
 block_cipher = None
@@ -82,17 +82,13 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='Papyrus',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=True,  # 开启控制台以便调试
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -100,4 +96,15 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['assets/icon.ico'] if sys.platform == 'win32' else None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='Papyrus',
 )
