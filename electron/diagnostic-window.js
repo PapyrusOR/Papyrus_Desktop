@@ -15,6 +15,28 @@ function createDiagnosticWindow(logs, paths, error) {
     return diagnosticWindow;
   }
 
+  // Generate path table rows
+  const pathRows = Object.entries(paths).map(([key, value]) => {
+    const exists = fs.existsSync(value);
+    const existsClass = exists ? 'exists-yes' : 'exists-no';
+    const existsText = exists ? '✓ EXISTS' : '✗ NOT FOUND';
+    return `
+      <tr>
+        <td>${escapeHtml(key)}</td>
+        <td>
+          <span class="path">${escapeHtml(value)}</span><br>
+          <span class="${existsClass}">${existsText}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Generate log entries
+  const logEntries = logs.map(log => {
+    const levelClass = log.level === 'error' ? 'log-error' : 'log-info';
+    return `<div class="log-entry ${levelClass}">[${escapeHtml(log.timestamp)}] ${escapeHtml(log.message)}</div>`;
+  }).join('');
+
   diagnosticWindow = new BrowserWindow({
     width: 900,
     height: 700,
@@ -85,20 +107,7 @@ function createDiagnosticWindow(logs, paths, error) {
   <div class="section">
     <h2>Path Information</h2>
     <table>
-      ${Object.entries(paths).map(([key, value]) => {
-        const exists = fs.existsSync(value);
-        const existsClass = exists ? 'exists-yes' : 'exists-no';
-        const existsText = exists ? '✓ EXISTS' : '✗ NOT FOUND';
-        return `
-          <tr>
-            <td>${key}</td>
-            <td>
-              <span class="path">${value}</span><br>
-              <span class="${existsClass}">${existsText}</span>
-            </td>
-          </tr>
-        `;
-      }).join('')}
+      ${pathRows}
     </table>
   </div>
 
@@ -110,52 +119,48 @@ function createDiagnosticWindow(logs, paths, error) {
   <div class="section">
     <h2>Startup Logs</h2>
     <div id="logs">
-      ${logs.map(log => {
-        const levelClass = log.level === 'error' ? 'log-error' : 'log-info';
-        return `<div class="log-entry ${levelClass}">[${log.timestamp}] ${log.message}</div>`;
-      }).join('')}
+      ${logEntries}
     </div>
   </div>
 
   ${error ? `
   <div class="section">
     <h2>Error Details</h2>
-    <pre style="color: #e57373;">${error.message}\n\n${error.stack}</pre>
+    <pre style="color: #e57373;">${escapeHtml(error.message)}\n\n${escapeHtml(error.stack || '')}</pre>
   </div>
   ` : ''}
 
   <script>
-    const { ipcRenderer } = require('electron');
-    
-    // Load directory contents
     const pythonPath = ${JSON.stringify(paths.pythonExecutableDir)};
+    
     if (pythonPath) {
       try {
         const fs = require('fs');
         const path = require('path');
         
-        function listDir(dir, indent = '') {
+        function listDir(dir, indent) {
           if (!fs.existsSync(dir)) return 'Directory does not exist';
+          indent = indent || '';
           
           let result = '';
           try {
             const items = fs.readdirSync(dir);
-            for (const item of items.slice(0, 20)) { // Limit to 20 items
+            for (let i = 0; i < Math.min(items.length, 20); i++) {
+              const item = items[i];
               const fullPath = path.join(dir, item);
               const stat = fs.statSync(fullPath);
-              const size = stat.isFile() ? ` (${(stat.size / 1024 / 1024).toFixed(2)} MB)` : '';
+              const size = stat.isFile() ? (' (' + (stat.size / 1024 / 1024).toFixed(2) + ' MB)') : '';
               result += indent + item + size + '\n';
               
-              // Recurse into important subdirectories
               if (stat.isDirectory() && (item === '_internal' || item === 'Papyrus')) {
                 result += listDir(fullPath, indent + '  ');
               }
             }
             if (items.length > 20) {
-              result += indent + `... and ${items.length - 20} more items\n`;
+              result += indent + '... and ' + (items.length - 20) + ' more items\n';
             }
           } catch (e) {
-            result += indent + `Error: ${e.message}\n`;
+            result += indent + 'Error: ' + e.message + '\n';
           }
           return result;
         }
@@ -177,6 +182,16 @@ function createDiagnosticWindow(logs, paths, error) {
   });
 
   return diagnosticWindow;
+}
+
+function escapeHtml(text) {
+  if (typeof text !== 'string') return String(text);
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 module.exports = { createDiagnosticWindow };
