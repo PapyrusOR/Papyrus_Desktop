@@ -166,7 +166,7 @@ jobs:
               "../ffmpeg.dll"
             )
           elif [ "${{ matrix.platform }}" = "macos" ]; then
-            APP_NAME="dist-electron/mac/Papyrus.app"
+            APP_NAME="dist-electron/mac-arm64/Papyrus.app"
             RESOURCES_DIR="${APP_NAME}/Contents/Resources"
             EXPECTED_FILES+=(
               "../MacOS/Papyrus"
