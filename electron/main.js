@@ -42,15 +42,19 @@ const getPaths = () => {
     ? path.join(__dirname, '..') 
     : process.resourcesPath;
   
+  // In production, asar-unpacked files are in app.asar.unpacked
+  // In development, python is in dist-python
   const pythonDistPath = isDevMode
     ? path.join(__dirname, '..', 'dist-python')
-    : path.join(process.resourcesPath, 'python');
+    : path.join(process.resourcesPath, 'app.asar.unpacked', 'python');
 
   return {
     resourcesPath,
     pythonDistPath,
     assetsPath: path.join(resourcesPath, 'assets'),
-    frontendDistPath: path.join(__dirname, '..', 'frontend', 'dist'),
+    frontendDistPath: isDevMode 
+      ? path.join(__dirname, '..', 'frontend', 'dist')
+      : path.join(process.resourcesPath, 'app', 'frontend', 'dist'),
     iconPath: path.join(resourcesPath, 'assets', getIconName()),
   };
 };

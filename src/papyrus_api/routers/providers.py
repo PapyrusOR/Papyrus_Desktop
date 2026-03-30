@@ -11,8 +11,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from papyrus.paths import DATABASE_FILE
 from papyrus.data.database import (
-    DATABASE_FILE,
     delete_api_key,
     delete_model,
     delete_provider,
