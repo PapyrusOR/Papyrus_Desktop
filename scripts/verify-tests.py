@@ -184,7 +184,29 @@ def verify_test_categories():
 
 def verify_import_structure() -> bool:
     """验证导入结构正确"""
+    import importlib.util
+    project_root = Path(__file__).parent.parent
+    src_path = project_root / "src"
+    
+    # 检查关键文件是否存在
+    key_modules = [
+        src_path / "papyrus" / "data" / "relations.py",
+        src_path / "papyrus" / "data" / "storage.py",
+        src_path / "papyrus_api" / "main.py",
+        src_path / "papyrus" / "app.py",
+    ]
+    
+    for module_path in key_modules:
+        if not module_path.exists():
+            print(f"\n   文件不存在: {module_path}")
+            return False
+    
+    # 尝试导入（需要正确的 PYTHONPATH）
     try:
+        # 添加 src 到路径
+        if str(src_path) not in sys.path:
+            sys.path.insert(0, str(src_path))
+        
         # 验证核心模块可以导入
         from papyrus_api.main import app
         from papyrus.app import run_app
@@ -192,6 +214,7 @@ def verify_import_structure() -> bool:
         return True
     except ImportError as e:
         print(f"\n   导入失败: {e}")
+        print(f"   sys.path: {sys.path[:3]}...")  # 显示前3个路径
         return False
 
 
