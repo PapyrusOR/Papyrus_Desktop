@@ -24,6 +24,18 @@ export interface ElectronAPI {
   /** Minimize the window to the system tray */
   minimizeToTray(): Promise<void>;
   
+  /** Minimize the window */
+  minimizeWindow(): Promise<void>;
+  
+  /** Maximize/unmaximize the window */
+  maximizeWindow(): Promise<void>;
+  
+  /** Close the window */
+  closeWindow(): Promise<void>;
+  
+  /** Check if window is maximized */
+  isMaximized(): Promise<boolean>;
+  
   /** Check if the backend is healthy */
   checkBackendHealth(): Promise<boolean>;
   

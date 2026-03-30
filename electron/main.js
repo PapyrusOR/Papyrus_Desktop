@@ -232,8 +232,8 @@ function createWindow() {
   const paths = getPaths();
   
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: 1280,
+    height: 800,
     minWidth: 900,
     minHeight: 600,
     show: false, // Don't show until ready
@@ -245,9 +245,11 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: !isDevMode, // Disable in dev for local development
     },
-    // Platform-specific window options
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    frame: process.platform !== 'darwin', // macOS uses hidden title bar
+    // Frameless window - hide native title bar on all platforms
+    frame: false,
+    titleBarStyle: 'hidden',
+    // Disable system caption buttons overlay (use custom TitleBar instead)
+    titleBarOverlay: false,
   });
 
   // Load content
@@ -388,6 +390,34 @@ function setupIPC() {
     }
   });
   
+  // Window controls
+  ipcMain.handle('window:minimize', () => {
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+  });
+  
+  ipcMain.handle('window:maximize', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+  
+  ipcMain.handle('window:close', () => {
+    if (mainWindow) {
+      // Trigger the close event which will handle tray logic
+      mainWindow.close();
+    }
+  });
+  
+  ipcMain.handle('window:isMaximized', () => {
+    return mainWindow ? mainWindow.isMaximized() : false;
+  });
+  
   // Check backend health
   ipcMain.handle('backend:checkHealth', async () => {
     return await checkBackendHealth();
@@ -479,8 +509,15 @@ app.whenReady().then(async () => {
     // Check and install root certificate (Windows only)
     await installRootCertificate();
     
-    // Start backend first
-    await startBackend();
+    // Check if backend is already running (e.g., started by start-dev.bat)
+    const isBackendAlreadyRunning = await checkBackendHealth();
+    
+    if (isBackendAlreadyRunning) {
+      log('Backend is already running (likely started by dev script), skipping backend startup');
+    } else {
+      // Start backend only if not already running
+      await startBackend();
+    }
     
     // Create window and tray
     createWindow();

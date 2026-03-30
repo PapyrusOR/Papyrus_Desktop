@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Window operations
   minimizeToTray: () => ipcRenderer.invoke('window:minimizeToTray'),
+  minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
+  closeWindow: () => ipcRenderer.invoke('window:close'),
+  isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
   
   // Backend operations
   checkBackendHealth: () => ipcRenderer.invoke('backend:checkHealth'),

@@ -68,10 +68,9 @@ const App = () => {
     <div 
       className="tw-relative tw-flex tw-flex-col tw-mx-auto tw-bg-arco-bg-1"
       style={{ 
-        width: '1440px', 
-        height: '900px',
-        border: '1px solid #d9d9d9',
-        boxShadow: '0 0 0 1px #d9d9d9, 0 4px 20px rgba(0, 0, 0, 0.08)'
+        width: '100%', 
+        height: '100vh',
+        overflow: 'hidden'
       }}
     >
       {/* Skip Link - 无障碍导航 */}

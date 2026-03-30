@@ -424,7 +424,7 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
           <img src="/icon.ico" alt="Papyrus" className="titlebar-logo-icon" />
         </div>
 
-        <Space className="titlebar-menus" size={0}>
+        <Space className="titlebar-menus no-drag" size={0}>
           <Dropdown trigger="click" droplist={fileMenu}>
             <Button type="text" size="small" className="titlebar-menu-item">文件</Button>
           </Dropdown>
@@ -434,7 +434,7 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
         </Space>
 
         {/* center search */}
-        <div className="titlebar-center">
+        <div className="titlebar-center no-drag">
           <SearchBox 
             onResultClick={handleSearchResult}
             onNavigateToNote={(noteId) => {
@@ -446,17 +446,17 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
         </div>
 
         {/* window controls */}
-        <div className="titlebar-controls">
-          <div className="titlebar-avatar" onClick={handleOpenProfileModal}>
+        <div className="titlebar-controls no-drag">
+          <div className="titlebar-avatar no-drag" onClick={handleOpenProfileModal}>
             {renderAvatar(28, userProfile.avatarUrl, userProfile.userId)}
           </div>
-          <button className="titlebar-btn" aria-label="最小化">
+          <button className="titlebar-btn no-drag" aria-label="最小化" onClick={() => window.electronAPI?.minimizeWindow?.()}>
             <IconMinus />
           </button>
-          <button className="titlebar-btn" aria-label="最大化">
+          <button className="titlebar-btn no-drag" aria-label="最大化" onClick={() => window.electronAPI?.maximizeWindow?.()}>
             <IconExpand />
           </button>
-          <button className="titlebar-btn titlebar-btn-close" aria-label="关闭">
+          <button className="titlebar-btn titlebar-btn-close no-drag" aria-label="关闭" onClick={() => window.electronAPI?.closeWindow?.()}>
             <IconClose />
           </button>
         </div>
