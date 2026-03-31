@@ -2,6 +2,8 @@
 
 ## 项目概览
 
+> 最后更新: 2026-03-31
+
 Papyrus 是一个现代化的桌面学习应用，采用 **Python FastAPI 后端 + React TypeScript 前端** 架构。
 
 ---
@@ -125,9 +127,14 @@ Papyrus/
 ├── docs/                          # 文档
 │   ├── README.md                  # 文档导航
 │   ├── PROJECT_STRUCTURE.md       # 本文件
+│   ├── FILE_INDEX.md              # 全文件索引
+│   ├── PRD.md                     # 产品需求文档
 │   ├── AI_README.md               # AI 功能说明
 │   ├── AI_TOOLS_DEMO.md           # AI 工具演示
 │   ├── API.md                     # API 文档
+│   ├── ELECTRON_V41_SETUP.md      # Electron v41 配置
+│   ├── EXTENSIONS.md              # 扩展系统
+│   ├── COMPLETION_DEMO.md         # 补全功能演示
 │   │
 │   └── guides/                    # 使用指南
 │       ├── QUICKSTART.md          # 快速启动

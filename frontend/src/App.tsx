@@ -1,3 +1,12 @@
+/**
+ * Papyrus 主应用组件
+ * 
+ * 无障碍特性：
+ * - Skip Link 跳转到主内容
+ * - ARIA 地标角色
+ * - 键盘导航支持
+ * - 语义化 HTML 结构
+ */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { BackTop, Message } from '@arco-design/web-react';
 import TitleBar from './TitleBar';
@@ -11,11 +20,12 @@ import ChartsPage from './ChartsPage/ChartsPage';
 import ExtensionsPage from './ExtensionsPage/ExtensionsPage';
 import FilesPage from './FilesPage/FilesPage';
 import SettingsPage from './SettingsPage/SettingsPage';
+import SectionNavigation from './components/SectionNavigation';
 import type { SearchResult } from './api';
 
 const App = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  const [todayDone, setTodayDone] = useState(false); // TODO: 接入真实完成状态
+  const [todayDone, setTodayDone] = useState(false);
   const [activePage, setActivePage] = useState('start');
   const [chatOpen, setChatOpen] = useState(false);
   const CHAT_DEFAULT_WIDTH = 320;
@@ -42,7 +52,6 @@ const App = () => {
     const handleOpenSettings = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setActivePage('settings');
-      // 如果有指定 section，可以通过其他方式传递，这里先简单跳转到设置页
       console.log('Opening settings section:', detail?.section);
     };
     window.addEventListener('papyrus_open_settings', handleOpenSettings);
@@ -64,6 +73,22 @@ const App = () => {
     window.addEventListener('mouseup', onUp);
   }, [chatWidth]);
 
+  // 页面标题映射
+  const pageTitles: Record<string, string> = {
+    start: '开始',
+    scroll: '复习',
+    notes: '笔记',
+    charts: '统计',
+    files: '文件',
+    extensions: '扩展',
+    settings: '设置',
+  };
+
+  // 更新文档标题
+  useEffect(() => {
+    document.title = `Papyrus - ${pageTitles[activePage] || '莎草纸'}`;
+  }, [activePage]);
+
   return (
     <div 
       className="tw-relative tw-flex tw-flex-col tw-mx-auto tw-bg-arco-bg-1"
@@ -73,12 +98,16 @@ const App = () => {
         overflow: 'hidden'
       }}
     >
-      {/* Skip Link - 无障碍导航 */}
-      <a href="#main-content" className="skip-link">
+      {/* Skip Link - 无障碍导航（AA 级） */}
+      <a 
+        href="#main-content" 
+        className="skip-link"
+        aria-label="跳转到主内容区域"
+      >
         跳转到主内容
       </a>
       
-      {/* 返回顶部按钮 - 根据 ChatPanel 状态动态定位 */}
+      {/* 返回顶部按钮 */}
       {activePage === 'start' && (
         <BackTop
           visibleHeight={200}
@@ -89,11 +118,19 @@ const App = () => {
             transition: 'right 0.3s ease',
           }}
           target={() => document.getElementById('start-page-scroll')!}
+          aria-label="返回顶部"
         />
       )}
-      <TitleBar onPageChange={setActivePage} onSearchResult={handleSearchResult} />
+
+      {/* 标题栏 */}
+      <TitleBar 
+        onPageChange={setActivePage} 
+        onSearchResult={handleSearchResult} 
+      />
       
+      {/* 主体布局 */}
       <div className="tw-flex tw-flex-1 tw-overflow-hidden">
+        {/* 侧边栏导航 */}
         <Sidebar 
           collapsed={sidebarCollapsed} 
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
@@ -103,14 +140,16 @@ const App = () => {
           onPageChange={setActivePage} 
         />
         
-        {/* 主内容区域 - 无障碍标记 */}
+        {/* 主内容区域 */}
         <main 
           id="main-content" 
           ref={mainContentRef}
           tabIndex={-1}
           className="tw-relative tw-flex-1 tw-flex tw-overflow-hidden tw-outline-none"
+          role="main"
+          aria-label={`${pageTitles[activePage] || '主内容'}页面`}
         >
-          {/* 完成状态：顶部绿色光晕，仅今日完成时显示 */}
+          {/* 完成状态光晕 */}
           {activePage === 'start' && todayDone && (
             <div 
               className="tw-absolute tw-inset-x-0 tw-top-0 tw-pointer-events-none"
@@ -119,8 +158,11 @@ const App = () => {
                 background: 'linear-gradient(to bottom, rgba(232, 255, 234, 0.45) 0%, transparent 100%)',
                 zIndex: 0 
               }} 
+              aria-hidden="true"
             />
           )}
+
+          {/* 页面内容 */}
           {activePage === 'start' && <StartPage onDoneChange={setTodayDone} />}
           {activePage === 'scroll' && <ScrollPage />}
           {activePage === 'notes' && <NotesPage />}
@@ -130,8 +172,20 @@ const App = () => {
           {activePage === 'settings' && <SettingsPage />}
         </main>
         
+        {/* 节标题导航（AAA 级） */}
+        <SectionNavigation 
+          containerSelector="#main-content"
+          minLevel={2}
+          maxLevel={3}
+        />
+        
+        {/* 聊天面板 */}
         {chatOpen && (
-          <div className="tw-flex tw-flex-shrink-0">
+          <div 
+            className="tw-flex tw-flex-shrink-0"
+            role="complementary"
+            aria-label="AI 助手聊天面板"
+          >
             <div
               className="tw-flex-shrink-0 tw-transition-colors tw-duration-200"
               style={{ 
@@ -143,6 +197,10 @@ const App = () => {
                 if (activePage !== 'start') e.currentTarget.style.background = 'var(--color-border-2)'; 
               }}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="调整聊天面板宽度"
+              tabIndex={0}
             />
             <ChatPanel 
               open={chatOpen} 
@@ -152,6 +210,8 @@ const App = () => {
           </div>
         )}
       </div>
+      
+      {/* 状态栏 */}
       <StatusBar />
     </div>
   );

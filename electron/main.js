@@ -54,7 +54,8 @@ const getPaths = () => {
     assetsPath: path.join(resourcesPath, 'assets'),
     frontendDistPath: isDevMode 
       ? path.join(__dirname, '..', 'frontend', 'dist')
-      : path.join(process.resourcesPath, 'app', 'frontend', 'dist'),
+      // In production, frontend files are in app.asar or unpacked next to main.js
+      : path.join(__dirname, '..', 'frontend', 'dist'),
     iconPath: path.join(resourcesPath, 'assets', getIconName()),
   };
 };
@@ -660,6 +661,8 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
 });
 
 // Kill all Papyrus processes (for Windows installer/updater)
+// WARNING: This function should ONLY be called by the installer/updater, not by the app itself
+// Calling this during app startup will kill the app itself
 function killAllPapyrusProcesses() {
   if (process.platform !== 'win32') return;
   
@@ -687,8 +690,9 @@ function killAllPapyrusProcesses() {
   }
 }
 
-// Run process cleanup before single instance check
-killAllPapyrusProcesses();
+// NOTE: killAllPapyrusProcesses() is intentionally NOT called here.
+// It should only be called by the installer/updater to avoid the app killing itself.
+// See: https://github.com/electron/electron/issues/36554
 
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();

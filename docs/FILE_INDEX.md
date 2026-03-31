@@ -1,7 +1,8 @@
 # Papyrus 全文件索引
 
-> 版本: v2.0.0-beta.1  
-> 生成时间: 2026-03-29  
+> 版本: v2.0.0-beta.2  
+> 生成时间: 2026-03-31  
+> 最后更新: 2026-03-31 12:30  
 > 本索引包含项目中所有重要文件及其功能说明
 
 ---
@@ -98,6 +99,7 @@
 | `routers/logs.py` | 日志查看 API | `/logs` |
 | `routers/update.py` | 更新检查 API | `/update` |
 | `routers/markdown.py` | Markdown 处理 API | `/markdown` |
+| `routers/providers.py` | AI 提供商 API | `/providers` |
 | `routers/mcp.py` | MCP 服务 API | `/mcp` |
 
 ### AI 模块 (`src/ai/`)
@@ -108,7 +110,7 @@
 | `ai/config.py` | AI 配置管理（API Key、模型选择等） |
 | `ai/provider.py` | AI 提供商接口（OpenAI、Anthropic、Ollama） |
 | `ai/tools.py` | AI 工具调用定义 |
-| `ai/tool_manager.py` | 工具调用管理器 |
+| `ai/tool_manager.py` | 工具调用管理器（审批流程） |
 | `ai/sidebar_v3.py` | AI 侧边栏 UI（遗留） |
 
 ### MCP 服务 (`src/mcp/`)
@@ -447,7 +449,7 @@
 | TypeScript/TSX 文件 | ~60 |
 | CSS 样式文件 | ~15 |
 | 测试文件 | 7 |
-| 文档文件 | 23 |
+| 文档文件 | 25 |
 | 脚本文件 | 9 |
 
 ---

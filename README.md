@@ -5,7 +5,7 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![AI-Assisted](https://img.shields.io/badge/Dev-AI--Assisted-blueviolet)
-![Accessibility](https://img.shields.io/badge/a11y-WCAG%202.1%20AAA-green)
+![Accessibility](https://img.shields.io/badge/a11y-WCAG%202.1%20AA%2FAAA-green)
 
 **Papyrus** 是一款专注于高强度模型记忆的极简、高效、全键盘驱动的 AI Agent 驱动暗记（SRS）复习引擎。
 
