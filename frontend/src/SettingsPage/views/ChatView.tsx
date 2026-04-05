@@ -1319,7 +1319,7 @@ const ModelsSection = ({ providers, currentModelId, setCurrentModelId, deleteMod
   setCurrentModelId: (id: string) => void;
   deleteModel: (providerId: string, modelId: string) => void;
   openModelModal: (providerId?: string, model?: Model) => void;
-  renderCapabilityIcons: (capabilities: string[]) => JSX.Element;
+  renderCapabilityIcons: (capabilities: string[]) => React.ReactNode;
 }) => {
   const enabledProviders = providers.filter(p => p.enabled);
   

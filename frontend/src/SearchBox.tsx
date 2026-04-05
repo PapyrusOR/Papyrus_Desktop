@@ -19,7 +19,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -310,7 +310,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
                       <Text className="tw-font-medium tw-text-sm tw-truncate">
                         {highlightMatch(result.title, query)}
                       </Text>
-                      <Tag size="mini" color="gray">
+                      <Tag size="small" color="gray">
                         {getMatchedFieldLabel(result.matched_field)}
                       </Tag>
                     </div>
@@ -333,12 +333,12 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
                       {result.tags && result.tags.length > 0 && (
                         <div className="tw-flex tw-gap-1">
                           {result.tags.slice(0, 3).map(tag => (
-                            <Tag key={tag} size="mini" color="arcoblue" className="tw-text-xs">
+                            <Tag key={tag} size="small" color="arcoblue" className="tw-text-xs">
                               {tag}
                             </Tag>
                           ))}
                           {result.tags.length > 3 && (
-                            <Tag size="mini" color="gray" className="tw-text-xs">
+                            <Tag size="small" color="gray" className="tw-text-xs">
                               +{result.tags.length - 3}
                             </Tag>
                           )}
