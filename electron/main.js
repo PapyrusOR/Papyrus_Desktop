@@ -335,7 +335,6 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
-      allowFileAccessFromFiles: true,
     },
     // Frameless window - hide native title bar on all platforms
     frame: false,
@@ -349,7 +348,6 @@ function createWindow() {
         contextIsolation: true,
         preload: path.join(__dirname, 'preload.js'),
         webSecurity: true,
-        allowFileAccessFromFiles: true,
         devTools: true 
       }
     } : {}),
