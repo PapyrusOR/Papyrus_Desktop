@@ -1,16 +1,7 @@
-/**
- * 无障碍设置视图
- * 
- * 实现 WCAG 2.1 AA/AAA 级无障碍功能配置
- * - AA 级：基础无障碍功能（默认启用）
- * - AAA 级：增强无障碍功能（可选启用）
- */
 import {
   Switch,
   Button,
   Typography,
-  Tag,
-  Tooltip,
 } from '@arco-design/web-react';
 import {
   IconArrowLeft,
@@ -18,10 +9,11 @@ import {
   IconEye,
   IconMoon,
   IconSun,
-  IconQuestionCircle,
 } from '@arco-design/web-react/icon';
 import IconAccessibility from '../../icons/IconAccessibility';
 import { useAccessibility } from '../../contexts/AccessibilityContext';
+import { SettingItem } from '../components';
+import { useScrollNavigation } from '../../hooks/useScrollNavigation';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -29,74 +21,25 @@ interface AccessibilityViewProps {
   onBack: () => void;
 }
 
-// ============================================
-// 设置项组件
-// ============================================
-
-interface SettingItemProps {
-  title: string;
-  desc?: string;
-  children: React.ReactNode;
-  divider?: boolean;
-  badge?: 'AA' | 'AAA';
-  tooltip?: string;
-}
-
-const SettingItem = ({ 
-  title, 
-  desc, 
-  children,
-  divider = true,
-  badge,
-  tooltip,
-}: SettingItemProps) => (
-  <div className="settings-item">
-    <div className="settings-item-content">
-      <div className="settings-item-info">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Text bold className="settings-item-title">{title}</Text>
-          {badge && (
-            <Tag 
-              size="small" 
-              color={badge === 'AAA' ? 'orange' : 'green'}
-              style={{ fontSize: 11 }}
-            >
-              {badge}
-            </Tag>
-          )}
-          {tooltip && (
-            <Tooltip content={tooltip}>
-              <IconQuestionCircle style={{ fontSize: 14, color: 'var(--color-text-3)' }} />
-            </Tooltip>
-          )}
-        </div>
-        {desc && <Paragraph type="secondary" className="settings-item-desc">{desc}</Paragraph>}
-      </div>
-      <div className="settings-item-control">
-        {children}
-      </div>
-    </div>
-    {divider && <div className="settings-item-divider" />}
-  </div>
-);
-
-// ============================================
-// 主视图组件
-// ============================================
+const NAV_ITEMS = [
+  { key: 'aa-section', label: 'AA 级基础', icon: IconEye },
+  { key: 'aaa-section', label: 'AAA 级增强', icon: IconSun },
+  { key: 'motion-section', label: '动画与效果', icon: IconMoon },
+];
 
 const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
   const { settings, updateSetting, resetSettings } = useAccessibility();
+  const { contentRef, activeSection, scrollToSection } = useScrollNavigation(NAV_ITEMS);
 
   return (
-    <div style={{ 
-      flex: 1, 
-      display: 'flex', 
+    <div style={{
+      flex: 1,
+      display: 'flex',
       overflow: 'hidden',
       position: 'relative',
       background: 'var(--color-bg-1)',
       height: '100%',
     }}>
-      {/* 左侧导航栏 */}
       <div style={{
         width: 220,
         height: '100%',
@@ -106,7 +49,6 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
         flexDirection: 'column',
         flexShrink: 0,
       }}>
-        {/* 标题栏 */}
         <div style={{
           padding: 16,
           borderBottom: '1px solid var(--color-border-2)',
@@ -124,90 +66,50 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
           <Text style={{ fontSize: '14px', fontWeight: 500 }}>无障碍</Text>
         </div>
 
-        {/* 导航菜单 */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
-          <Text type="secondary" style={{ fontSize: 12, padding: '8px 12px', display: 'block' }}>
-            快速导航
-          </Text>
-          <button 
-            onClick={() => {
-              const element = document.getElementById('aa-section');
-              if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8, 
-              padding: '10px 12px',
-              color: 'var(--color-text-1)',
-              textDecoration: 'none',
-              borderRadius: 6,
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100%',
-              textAlign: 'left',
-            }}
-          >
-            <IconEye style={{ fontSize: 16 }} />
-            <Text style={{ fontSize: 13 }}>AA 级基础</Text>
-          </button>
-          <button 
-            onClick={() => {
-              const element = document.getElementById('aaa-section');
-              if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8, 
-              padding: '10px 12px',
-              color: 'var(--color-text-1)',
-              textDecoration: 'none',
-              borderRadius: 6,
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100%',
-              textAlign: 'left',
-            }}
-          >
-            <IconSun style={{ fontSize: 16 }} />
-            <Text style={{ fontSize: 13 }}>AAA 级增强</Text>
-          </button>
-          <button 
-            onClick={() => {
-              const element = document.getElementById('motion-section');
-              if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8, 
-              padding: '10px 12px',
-              color: 'var(--color-text-1)',
-              textDecoration: 'none',
-              borderRadius: 6,
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100%',
-              textAlign: 'left',
-            }}
-          >
-            <IconMoon style={{ fontSize: 16 }} />
-            <Text style={{ fontSize: 13 }}>动画与效果</Text>
-          </button>
+          {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+            const isActive = activeSection === key;
+            return (
+              <button 
+                key={key}
+                onClick={() => scrollToSection(key)}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 8, 
+                  padding: '10px 12px',
+                  color: isActive ? 'var(--color-primary)' : 'var(--color-text-1)',
+                  textDecoration: 'none',
+                  borderRadius: 6,
+                  background: isActive ? 'var(--color-primary-light)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  width: '100%',
+                  textAlign: 'left',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <Icon style={{ fontSize: 16 }} />
+                <Text style={{ 
+                  fontSize: 13, 
+                  color: isActive ? 'var(--color-primary)' : 'inherit',
+                  fontWeight: isActive ? 500 : 400,
+                }}>{label}</Text>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 主内容区 */}
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
-        padding: '32px 48px',
-      }}>
-        {/* 页面标题 */}
+      <div 
+        ref={contentRef}
+        onWheel={(e) => e.stopPropagation()}
+        style={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          padding: '32px 48px',
+        }}
+      >
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <IconAccessibility style={{ fontSize: 32, color: 'var(--color-primary)' }} />
@@ -221,11 +123,9 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
           </Paragraph>
         </div>
 
-        {/* AA 级基础设置 */}
-        <section id="aa-section" style={{ marginBottom: 48 }}>
+        <section id="aa-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <Title heading={4} style={{ margin: 0, fontSize: 20 }}>AA 级基础</Title>
-            <Tag color="green" size="small">推荐</Tag>
           </div>
           <Paragraph type="secondary" style={{ marginBottom: 16, fontSize: 13 }}>
             这些设置符合 WCAG 2.1 AA 级标准，建议所有用户保持启用状态。
@@ -276,11 +176,9 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
           </div>
         </section>
 
-        {/* AAA 级增强设置 */}
-        <section id="aaa-section" style={{ marginBottom: 48 }}>
+        <section id="aaa-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <Title heading={4} style={{ margin: 0, fontSize: 20 }}>AAA 级增强</Title>
-            <Tag color="orange" size="small">可选</Tag>
           </div>
           <Paragraph type="secondary" style={{ marginBottom: 16, fontSize: 13 }}>
             这些设置符合 WCAG 2.1 AAA 级标准，适合有特殊需求的用户。
@@ -331,8 +229,7 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
           </div>
         </section>
 
-        {/* 动画设置 */}
-        <section id="motion-section" style={{ marginBottom: 48 }}>
+        <section id="motion-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <Title heading={4} style={{ margin: 0, fontSize: 20 }}>动画与效果</Title>
           </div>
@@ -377,7 +274,6 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
           </div>
         </section>
 
-        {/* 操作按钮 */}
         <section style={{ marginBottom: 48 }}>
           <div style={{ 
             display: 'flex', 
@@ -395,7 +291,6 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
           </div>
         </section>
 
-        {/* 提示信息 */}
         <div className="settings-tip" style={{
           display: 'flex',
           alignItems: 'flex-start',
@@ -415,6 +310,8 @@ const AccessibilityView = ({ onBack }: AccessibilityViewProps) => {
             </Text>
           </div>
         </div>
+
+        <div style={{ height: 'calc(100vh - 200px)', flexShrink: 0 }} />
       </div>
     </div>
   );

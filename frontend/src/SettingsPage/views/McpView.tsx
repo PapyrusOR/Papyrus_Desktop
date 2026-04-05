@@ -15,6 +15,8 @@ import {
   IconSettings,
   IconStorage,
 } from '@arco-design/web-react/icon';
+import { SettingItem } from '../components';
+import { useScrollNavigation } from '../../hooks/useScrollNavigation';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -29,136 +31,28 @@ interface McpViewProps {
   onBack: () => void;
 }
 
-// MCP 服务侧边栏子菜单项
-const MCP_MENU_ITEMS = [
-  { key: 'servers', label: '服务列表', icon: IconStorage },
-  { key: 'settings', label: '高级设置', icon: IconSettings },
+const NAV_ITEMS = [
+  { key: 'servers-section', label: '服务列表', icon: IconStorage },
+  { key: 'settings-section', label: '高级设置', icon: IconSettings },
 ];
 
 const McpView = ({ onBack }: McpViewProps) => {
-  const [activeMenu, setActiveMenu] = useState('servers');
+  const { contentRef, activeSection, scrollToSection } = useScrollNavigation(NAV_ITEMS);
   const [mcpEnabled, setMcpEnabled] = useState(false);
   const [mcpServers, setMcpServers] = useState<McpServer[]>([
     { id: '1', name: '文件系统', url: 'http://localhost:3001', enabled: true },
     { id: '2', name: '网页搜索', url: 'http://localhost:3002', enabled: false },
   ]);
 
-  // 服务列表内容
-  const ServersSettings = () => (
-    <>
-      <div className="settings-section">
-        <SettingItem title="启用 MCP 服务" desc="允许 AI 通过 MCP 协议调用外部工具" divider={false}>
-          <Switch checked={mcpEnabled} onChange={setMcpEnabled} />
-        </SettingItem>
-      </div>
-
-      {mcpEnabled && (
-        <div className="settings-section">
-          <Title heading={4} className="settings-section-title">已配置的服务</Title>
-          
-          {mcpServers.map(server => (
-            <Card 
-              key={server.id} 
-              className="settings-mcp-card"
-              bodyStyle={{ padding: 16 }}
-            >
-              <div className="settings-mcp-card-content">
-                <div className="settings-mcp-info">
-                  <IconTool style={{ fontSize: 24, color: 'var(--color-primary)' }} />
-                  <div>
-                    <Text bold>{server.name}</Text>
-                    <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
-                      {server.url}
-                    </Paragraph>
-                  </div>
-                </div>
-                <div className="settings-mcp-actions">
-                  <Switch 
-                    size="small" 
-                    checked={server.enabled}
-                    onChange={(checked) => {
-                      setMcpServers(mcpServers.map(s => 
-                        s.id === server.id ? { ...s, enabled: checked } : s
-                      ));
-                    }}
-                  />
-                  <Tooltip content="编辑">
-                    <Button type="text" size="mini" icon={<IconEdit />} aria-label="编辑服务" />
-                  </Tooltip>
-                  <Tooltip content="删除">
-                    <Button 
-                      type="text" 
-                      size="mini" 
-                      icon={<IconDelete />}
-                      status="danger"
-                      onClick={() => {
-                        setMcpServers(mcpServers.filter(s => s.id !== server.id));
-                      }}
-                      aria-label="删除服务"
-                    />
-                  </Tooltip>
-                </div>
-              </div>
-            </Card>
-          ))}
-
-          <Button 
-            type="outline" 
-            shape="round" 
-            icon={<IconPlus />}
-            style={{ marginTop: 16 }}
-            onClick={() => {
-              const newId = (mcpServers.length + 1).toString();
-              setMcpServers([...mcpServers, { 
-                id: newId, 
-                name: '新服务', 
-                url: 'http://localhost:3000', 
-                enabled: false 
-              }]);
-            }}
-          >
-            添加服务
-          </Button>
-        </div>
-      )}
-    </>
-  );
-
-  // 高级设置内容
-  const AdvancedSettings = () => (
-    <>
-      <SettingItem title="超时时间" desc="MCP 服务调用的最大等待时间（秒）" divider={false}>
-        <Switch checked={true} onChange={() => {}} />
-      </SettingItem>
-    </>
-  );
-
-  const renderContent = () => {
-    switch (activeMenu) {
-      case 'servers':
-        return <ServersSettings />;
-      case 'settings':
-        return <AdvancedSettings />;
-      default:
-        return <ServersSettings />;
-    }
-  };
-
-  const getCurrentTitle = () => {
-    const item = MCP_MENU_ITEMS.find(item => item.key === activeMenu);
-    return item?.label || '服务列表';
-  };
-
   return (
-    <div style={{ 
-      flex: 1, 
-      display: 'flex', 
+    <div style={{
+      flex: 1,
+      display: 'flex',
       overflow: 'hidden',
       position: 'relative',
       background: 'var(--color-bg-1)',
       height: '100%',
     }}>
-      {/* 左侧二级菜单 */}
       <div style={{
         width: 200,
         height: '100%',
@@ -168,7 +62,6 @@ const McpView = ({ onBack }: McpViewProps) => {
         flexDirection: 'column',
         flexShrink: 0,
       }}>
-        {/* 标题栏 */}
         <div style={{
           padding: 16,
           borderBottom: '1px solid var(--color-border-2)',
@@ -185,15 +78,13 @@ const McpView = ({ onBack }: McpViewProps) => {
           <Text style={{ fontSize: '14px', fontWeight: 500 }}>MCP 服务</Text>
         </div>
 
-        {/* 菜单项 */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-          {MCP_MENU_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeMenu === item.key;
+          {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+            const isActive = activeSection === key;
             return (
-              <div
-                key={item.key}
-                onClick={() => setActiveMenu(item.key)}
+              <button
+                key={key}
+                onClick={() => scrollToSection(key)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -204,93 +95,158 @@ const McpView = ({ onBack }: McpViewProps) => {
                   marginBottom: 4,
                   background: isActive ? 'var(--color-primary-light)' : 'transparent',
                   color: isActive ? 'var(--color-primary)' : 'var(--color-text-1)',
+                  border: 'none',
+                  width: '100%',
+                  textAlign: 'left',
                   transition: 'all 0.2s',
                   userSelect: 'none',
                 }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'var(--color-fill-2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                  }
-                }}
               >
                 <Icon style={{ fontSize: 16 }} />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: isActive ? 'var(--color-primary)' : 'inherit',
-                    fontWeight: isActive ? 500 : 400,
-                  }}
-                >
-                  {item.label}
-                </Text>
-              </div>
+                <Text style={{ 
+                  fontSize: 13, 
+                  color: isActive ? 'var(--color-primary)' : 'inherit',
+                  fontWeight: isActive ? 500 : 400,
+                }}>{label}</Text>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* 拖拽条 */}
-      <div
-        style={{
-          width: 4,
-          cursor: 'ew-resize',
-          background: 'transparent',
-          transition: 'background 0.2s',
-          flexShrink: 0,
+      <div 
+        ref={contentRef}
+        onWheel={(e) => e.stopPropagation()}
+        style={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          padding: '32px 48px',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--color-border-2)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-        }}
-      />
+      >
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <IconTool style={{ fontSize: 32, color: 'var(--color-primary)' }} />
+            <Title heading={2} style={{ margin: 0, fontWeight: 400, fontSize: '28px' }}>
+              MCP 服务
+            </Title>
+          </div>
+          <Paragraph type="secondary">
+            管理模型上下文协议服务，扩展 AI 能力
+          </Paragraph>
+        </div>
 
-      {/* 主内容区 */}
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
-        padding: 48,
-      }}>
-        <Title heading={2} style={{ margin: '0 0 32px 0', fontWeight: 400, fontSize: '28px' }}>
-          {getCurrentTitle()}
-        </Title>
-        
-        {renderContent()}
+        <div id="servers-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>服务列表</Title>
+          </div>
+
+          <div className="settings-section" style={{ 
+            background: 'var(--color-bg-2)', 
+            borderRadius: 8, 
+            padding: '16px 20px',
+            marginBottom: 24,
+          }}>
+            <SettingItem title="启用 MCP 服务" desc="允许 AI 通过 MCP 协议调用外部工具" divider={false}>
+              <Switch checked={mcpEnabled} onChange={setMcpEnabled} />
+            </SettingItem>
+          </div>
+
+          {mcpEnabled && (
+            <div style={{ marginBottom: 24 }}>
+              <Title heading={5} style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--color-text-2)' }}>已配置的服务</Title>
+              
+              <div className="settings-section" style={{ 
+                background: 'var(--color-bg-2)', 
+                borderRadius: 8, 
+                padding: '16px 20px',
+                marginBottom: 16,
+              }}>
+                {mcpServers.map((server, index) => (
+                  <SettingItem 
+                    key={server.id} 
+                    title={server.name} 
+                    desc={server.url}
+                    divider={index !== mcpServers.length - 1}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Switch 
+                        size="small" 
+                        checked={server.enabled}
+                        onChange={(checked) => {
+                          setMcpServers(mcpServers.map(s => 
+                            s.id === server.id ? { ...s, enabled: checked } : s
+                          ));
+                        }}
+                      />
+                      <Tooltip content="编辑">
+                        <Button type="text" size="mini" icon={<IconEdit />} aria-label="编辑服务" />
+                      </Tooltip>
+                      <Tooltip content="删除">
+                        <Button 
+                          type="text" 
+                          size="mini" 
+                          icon={<IconDelete />}
+                          status="danger"
+                          onClick={() => {
+                            setMcpServers(mcpServers.filter(s => s.id !== server.id));
+                          }}
+                          aria-label="删除服务"
+                        />
+                      </Tooltip>
+                    </div>
+                  </SettingItem>
+                ))}
+              </div>
+
+              <div className="settings-section" style={{ 
+                background: 'var(--color-bg-2)', 
+                borderRadius: 8, 
+                padding: '16px 20px',
+              }}>
+                <SettingItem title="添加新服务" desc="添加新的 MCP 服务" divider={false}>
+                  <Button 
+                    type="primary" 
+                    shape="round" 
+                    icon={<IconPlus />}
+                    onClick={() => {
+                      const newId = (mcpServers.length + 1).toString();
+                      setMcpServers([...mcpServers, { 
+                        id: newId, 
+                        name: '新服务', 
+                        url: 'http://localhost:3000', 
+                        enabled: false 
+                      }]);
+                    }}
+                  >
+                    添加服务
+                  </Button>
+                </SettingItem>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div id="settings-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>高级设置</Title>
+          </div>
+
+          <div className="settings-section" style={{ 
+            background: 'var(--color-bg-2)', 
+            borderRadius: 8, 
+            padding: '16px 20px',
+            marginBottom: 24,
+          }}>
+            <SettingItem title="超时时间" desc="MCP 服务调用的最大等待时间（秒）" divider={false}>
+              <Switch checked={true} onChange={() => {}} />
+            </SettingItem>
+          </div>
+        </div>
+
+        <div style={{ height: 'calc(100vh - 200px)', flexShrink: 0 }} />
       </div>
     </div>
   );
 };
-
-// 设置项组件
-const SettingItem = ({ 
-  title, 
-  desc, 
-  children,
-  divider = true 
-}: { 
-  title: string; 
-  desc?: string; 
-  children: React.ReactNode;
-  divider?: boolean;
-}) => (
-  <div className="settings-item">
-    <div className="settings-item-content">
-      <div className="settings-item-info">
-        <Text bold className="settings-item-title">{title}</Text>
-        {desc && <Paragraph type="secondary" className="settings-item-desc">{desc}</Paragraph>}
-      </div>
-      <div className="settings-item-control">
-        {children}
-      </div>
-    </div>
-    {divider && <div className="settings-item-divider" />}
-  </div>
-);
 
 export default McpView;
