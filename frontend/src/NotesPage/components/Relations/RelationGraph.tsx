@@ -328,14 +328,14 @@ export const RelationGraph: React.FC<RelationGraphProps> = ({
       {/* 深度控制 */}
       <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', zIndex: 10, background: 'var(--color-bg-1)', padding: '8px 12px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <span style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>关联深度:</span>
-        <Slider value={currentDepth} min={1} max={2} step={1} style={{ flex: 1 }} onChange={setCurrentDepth} />
+        <Slider value={currentDepth} min={1} max={2} step={1} style={{ flex: 1 }} onChange={(val) => setCurrentDepth(val as number)} />
         <span style={{ fontSize: '13px', minWidth: '20px' }}>{currentDepth}</span>
       </div>
 
       {/* 画布 */}
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <Spin size="large" />
+          <Spin size={24} />
         </div>
       ) : (
         <canvas

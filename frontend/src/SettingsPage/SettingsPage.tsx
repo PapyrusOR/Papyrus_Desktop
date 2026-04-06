@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Typography,
 } from '@arco-design/web-react';
@@ -27,7 +27,6 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 
-// 设置分类定义 - 使用 CSS 变量
 const SETTING_CATEGORIES = [
   {
     key: 'appearance',
@@ -89,19 +88,41 @@ const SETTING_CATEGORIES = [
 
 const SettingsPage = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [animating, setAnimating] = useState(false);
+  const [direction, setDirection] = useState<'in' | 'out'>('in');
 
-  // 分类卡片组件
+  const handleCategoryClick = (key: string) => {
+    setDirection('in');
+    setAnimating(true);
+    setActiveCategory(key);
+  };
+
+  const handleBack = () => {
+    setDirection('out');
+    setAnimating(true);
+    setTimeout(() => {
+      setActiveCategory(null);
+      setAnimating(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    if (!animating) return;
+    const timer = setTimeout(() => setAnimating(false), 200);
+    return () => clearTimeout(timer);
+  }, [animating, activeCategory]);
+
   const CategoryCard = ({ category }: { category: typeof SETTING_CATEGORIES[0] }) => {
     const Icon = category.icon;
 
     return (
       <div
         className="settings-category-card"
-        onClick={() => setActiveCategory(category.key)}
+        onClick={() => handleCategoryClick(category.key)}
         role="button"
         tabIndex={0}
         aria-label={`${category.title}: ${category.desc}`}
-        onKeyDown={(e) => e.key === 'Enter' && setActiveCategory(category.key)}
+        onKeyDown={(e) => e.key === 'Enter' && handleCategoryClick(category.key)}
       >
         <div 
           className="settings-category-icon"
@@ -121,9 +142,11 @@ const SettingsPage = () => {
     );
   };
 
-  // 主页面 - 分类网格
   const MainView = () => (
-    <div className="settings-main" style={{ height: '100%', overflowY: 'auto' }}>
+    <div 
+      className="settings-main"
+      style={{ height: '100%', overflowY: 'auto' }}
+    >
       <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>设置</Title>
       <div className="settings-categories-grid">
         {SETTING_CATEGORIES.map(category => (
@@ -133,19 +156,44 @@ const SettingsPage = () => {
     </div>
   );
 
-  const handleBack = () => setActiveCategory(null);
+  const getViewComponent = (key: string) => {
+    const views: Record<string, React.ReactNode> = {
+      appearance: <AppearanceView onBack={handleBack} />,
+      general: <GeneralView onBack={handleBack} />,
+      chat: <ChatView onBack={handleBack} />,
+      mcp: <McpView onBack={handleBack} />,
+      shortcuts: <ShortcutsView onBack={handleBack} />,
+      accessibility: <AccessibilityView onBack={handleBack} />,
+      data: <DataView onBack={handleBack} />,
+      about: <AboutView onBack={handleBack} />,
+    };
+    return views[key];
+  };
 
   return (
     <div className="settings-page">
-      {activeCategory === null && <MainView />}
-      {activeCategory === 'appearance' && <AppearanceView onBack={handleBack} />}
-      {activeCategory === 'general' && <GeneralView onBack={handleBack} />}
-      {activeCategory === 'chat' && <ChatView onBack={handleBack} />}
-      {activeCategory === 'mcp' && <McpView onBack={handleBack} />}
-      {activeCategory === 'shortcuts' && <ShortcutsView onBack={handleBack} />}
-      {activeCategory === 'accessibility' && <AccessibilityView onBack={handleBack} />}
-      {activeCategory === 'data' && <DataView onBack={handleBack} />}
-      {activeCategory === 'about' && <AboutView onBack={handleBack} />}
+      {activeCategory === null && !animating && <MainView />}
+      {activeCategory === null && animating && direction === 'out' && (
+        <div 
+          className="settings-main settings-page-exit" 
+          style={{ height: '100%', overflowY: 'auto' }}
+        >
+          <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>设置</Title>
+          <div className="settings-categories-grid">
+            {SETTING_CATEGORIES.map(category => (
+              <CategoryCard key={category.key} category={category} />
+            ))}
+          </div>
+        </div>
+      )}
+      {activeCategory !== null && (
+        <div 
+          className={direction === 'in' ? 'settings-page-enter' : 'settings-page-exit'}
+          style={{ height: '100%', overflow: 'hidden' }}
+        >
+          {getViewComponent(activeCategory)}
+        </div>
+      )}
     </div>
   );
 };

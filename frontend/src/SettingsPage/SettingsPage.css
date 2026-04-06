@@ -79,15 +79,16 @@
   gap: 16px;
   padding: 24px;
   border-radius: 16px;
-  border: 1px solid var(--color-text-3);
+  border: 2px solid transparent;
   background: transparent;
   cursor: pointer;
-  transition: border-color 0.2s, border-width 0.2s, box-shadow 0.2s;
+  box-shadow: inset 0 0 0 1px var(--color-text-3);
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 .settings-category-card:hover {
+  box-shadow: none;
   border: 2px solid var(--color-border-hover);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .settings-category-card:focus-visible {
@@ -530,5 +531,42 @@
   .settings-data-card,
   .settings-mcp-card {
     border-width: 3px;
+  }
+}
+
+.settings-page-enter {
+  animation: settingsPageEnter 0.2s ease-out forwards;
+}
+
+.settings-page-exit {
+  animation: settingsPageExit 0.2s ease-out forwards;
+}
+
+@keyframes settingsPageEnter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes settingsPageExit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-page-enter,
+  .settings-page-exit {
+    animation: none;
   }
 }

@@ -46,7 +46,7 @@ export const ScreenReaderAnnouncerProvider: React.FC<ScreenReaderAnnouncerProvid
 }) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const idCounter = useRef(0);
-  const timersRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   // 清理所有定时器
   useEffect(() => {

@@ -27,8 +27,12 @@ echo ✅ 依赖检查完成
 echo 🎯 启动服务...
 echo.
 
+:: 设置 PYTHONPATH 环境变量
+set PYTHONPATH=%~dp0src
+
 :: 使用 concurrently 同时启动前后端
+:: 后端使用 papyrus_api.main:app（PYTHONPATH 已设置）
 cd frontend
-npx concurrently "python -m uvicorn src.papyrus_api.main:app --port 8000" "npx vite --port 5173" --names "后端,前端" --prefix-colors "cyan,magenta"
+npx concurrently "set PYTHONPATH=%~dp0src && python -m uvicorn papyrus_api.main:app --port 8000" "npx vite --port 5173" --names "后端,前端" --prefix-colors "cyan,magenta"
 
 pause

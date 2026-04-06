@@ -593,7 +593,7 @@ export const NoteDetailView = ({
         visible={showGraphDrawer}
         onCancel={() => setShowGraphDrawer(false)}
         footer={null}
-        width={800}
+        style={{ width: 800 }}
       >
         {note && (
           <div style={{ height: '500px' }}>
