@@ -123,6 +123,12 @@ AI配置保存在 `data/ai_config.json`，包含：
 - **鸣谢**: 图标素材来源于 Minecraft Wiki (Mojang Studio)。
 
 ---
+## 致谢
+<a href="https://github.com/PapyrusOR/Papyrus_Desktop/contributors">
+  <img src="https://contrib.rocks/image?repo=PapyrusOR/Papyrus_Desktop&max=200&columns=14" />
+</a>
+
+感谢你们的支持，Papyrus因为你们而更好！
 
 ## 💡 开发者说
 其实这个作品的诞生过程没有那么理想和伟大。
