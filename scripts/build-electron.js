@@ -283,7 +283,7 @@ function devMode() {
   
   // Wait a moment for ports to be fully released
   log('Waiting for ports to be released...', 'dim');
-  execSync('sleep 1 || timeout 1 >nul', { stdio: 'ignore' });
+  exec('sleep 1 || timeout 1 >nul', { stdio: 'ignore', ignoreError: true });
   
   // Start frontend
   log('Starting frontend...');
