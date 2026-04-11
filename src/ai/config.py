@@ -364,6 +364,16 @@ class AIConfig:
     def validate_config(self) -> None:
         """验证配置是否包含非法字符，并阻止 SSRF"""
         errors: list[str] = []
+        # Providers that are expected to run locally
+        local_providers = {
+            "ollama",
+            "lm-studio",
+            "localai",
+            "tabbyapi",
+            "koboldcpp",
+            "text-generation-webui",
+            "llamacpp",
+        }
 
         for provider_name, provider_config in self.config["providers"].items():
             api_key: str = provider_config.get("api_key", "")
@@ -373,11 +383,12 @@ class AIConfig:
             base_url: str = provider_config.get("base_url", "")
             if base_url and not self._is_valid_url(base_url):
                 errors.append(f"{provider_name.upper()} 的 Base URL 中包含非法字符")
-            # SECURITY: block private IPs / localhost to prevent SSRF
+            # SECURITY: block private IPs / localhost to prevent SSRF for cloud providers
             if base_url and self._is_private_url(base_url):
-                # Allow Ollama default localhost since it's explicitly local
-                if provider_name != "ollama":
-                    errors.append(f"{provider_name.upper()} 的 Base URL 指向私有地址，存在 SSRF 风险。请使用公网 API 地址")
+                is_local = provider_name in local_providers
+                is_custom = provider_name == "custom"
+                if not is_local and not is_custom:
+                    errors.append(f"{provider_name.upper()} 的 Base URL 指向私有地址，存在 SSRF 风险。请使用公网 API 地址，或将 provider 名称改为已知的本地模型标识")
 
         if errors:
             raise ValueError("\n".join(errors))
