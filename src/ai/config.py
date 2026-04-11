@@ -63,10 +63,20 @@ class AIConfig:
                     "base_url": "https://api.openai.com/v1",
                     "models": ["gpt-4", "gpt-3.5-turbo", "gpt-4-turbo"],
                 },
+                "openai-response": {
+                    "api_key": "",
+                    "base_url": "https://api.openai.com/v1",
+                    "models": ["gpt-4o"],
+                },
                 "anthropic": {
                     "api_key": "",
                     "base_url": "https://api.anthropic.com/v1",
                     "models": ["claude-3-opus-20240229", "claude-3-sonnet-20240229"],
+                },
+                "gemini": {
+                    "api_key": "",
+                    "base_url": "https://generativelanguage.googleapis.com/v1beta",
+                    "models": ["gemini-3.1-pro-preview"],
                 },
                 "ollama": {
                     "base_url": "http://localhost:11434",

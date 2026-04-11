@@ -36,6 +36,8 @@ import {
 } from '@arco-design/web-react/icon';
 import { SettingItem } from '../components';
 import { useScrollNavigation } from '../../hooks/useScrollNavigation';
+import { ProviderLogo } from '../../icons/ProviderLogo';
+import { ModelLogo } from '../../icons/ModelLogo';
 
 const FormItem = Form.Item;
 const { Title, Text, Paragraph } = Typography;
@@ -57,14 +59,17 @@ const CAPABILITIES = [
 
 const PROVIDER_PRESETS: Record<string, { name: string; baseUrl: string }> = {
   openai: { name: 'OpenAI', baseUrl: 'https://api.openai.com/v1' },
+  'openai-response': { name: 'OpenAI-Response', baseUrl: 'https://api.openai.com/v1' },
   anthropic: { name: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1' },
-  ollama: { name: 'Ollama', baseUrl: 'http://localhost:11434' },
-  gemini: { name: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com' },
-  deepseek: { name: 'DeepSeek', baseUrl: 'https://api.deepseek.com' },
-  siliconflow: { name: '硅基流动', baseUrl: 'https://api.siliconflow.cn' },
-  moonshot: { name: '月之暗面', baseUrl: 'https://api.moonshot.cn' },
-  custom: { name: '自定义', baseUrl: '' },
+  gemini: { name: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
 };
+
+const PROVIDER_PORT_OPTIONS = [
+  { label: 'OpenAI', value: 'openai' },
+  { label: 'OpenAI-Response', value: 'openai-response' },
+  { label: 'Anthropic', value: 'anthropic' },
+  { label: 'Gemini', value: 'gemini' },
+];
 
 const NAV_ITEMS = [
   { key: 'general-section', label: '通用设置', icon: IconMessage },
@@ -910,9 +915,19 @@ const ChatView = ({ onBack }: ChatViewProps) => {
             <SettingItem title="当前模型" desc="选择要使用的 AI 模型" divider={false}>
               <Select value={currentModelId} onChange={setCurrentModelId} style={{ width: 280 }}>
                 {providers.filter(p => p.enabled).map(p => (
-                  <OptGroup key={p.id} label={p.name}>
+                  <OptGroup key={p.id} label={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <ProviderLogo type={p.type} name={p.name} size={14} />
+                      <span>{p.name}</span>
+                    </div>
+                  }>
                     {p.models.filter(m => m.enabled).map(m => (
-                      <Option key={m.id} value={m.id}>{m.name}</Option>
+                      <Option key={m.id} value={m.id}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <ModelLogo model={m.name} size={14} />
+                          <span>{m.name}</span>
+                        </div>
+                      </Option>
                     ))}
                   </OptGroup>
                 ))}
@@ -963,10 +978,15 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       >
         <div style={{ background: 'var(--color-fill-2)', borderRadius: '16px', padding: '16px', border: '1px solid var(--color-border-2)' }}>
         <Form form={addForm} layout="vertical">
-          <FormItem label={<Title heading={6} style={{ margin: 0 }}>类型</Title>} field="type" initialValue="openai">
+          <FormItem label={<Title heading={6} style={{ margin: 0 }}>端口</Title>} field="port" initialValue="openai">
             <Select value={newProviderType} onChange={setNewProviderType} style={{ borderRadius: '8px' }}>
-              {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
-                <Option key={key} value={key}>{preset.name}</Option>
+              {PROVIDER_PORT_OPTIONS.map((opt) => (
+                <Option key={opt.value} value={opt.value}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ProviderLogo type={opt.value} size={16} />
+                    <span>{opt.label}</span>
+                  </div>
+                </Option>
               ))}
             </Select>
           </FormItem>
@@ -1048,7 +1068,12 @@ const ChatView = ({ onBack }: ChatViewProps) => {
               }}
             >
               {providers.filter(p => p.enabled).map(p => (
-                <Option key={p.id} value={p.id}>{p.name}</Option>
+                <Option key={p.id} value={p.id}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ProviderLogo type={p.type} name={p.name} size={16} />
+                    <span>{p.name}</span>
+                  </div>
+                </Option>
               ))}
             </Select>
           </FormItem>
@@ -1198,6 +1223,7 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
                 onClick={() => toggleExpand(provider.id)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <ProviderLogo type={provider.type} name={provider.name} size={20} />
                   <Text bold>{provider.name}</Text>
                   {provider.isDefault && <Tag color="arcoblue" size="small">默认</Tag>}
                   {!provider.enabled && <Tag color="gray" size="small">禁用</Tag>}
@@ -1339,6 +1365,7 @@ const ModelsSection = ({ providers, currentModelId, setCurrentModelId, deleteMod
       {enabledProviders.map(provider => (
         <div key={provider.id} style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <ProviderLogo type={provider.type} name={provider.name} size={20} />
             <Text bold style={{ fontSize: 16 }}>{provider.name}</Text>
             {provider.isDefault && <Tag color="arcoblue" size="small">默认</Tag>}
           </div>
@@ -1349,6 +1376,7 @@ const ModelsSection = ({ providers, currentModelId, setCurrentModelId, deleteMod
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ModelLogo model={model.name} size={18} />
                       <Text bold style={{ fontSize: 14 }}>{model.name}</Text>
                       {renderCapabilityIcons(model.capabilities)}
                     </div>

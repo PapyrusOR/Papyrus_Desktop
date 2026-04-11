@@ -99,27 +99,54 @@ class OpenAIProvider(AIProvider):
         if not requests_available or requests is None:
             raise Exception("requests库未安装，请运行: pip install requests")
 
+        provider_name: str = str(kwargs.pop("provider_name", "openai"))
+
         headers: dict[str, str] = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-        data: dict[str, Any] = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            **kwargs
-        }
+
+        if provider_name == "openai-response":
+            endpoint = f"{self.base_url}/responses"
+            data: dict[str, Any] = {
+                "model": model,
+                "input": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                **kwargs
+            }
+        else:
+            endpoint = f"{self.base_url}/openai/chat/completions" if provider_name == "gemini" else f"{self.base_url}/chat/completions"
+            data = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                **kwargs
+            }
 
         try:
             response = requests.post(
-                f"{self.base_url}/chat/completions",
+                endpoint,
                 headers=headers,
                 json=data,
                 timeout=60
             )
             response.raise_for_status()
             result: dict[str, Any] = response.json()
+
+            if provider_name == "openai-response":
+                output_text: str = result.get("output_text", "")
+                if not output_text:
+                    output = result.get("output", [])
+                    for item in output:
+                        if item.get("type") == "message" and item.get("role") == "assistant":
+                            content_list = item.get("content", [])
+                            for c in content_list:
+                                if c.get("type") == "output_text":
+                                    output_text += c.get("text", "")
+                return output_text
+
             choices: list[dict[str, Any]] = result.get("choices", [])
             if not choices:
                 raise Exception("API返回中没有choices")
@@ -497,14 +524,14 @@ class AIManager:
             return self._build_user_message_for_provider(provider_name, content, attachments)
         return {"role": role, "content": content}
 
-    def get_provider(self) -> AIProvider:
+    def get_provider(self, provider_name: str | None = None) -> AIProvider:
         """获取当前提供商实例"""
         config_dict: dict[str, Any] = cast(dict[str, Any], self.config.config if hasattr(self.config, 'config') else self.config)
-        provider_name: str = str(config_dict.get("current_provider", "openai"))
+        pname: str = provider_name or str(config_dict.get("current_provider", "openai"))
         providers: dict[str, Any] = config_dict.get("providers", {})
-        provider_config: dict[str, Any] = providers.get(provider_name, {})
+        provider_config: dict[str, Any] = providers.get(pname, {})
 
-        if provider_name == "ollama":
+        if pname == "ollama":
             return OllamaProvider(str(provider_config.get("base_url", "http://localhost:11434")))
         else:
             return OpenAIProvider(
@@ -534,11 +561,11 @@ class AIManager:
         attachments_meta: list[AttachmentMeta] = self._store_attachments(attachments)
         messages.append(self._build_user_message_for_provider(provider_name, user_message, attachments_meta))
 
-        provider: AIProvider = self.get_provider()
+        provider: AIProvider = self.get_provider(provider_name)
         params: dict[str, Any] = config_dict.get("parameters", {})
         model: str = str(config_dict.get("current_model", "gpt-3.5-turbo"))
 
-        response: str = provider.chat(messages, model=model, **params)
+        response: str = provider.chat(messages, model=model, provider_name=provider_name, **params)
 
         active_session: SessionData = self._get_active_session()
         active_session["messages"].append({
@@ -593,7 +620,7 @@ class AIManager:
                 async for chunk in self._chat_stream_ollama(messages, model, params, provider_config):
                     yield chunk
             else:
-                async for chunk in self._chat_stream_openai(messages, model, params, provider_config):
+                async for chunk in self._chat_stream_openai(messages, model, params, provider_config, provider_name):
                     yield chunk
 
             # 保存会话历史
@@ -618,6 +645,7 @@ class AIManager:
         model: str,
         params: dict[str, Any],
         provider_config: dict[str, Any],
+        provider_name: str = "openai",
     ) -> AsyncGenerator[StreamChunk, None]:
         """OpenAI 兼容 API 流式调用"""
         base_url: str = str(provider_config.get("base_url", "https://api.openai.com/v1")).rstrip('/')
@@ -627,13 +655,26 @@ class AIManager:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
-        data: dict[str, Any] = {
-            "model": model,
-            "messages": messages,
-            "stream": True,
-            "temperature": params.get("temperature", 0.7),
-            "max_tokens": params.get("max_tokens", 2000),
-        }
+
+        if provider_name == "openai-response":
+            endpoint = f"{base_url}/responses"
+            data: dict[str, Any] = {
+                "model": model,
+                "input": messages,
+                "stream": True,
+                "temperature": params.get("temperature", 0.7),
+                "max_tokens": params.get("max_tokens", 2000),
+            }
+        else:
+            endpoint = f"{base_url}/openai/chat/completions" if provider_name == "gemini" else f"{base_url}/chat/completions"
+            data = {
+                "model": model,
+                "messages": messages,
+                "stream": True,
+                "temperature": params.get("temperature", 0.7),
+                "max_tokens": params.get("max_tokens", 2000),
+            }
+
         if "top_p" in params:
             data["top_p"] = params["top_p"]
         if "presence_penalty" in params:
@@ -644,7 +685,7 @@ class AIManager:
         if requests is None:
             raise Exception("requests库未安装，请运行: pip install requests")
         response = requests.post(
-            f"{base_url}/chat/completions",
+            endpoint,
             headers=headers,
             json=data,
             stream=True,
@@ -665,6 +706,13 @@ class AIManager:
 
             try:
                 chunk: dict[str, Any] = json.loads(line_str)
+
+                if provider_name == "openai-response":
+                    delta_text: str | None = chunk.get("delta")
+                    if delta_text:
+                        yield {"type": "content", "data": delta_text}
+                    continue
+
                 choices: list[dict[str, Any]] = chunk.get("choices", [])
                 if not choices:
                     continue

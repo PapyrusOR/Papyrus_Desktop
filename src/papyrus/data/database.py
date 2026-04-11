@@ -225,6 +225,60 @@ def init_database(db_path: str, logger: LoggerProtocol | None = None) -> None:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_provider ON api_keys(provider_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_models_provider ON provider_models(provider_id)")
         
+        # Seed default providers on first run
+        if is_new_db:
+            now = time.time()
+            default_providers = [
+                ("p-openai", "openai", "OpenAI", "https://api.openai.com/v1", 0, 0, now, now),
+                ("p-anthropic", "anthropic", "Anthropic", "https://api.anthropic.com/v1", 0, 0, now, now),
+                ("p-gemini", "gemini", "Gemini", "https://generativelanguage.googleapis.com/v1beta", 0, 0, now, now),
+                ("p-deepseek", "deepseek", "DeepSeek", "https://api.deepseek.com", 0, 0, now, now),
+                ("p-moonshot", "moonshot", "月之暗面", "https://api.moonshot.cn", 0, 0, now, now),
+                ("p-siliconflow", "siliconflow", "硅基流动", "https://api.siliconflow.cn", 0, 0, now, now),
+                ("p-ollama", "ollama", "Ollama", "http://localhost:11434", 0, 0, now, now),
+            ]
+            cursor.executemany(
+                "INSERT INTO providers (id, type, name, base_url, enabled, is_default, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                default_providers,
+            )
+            
+            # Seed default API key placeholders
+            default_api_keys = [
+                ("k-openai", "p-openai", "default", "", now),
+                ("k-anthropic", "p-anthropic", "default", "", now),
+                ("k-gemini", "p-gemini", "default", "", now),
+                ("k-deepseek", "p-deepseek", "default", "", now),
+                ("k-moonshot", "p-moonshot", "default", "", now),
+                ("k-siliconflow", "p-siliconflow", "default", "", now),
+                ("k-ollama", "p-ollama", "default", "", now),
+            ]
+            from papyrus.data.crypto import encrypt_api_key
+            encrypted_empty = encrypt_api_key("")
+            cursor.executemany(
+                "INSERT INTO api_keys (id, provider_id, name, encrypted_key, created_at) VALUES (?, ?, ?, ?, ?)",
+                [(k[0], k[1], k[2], encrypted_empty, k[4]) for k in default_api_keys],
+            )
+            
+            # Seed default models
+            all_caps = json.dumps(["tools", "vision", "reasoning"])
+            ds_caps = json.dumps(["tools", "reasoning"])
+            default_models = [
+                ("m-openai-1", "p-openai", "GPT 5.4", "gpt-5.4", "openai", all_caps, "k-openai", 1),
+                ("m-anthropic-1", "p-anthropic", "Claude Mythos", "claude-mythos", "anthropic", all_caps, "k-anthropic", 1),
+                ("m-anthropic-2", "p-anthropic", "Claude Opus 4.6", "claude-opus-4.6", "anthropic", all_caps, "k-anthropic", 1),
+                ("m-gemini-1", "p-gemini", "Gemini 3.1 Pro", "gemini-3.1-pro-preview", "gemini", all_caps, "k-gemini", 1),
+                ("m-gemini-2", "p-gemini", "Gemini 3.0 Flash", "gemini-3-flash-preview", "gemini", all_caps, "k-gemini", 1),
+                ("m-deepseek-1", "p-deepseek", "DeepSeek V3.2", "deepseek-v3.2", "openai", ds_caps, "k-deepseek", 1),
+                ("m-moonshot-1", "p-moonshot", "Kimi K2.5", "kimi-k2.5", "openai", all_caps, "k-moonshot", 1),
+            ]
+            cursor.executemany(
+                "INSERT INTO provider_models (id, provider_id, name, model_id, port, capabilities, api_key_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                default_models,
+            )
+            
+            if logger:
+                logger.info("已预置默认 AI 提供商和模型")
+        
         conn.commit()
     
     # Set secure file permissions (only owner can read/write)

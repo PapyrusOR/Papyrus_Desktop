@@ -374,19 +374,33 @@ async def create_completion(payload: CompletionRequest) -> StreamingResponse:
                         "Content-Type": "application/json"
                     }
 
-                    data = {
-                        "model": model,
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt}
-                        ],
-                        "temperature": 0.7,
-                        "max_tokens": payload.max_tokens,
-                        "stream": True
-                    }
+                    if provider_name == "openai-response":
+                        endpoint = f"{base_url}/responses"
+                        data = {
+                            "model": model,
+                            "input": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt}
+                            ],
+                            "temperature": 0.7,
+                            "max_tokens": payload.max_tokens,
+                            "stream": True
+                        }
+                    else:
+                        endpoint = f"{base_url}/openai/chat/completions" if provider_name == "gemini" else f"{base_url}/chat/completions"
+                        data = {
+                            "model": model,
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt}
+                            ],
+                            "temperature": 0.7,
+                            "max_tokens": payload.max_tokens,
+                            "stream": True
+                        }
 
                     response = requests.post(
-                        f"{base_url}/chat/completions",
+                        endpoint,
                         headers=headers,
                         json=data,
                         stream=True,
@@ -399,11 +413,16 @@ async def create_completion(payload: CompletionRequest) -> StreamingResponse:
                             if line_str.startswith('data: '):
                                 try:
                                     chunk = json.loads(line_str[6:])
-                                    if "choices" in chunk and chunk["choices"]:
-                                        delta = chunk["choices"][0].get("delta", {})
-                                        content = delta.get("content", "")
-                                        if content:
-                                            yield f"data: {json.dumps({'text': content})}\n\n"
+                                    if provider_name == "openai-response":
+                                        delta_text = chunk.get("delta", "")
+                                        if delta_text:
+                                            yield f"data: {json.dumps({'text': delta_text})}\n\n"
+                                    else:
+                                        if "choices" in chunk and chunk["choices"]:
+                                            delta = chunk["choices"][0].get("delta", {})
+                                            content = delta.get("content", "")
+                                            if content:
+                                                yield f"data: {json.dumps({'text': content})}\n\n"
                                 except json.JSONDecodeError:
                                     continue
 
