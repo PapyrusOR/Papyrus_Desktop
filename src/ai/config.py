@@ -1,6 +1,11 @@
+import ipaddress
 import json
 import os
+import re
 from typing import TypedDict
+from urllib.parse import urlparse
+
+from papyrus.data.crypto import encrypt_api_key, decrypt_api_key
 
 
 class ProviderConfig(TypedDict, total=False):
@@ -351,11 +356,13 @@ class AIConfig:
                     loaded_dict.get("log"), default["log"]
                 ),
             }
+            # Decrypt API keys after loading
+            self._decrypt_provider_keys()
         except Exception:
             self.config = default
 
     def validate_config(self) -> None:
-        """验证配置是否包含非法字符"""
+        """验证配置是否包含非法字符，并阻止 SSRF"""
         errors: list[str] = []
 
         for provider_name, provider_config in self.config["providers"].items():
@@ -366,6 +373,11 @@ class AIConfig:
             base_url: str = provider_config.get("base_url", "")
             if base_url and not self._is_valid_url(base_url):
                 errors.append(f"{provider_name.upper()} 的 Base URL 中包含非法字符")
+            # SECURITY: block private IPs / localhost to prevent SSRF
+            if base_url and self._is_private_url(base_url):
+                # Allow Ollama default localhost since it's explicitly local
+                if provider_name != "ollama":
+                    errors.append(f"{provider_name.upper()} 的 Base URL 指向私有地址，存在 SSRF 风险。请使用公网 API 地址")
 
         if errors:
             raise ValueError("\n".join(errors))
@@ -384,13 +396,74 @@ class AIConfig:
             return True
         return self._is_valid_ascii(url)
 
+    def _is_private_url(self, url: str) -> bool:
+        """检查 URL 是否指向私有/内网地址，防止 SSRF"""
+        if not url:
+            return False
+        try:
+            parsed = urlparse(url)
+            hostname = parsed.hostname
+            if not hostname:
+                return False
+            # 拒绝常见内网主机名
+            lower_host = hostname.lower()
+            if lower_host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}:
+                return True
+            # 拒绝链路本地和私有 IP
+            try:
+                ip = ipaddress.ip_address(hostname)
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    return True
+            except ValueError:
+                pass
+            # 拒绝内网常见域名模式
+            if re.search(r"^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.|::1$)", hostname):
+                return True
+        except Exception:
+            pass
+        return False
+
     def save_config(self) -> None:
         self.validate_config()
         dirname: str = os.path.dirname(self.config_file)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
+        # SECURITY: encrypt API keys before saving
+        config_to_save = self._config_with_encrypted_keys()
         with open(self.config_file, "w", encoding="utf-8") as f:
-            json.dump(self.config, f, ensure_ascii=False, indent=2)
+            json.dump(config_to_save, f, ensure_ascii=False, indent=2)
+
+    def _config_with_encrypted_keys(self) -> AIConfigData:
+        """Return a copy of config with API keys encrypted."""
+        import copy
+        cfg = copy.deepcopy(self.config)
+        for provider in cfg.get("providers", {}).values():
+            key = provider.get("api_key", "")
+            if key:
+                provider["api_key"] = encrypt_api_key(key)
+        return cfg
+
+    def _decrypt_provider_keys(self) -> None:
+        """Decrypt API keys after loading from file."""
+        for provider in self.config.get("providers", {}).values():
+            key = provider.get("api_key", "")
+            if key and (key.startswith("enc:") or key.startswith("plain:")):
+                decrypted = decrypt_api_key(key)
+                provider["api_key"] = decrypted
+
+    def get_masked_config(self) -> AIConfigData:
+        """Return config with API keys masked for API responses."""
+        import copy
+        cfg = copy.deepcopy(self.config)
+        for provider in cfg.get("providers", {}).values():
+            key = provider.get("api_key", "")
+            if key:
+                # Mask all but last 4 characters
+                if len(key) > 4:
+                    provider["api_key"] = "*" * (len(key) - 4) + key[-4:]
+                else:
+                    provider["api_key"] = "****"
+        return cfg
 
     def get_provider_config(self) -> ProviderConfig:
         provider_name: str = self.config["current_provider"]

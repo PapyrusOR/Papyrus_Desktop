@@ -42,8 +42,10 @@ function createDiagnosticWindow(logs, paths, error) {
     height: 700,
     title: 'Papyrus Diagnostic',
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      // SECURITY: disable nodeIntegration and enable contextIsolation
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'diagnostic-preload.js'),
     },
   });
 
@@ -133,39 +135,9 @@ function createDiagnosticWindow(logs, paths, error) {
   <script>
     const pythonPath = ${JSON.stringify(paths.pythonExecutableDir)};
     
-    if (pythonPath) {
+    if (pythonPath && window.diagnosticAPI) {
       try {
-        const fs = require('fs');
-        const path = require('path');
-        
-        function listDir(dir, indent) {
-          if (!fs.existsSync(dir)) return 'Directory does not exist';
-          indent = indent || '';
-          
-          let result = '';
-          try {
-            const items = fs.readdirSync(dir);
-            for (let i = 0; i < Math.min(items.length, 20); i++) {
-              const item = items[i];
-              const fullPath = path.join(dir, item);
-              const stat = fs.statSync(fullPath);
-              const size = stat.isFile() ? (' (' + (stat.size / 1024 / 1024).toFixed(2) + ' MB)') : '';
-              result += indent + item + size + '\n';
-              
-              if (stat.isDirectory() && (item === '_internal' || item === 'Papyrus')) {
-                result += listDir(fullPath, indent + '  ');
-              }
-            }
-            if (items.length > 20) {
-              result += indent + '... and ' + (items.length - 20) + ' more items\n';
-            }
-          } catch (e) {
-            result += indent + 'Error: ' + e.message + '\n';
-          }
-          return result;
-        }
-        
-        document.getElementById('dirContents').textContent = listDir(pythonPath);
+        document.getElementById('dirContents').textContent = window.diagnosticAPI.listDir(pythonPath);
       } catch (e) {
         document.getElementById('dirContents').textContent = 'Error: ' + e.message;
       }

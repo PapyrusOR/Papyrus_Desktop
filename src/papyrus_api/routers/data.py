@@ -121,5 +121,7 @@ def import_data_endpoint(payload: dict[str, Any]) -> ImportDataResponse:
             success=True,
             imported=imported_count,
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"导入失败: {e}")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="导入失败，请检查文件格式后重试")

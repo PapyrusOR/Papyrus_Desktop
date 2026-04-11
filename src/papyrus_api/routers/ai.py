@@ -89,33 +89,34 @@ class CompletionConfigResponse(BaseModel):
 
 @router.get("/config/ai", response_model=AIConfigResponse)
 def get_ai_config_endpoint() -> AIConfigResponse:
-    """获取AI配置。"""
+    """获取AI配置（API Key 已掩码）。"""
     config = get_ai_config()
+    masked = config.get_masked_config()
     return AIConfigResponse(
         success=True,
         config=AIConfigModel(
-            current_provider=config.config["current_provider"],
-            current_model=config.config["current_model"],
+            current_provider=masked["current_provider"],
+            current_model=masked["current_model"],
             providers={
                 k: ProviderConfigModel(
                     api_key=v.get("api_key", ""),
                     base_url=v.get("base_url", ""),
                     models=v.get("models", []),
                 )
-                for k, v in config.config["providers"].items()
+                for k, v in masked["providers"].items()
             },
             parameters=ParametersConfigModel(
-                temperature=config.config["parameters"].get("temperature", 0.7),
-                top_p=config.config["parameters"].get("top_p", 0.9),
-                max_tokens=config.config["parameters"].get("max_tokens", 2000),
-                presence_penalty=config.config["parameters"].get("presence_penalty", 0.0),
-                frequency_penalty=config.config["parameters"].get("frequency_penalty", 0.0),
+                temperature=masked["parameters"].get("temperature", 0.7),
+                top_p=masked["parameters"].get("top_p", 0.9),
+                max_tokens=masked["parameters"].get("max_tokens", 2000),
+                presence_penalty=masked["parameters"].get("presence_penalty", 0.0),
+                frequency_penalty=masked["parameters"].get("frequency_penalty", 0.0),
             ),
             features=FeaturesConfigModel(
-                auto_hint=config.config["features"]["auto_hint"],
-                auto_explain=config.config["features"]["auto_explain"],
-                context_length=config.config["features"]["context_length"],
-                agent_enabled=config.config["features"].get("agent_enabled", False),
+                auto_hint=masked["features"]["auto_hint"],
+                auto_explain=masked["features"]["auto_explain"],
+                context_length=masked["features"]["context_length"],
+                agent_enabled=masked["features"].get("agent_enabled", False),
             ),
         ),
     )
@@ -131,8 +132,13 @@ def save_ai_config_endpoint(payload: AIConfigModel) -> dict[str, Any]:
 
         # Update providers
         for provider_name, provider_data in payload.providers.items():
+            new_key = provider_data.api_key
+            existing = config.config["providers"].get(provider_name, {})
+            # SECURITY: if key is masked (contains *), keep existing decrypted key
+            if "*" in new_key and existing.get("api_key"):
+                new_key = existing["api_key"]
             config.config["providers"][provider_name] = {
-                "api_key": provider_data.api_key,
+                "api_key": new_key,
                 "base_url": provider_data.base_url,
                 "models": provider_data.models,
             }
@@ -158,8 +164,8 @@ def save_ai_config_endpoint(payload: AIConfigModel) -> dict[str, Any]:
         return {"success": True}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"保存配置失败: {e}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="保存配置失败，请稍后重试")
 
 
 @router.post("/config/ai/test", response_model=TestConnectionResponse)
@@ -258,10 +264,10 @@ def test_ai_connection_endpoint() -> TestConnectionResponse:
                     success=False,
                     message="无法连接到服务器，请检查 Base URL",
                 )
-            except Exception as e:
+            except Exception:
                 return TestConnectionResponse(
                     success=False,
-                    message=f"连接测试失败: {e}",
+                    message="连接测试失败，请检查网络或配置",
                 )
         else:
             return TestConnectionResponse(
@@ -269,10 +275,10 @@ def test_ai_connection_endpoint() -> TestConnectionResponse:
                 message="requests 模块未安装",
             )
 
-    except Exception as e:
+    except Exception:
         return TestConnectionResponse(
             success=False,
-            message=f"连接测试失败: {e}",
+            message="连接测试失败，请检查网络或配置",
         )
 
 

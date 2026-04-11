@@ -64,11 +64,11 @@ module.exports = {
     ],
     icon: 'assets/icon.ico',
     publisherName: 'Papyrus Team',
-    verifyUpdateCodeSignature: false,
+    verifyUpdateCodeSignature: true,
     // Only sign locally (CI builds are unsigned)
     ...(hasCertificate && !isCI ? {
       certificateFile: certificateFile,
-      certificatePassword: process.env.CERTIFICATE_PASSWORD || 'papyrus123',
+      certificatePassword: process.env.CERTIFICATE_PASSWORD,
     } : {}),
   },
   

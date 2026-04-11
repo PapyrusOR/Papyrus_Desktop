@@ -591,10 +591,17 @@ class AISidebar:
                 if agent_mode and self.card_tools:
                     tool_call: ToolCall | None = self.card_tools.parse_tool_call(response)
                     if tool_call:
-                        tool_result: dict[str, Any] = self.card_tools.execute_tool(tool_call["tool"], tool_call["params"])
-                        def show_tool_result(r: dict[str, Any] = tool_result) -> None:
-                            self.add_message("system", f"执行: {json.dumps(r, ensure_ascii=False, indent=2)}")
-                        self.parent.after(0, show_tool_result)
+                        # SECURITY: do NOT auto-execute destructive tools
+                        destructive_tools = {"create_card", "update_card", "delete_card"}
+                        if tool_call["tool"] in destructive_tools:
+                            def show_pending_tool(t: ToolCall = tool_call) -> None:
+                                self.add_message("system", f"待执行工具 (需手动确认): {t['tool']}\n参数: {json.dumps(t['params'], ensure_ascii=False, indent=2)}")
+                            self.parent.after(0, show_pending_tool)
+                        else:
+                            tool_result: dict[str, Any] = self.card_tools.execute_tool(tool_call["tool"], tool_call["params"])
+                            def show_tool_result(r: dict[str, Any] = tool_result) -> None:
+                                self.add_message("system", f"执行: {json.dumps(r, ensure_ascii=False, indent=2)}")
+                            self.parent.after(0, show_tool_result)
             except Exception as e:
                 error_elapsed: float = round(time.time() - start, 4)
                 self._log_event("ai.chat_error", {

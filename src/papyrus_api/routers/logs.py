@@ -71,14 +71,23 @@ def set_log_config_endpoint(payload: LogConfigModel) -> SetLogConfigResponse:
                 detail=f"无效的日志级别: {payload.log_level}，必须是 {valid_levels} 之一"
             )
         
-        # 验证日志目录
+        # SECURITY: restrict log directory to application data dir
         if payload.log_dir:
-            try:
-                os.makedirs(payload.log_dir, exist_ok=True)
-            except OSError as e:
+            from papyrus.paths import DATA_DIR
+            abs_log_dir = os.path.abspath(payload.log_dir)
+            abs_data = os.path.abspath(DATA_DIR)
+            # Allow subdirectories of data dir or temp dir
+            if not (abs_log_dir.startswith(abs_data + os.sep) or abs_log_dir == abs_data or abs_log_dir.startswith(os.path.abspath(os.path.join(os.environ.get("TEMP", "/tmp"))))):
                 raise HTTPException(
                     status_code=400,
-                    detail=f"无法创建日志目录: {e}"
+                    detail="日志目录必须在应用数据目录或系统临时目录内"
+                )
+            try:
+                os.makedirs(payload.log_dir, exist_ok=True)
+            except OSError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="无法创建日志目录"
                 )
         
         # 更新配置
@@ -107,8 +116,8 @@ def set_log_config_endpoint(payload: LogConfigModel) -> SetLogConfigResponse:
         )
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"保存日志配置失败: {e}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="保存日志配置失败，请稍后重试")
 
 
 @router.post("/logs/open-dir", response_model=OpenLogDirResponse)

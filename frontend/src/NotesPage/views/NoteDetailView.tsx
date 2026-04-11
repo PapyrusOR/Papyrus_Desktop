@@ -32,8 +32,9 @@ interface NoteDetailViewProps {
 }
 
 // 初始化 markdown-it 实例
+// SECURITY: html disabled to prevent XSS from user-generated note content
 const md = new MarkdownIt({
-  html: true,
+  html: false,
   linkify: true,
   typographer: true,
 });

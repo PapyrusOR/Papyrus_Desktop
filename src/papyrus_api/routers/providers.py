@@ -370,11 +370,5 @@ def delete_api_key_endpoint(provider_id: str, key_id: str) -> dict[str, Any]:
 # Utility Endpoints
 # ============================================================================
 
-@router.post("/providers/test-decrypt")
-def test_decrypt(encrypted_key: dict[str, str]) -> dict[str, str]:
-    """Test decrypt an API key (for debugging)."""
-    try:
-        decrypted = decrypt_api_key(encrypted_key.get("key", ""))
-        return {"success": True, "decrypted": decrypted}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+# SECURITY: test-decrypt endpoint removed to prevent decryption oracle attacks.
+# Encrypted API keys in the database should never be decryptable via API.

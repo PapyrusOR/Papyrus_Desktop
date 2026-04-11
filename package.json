@@ -82,7 +82,7 @@
       ],
       "icon": "assets/icon.ico",
       "publisherName": "Papyrus Team",
-      "verifyUpdateCodeSignature": false
+      "verifyUpdateCodeSignature": true
     },
     "nsis": {
       "oneClick": false,

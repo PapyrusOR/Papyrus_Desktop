@@ -140,6 +140,16 @@ def save_cards(
 
     try:
         import os
+        from papyrus.paths import DATA_DIR
+        
+        # SECURITY: restrict backup path to data directory
+        abs_backup = os.path.abspath(backup_file)
+        abs_data = os.path.abspath(DATA_DIR)
+        if not abs_backup.startswith(abs_data + os.sep) and abs_backup != abs_data:
+            if logger:
+                logger.warning("自动备份失败: 备份路径必须在应用数据目录内")
+            return last_backup_time
+        
         backup_dir = backup_file
         if backup_file.endswith('.bak') or backup_file.endswith('.json'):
             backup_dir = os.path.dirname(backup_file)
@@ -165,6 +175,14 @@ def create_backup(data_file: str, backup_file: str) -> None:
     init_database(db_path)
     
     import os
+    from papyrus.paths import DATA_DIR
+    
+    # SECURITY: restrict backup path to data directory
+    abs_backup = os.path.abspath(backup_file)
+    abs_data = os.path.abspath(DATA_DIR)
+    if not abs_backup.startswith(abs_data + os.sep) and abs_backup != abs_data:
+        raise ValueError("Backup path must be inside the application data directory")
+    
     backup_dir = os.path.dirname(backup_file)
     if backup_dir:
         os.makedirs(backup_dir, exist_ok=True)
@@ -176,6 +194,14 @@ def restore_backup(backup_file: str, data_file: str) -> None:
     db_path = _get_db_path(data_file)
     
     import os
+    from papyrus.paths import DATA_DIR
+    
+    # SECURITY: restrict restore path to data directory
+    abs_backup = os.path.abspath(backup_file)
+    abs_data = os.path.abspath(DATA_DIR)
+    if not abs_backup.startswith(abs_data + os.sep) and abs_backup != abs_data:
+        raise ValueError("Backup file must be inside the application data directory")
+    
     data_dir = os.path.dirname(db_path)
     if data_dir:
         os.makedirs(data_dir, exist_ok=True)

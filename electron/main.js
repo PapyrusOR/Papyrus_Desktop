@@ -335,22 +335,13 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
+      devTools: isDevMode,
     },
     // Frameless window - hide native title bar on all platforms
     frame: false,
     titleBarStyle: 'hidden',
     // Disable system caption buttons overlay (use custom TitleBar instead)
     titleBarOverlay: false,
-    // Show DevTools in production for debugging (remove this in stable release)
-    ...(process.env.DEBUG_PROD ? { 
-      webPreferences: { 
-        nodeIntegration: false,
-        contextIsolation: true,
-        preload: path.join(__dirname, 'preload.js'),
-        webSecurity: true,
-        devTools: true 
-      }
-    } : {}),
   });
 
   // Load content
@@ -397,7 +388,17 @@ function createWindow() {
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    // SECURITY: validate URL before opening
+    const allowedProtocols = ['http:', 'https:', 'mailto:'];
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch (e) {
+      return { action: 'deny' };
+    }
+    if (allowedProtocols.includes(parsed.protocol)) {
+      shell.openExternal(url);
+    }
     return { action: 'deny' };
   });
 }
@@ -475,6 +476,17 @@ function setupIPC() {
   
   // Open external link
   ipcMain.handle('shell:openExternal', async (event, url) => {
+    // SECURITY: whitelist protocols to prevent RCE via dangerous protocols
+    const allowedProtocols = ['http:', 'https:', 'mailto:'];
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch (e) {
+      throw new Error('Invalid URL');
+    }
+    if (!allowedProtocols.includes(parsed.protocol)) {
+      throw new Error('Disallowed protocol');
+    }
     await shell.openExternal(url);
   });
   
@@ -525,7 +537,14 @@ function setupIPC() {
   });
   
   // Restart backend
+  let lastBackendRestart = 0;
   ipcMain.handle('backend:restart', async () => {
+    // SECURITY: rate limit backend restarts to prevent DoS
+    const now = Date.now();
+    if (now - lastBackendRestart < 30000) {
+      throw new Error('Backend restart rate limited: please wait 30 seconds');
+    }
+    lastBackendRestart = now;
     stopBackend();
     await startBackend();
     return true;
@@ -544,100 +563,15 @@ function setupIPC() {
   });
 }
 
-// Certificate installation messages
-const CERT_MESSAGES = {
-  dialogTitle: 'Install Root Certificate',
-  dialogMessage: 'Install Papyrus Root Certificate?',
-  dialogDetail: "This will install the Papyrus root certificate to your system's Trusted Root Certification Authorities. This is required to verify the application's self-signed signature and avoid security warnings. Administrator rights are required.",
-  successTitle: 'Certificate Installed',
-  successMessage: 'Root certificate installed successfully.',
-  successDetail: "The Papyrus root certificate has been added to your system's Trusted Root Certification Authorities.",
-  errorTitle: 'Certificate Installation Failed',
-  errorMessage: (errorMsg) => `Failed to install the root certificate. Please run the application as administrator and try again.\n\nError: ${errorMsg}`,
-};
-
-// Certificate installation for Windows
-async function installRootCertificate() {
-  if (process.platform !== 'win32') return;
-  
-  const paths = getPaths();
-  const certPath = path.join(paths.resourcesPath, 'certs', 'root-ca.cer');
-  
-  // Check if certificate file exists
-  if (!fs.existsSync(certPath)) {
-    log('Root certificate not found in resources, skipping installation');
-    log(`Expected cert path: ${certPath}`);
-    return;
-  }
-  
-  log(`Found certificate at: ${certPath}`);
-  
-  // Check if already installed (by thumbprint)
-  try {
-    const result = execSync('certutil -store Root "9EE5C13E206DC5DDAC254213E9A45798FE92C303"', { encoding: 'utf-8', stdio: 'pipe' });
-    if (result.includes('Papyrus Self-Signed Root CA')) {
-      log('Root certificate already installed');
-      return;
-    }
-  } catch (e) {
-    // Certificate not found, proceed with installation
-    log('Certificate not found in store, will attempt installation');
-  }
-  
-  // Check if running as administrator
-  let isAdmin = false;
-  try {
-    execSync('net session', { stdio: 'pipe' });
-    isAdmin = true;
-  } catch (e) {
-    isAdmin = false;
-  }
-  
-  if (!isAdmin) {
-    log('Running without administrator privileges, skipping certificate installation');
-    // Silently skip - certificate is optional for app functionality
-    return;
-  }
-  
-  // Ask user for permission
-  const response = dialog.showMessageBoxSync({
-    type: 'question',
-    buttons: ['Install', 'Skip'],
-    defaultId: 0,
-    title: CERT_MESSAGES.dialogTitle,
-    message: CERT_MESSAGES.dialogMessage,
-    detail: CERT_MESSAGES.dialogDetail,
-  });
-  
-  if (response !== 0) {
-    log('User skipped certificate installation');
-    return;
-  }
-  
-  // Install certificate
-  try {
-    execSync(`certutil -addstore -f Root "${certPath}"`, { encoding: 'utf-8' });
-    dialog.showMessageBox({
-      type: 'info',
-      title: CERT_MESSAGES.successTitle,
-      message: CERT_MESSAGES.successMessage,
-      detail: CERT_MESSAGES.successDetail,
-    });
-    log('Root certificate installed successfully');
-  } catch (error) {
-    log(`Failed to install root certificate: ${error.message}`, 'error');
-    // Don't show error dialog - certificate is optional
-    log('Certificate installation failed but continuing app startup');
-  }
-}
+// SECURITY: Root certificate installation removed to prevent MITM attacks.
+// Self-signed root certificates should NEVER be installed into the system trust store.
 
 // App event handlers
 app.whenReady().then(async () => {
   log('App is ready');
   
   try {
-    // Check and install root certificate (Windows only)
-    await installRootCertificate();
+    // SECURITY: Root certificate installation removed to prevent MITM attacks.
     
     // Check if backend is already running (e.g., started by start-dev.bat)
     const isBackendAlreadyRunning = await checkBackendHealth();
@@ -710,11 +644,20 @@ app.on('quit', () => {
   log('App is quitting');
 });
 
-// Security: Prevent new window creation
+// SECURITY: Prevent new window creation and validate URLs
 app.on('web-contents-created', (event, contents) => {
   contents.on('new-window', (event, navigationUrl) => {
     event.preventDefault();
-    shell.openExternal(navigationUrl);
+    const allowedProtocols = ['http:', 'https:', 'mailto:'];
+    let parsed;
+    try {
+      parsed = new URL(navigationUrl);
+    } catch (e) {
+      return;
+    }
+    if (allowedProtocols.includes(parsed.protocol)) {
+      shell.openExternal(navigationUrl);
+    }
   });
 });
 

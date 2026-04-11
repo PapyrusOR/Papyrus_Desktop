@@ -193,7 +193,7 @@ def import_obsidian_vault(
         ImportResult with counts and any errors
     """
     result = ImportResult()
-    vault = Path(vault_path)
+    vault = Path(vault_path).resolve()
     
     if not vault.exists():
         result.errors.append(f"Vault path does not exist: {vault_path}")
@@ -203,14 +203,27 @@ def import_obsidian_vault(
         result.errors.append(f"Vault path is not a directory: {vault_path}")
         return result
     
+    # SECURITY: disable symlink following to prevent directory traversal
     exclude = set(exclude_folders or [".obsidian", ".git", "node_modules"])
     
     # Find all markdown files
     md_files: list[Path] = []
     for md_file in vault.rglob("*.md"):
+        # SECURITY: skip symlinks
+        if md_file.is_symlink():
+            continue
         # Check if file is in excluded folder
-        rel_parts = md_file.relative_to(vault).parts
+        try:
+            rel_parts = md_file.relative_to(vault).parts
+        except ValueError:
+            continue
         if any(part in exclude for part in rel_parts):
+            continue
+        # SECURITY: ensure resolved path is still within vault
+        try:
+            resolved = md_file.resolve()
+            resolved.relative_to(vault)
+        except ValueError:
             continue
         md_files.append(md_file)
     

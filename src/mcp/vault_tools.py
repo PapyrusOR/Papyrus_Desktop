@@ -231,8 +231,12 @@ class VaultTools:
             
             if missing:
                 self._log(f"数据库缺少字段: {missing}, 需要迁移", "warning")
-                # 添加缺失的列
+                # SECURITY: whitelist columns to prevent SQL injection
+                ALLOWED_COLUMNS = {"hash", "headings", "outgoing_links", "incoming_count"}
                 for col in missing:
+                    if col not in ALLOWED_COLUMNS:
+                        self._log(f"忽略未知列: {col}", "warning")
+                        continue
                     if col == "incoming_count":
                         cursor.execute(f"ALTER TABLE notes ADD COLUMN {col} INTEGER DEFAULT 0")
                     else:

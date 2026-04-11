@@ -404,6 +404,20 @@ class AIManager:
             })
         return stored
 
+    def _resolve_attachment_path(self, item: AttachmentMeta) -> str | None:
+        """解析附件路径并校验路径遍历"""
+        raw_path = item.get("path", "")
+        # Only allow relative paths under uploads directory
+        normalized = os.path.normpath(raw_path)
+        if normalized.startswith("..") or ".." in normalized.split(os.sep):
+            return None
+        abs_path = os.path.join(self.data_dir, normalized)
+        abs_path = os.path.abspath(abs_path)
+        uploads_base = os.path.abspath(self.uploads_dir)
+        if not abs_path.startswith(uploads_base + os.sep) and abs_path != uploads_base:
+            return None
+        return abs_path
+
     def _safe_read_text_file(self, abs_path: str, max_chars: int = 6000) -> str:
         """安全读取文本文件"""
         try:
@@ -423,7 +437,10 @@ class AIManager:
             unresolved_docs: list[str] = []
 
             for item in attachments_meta:
-                abs_path: str = os.path.join(self.data_dir, item["path"])
+                abs_path = self._resolve_attachment_path(item)
+                if abs_path is None:
+                    unresolved_docs.append(item["name"])
+                    continue
                 if item["type"] == "image":
                     try:
                         with open(abs_path, "rb") as f:
@@ -457,7 +474,10 @@ class AIManager:
         # 非 OpenAI 兼容模型：降级为文本附加说明
         lines: list[str] = [user_message, "", "附件信息:"]
         for item in attachments_meta:
-            item_abs_path: str = os.path.join(self.data_dir, item["path"])
+            item_abs_path = self._resolve_attachment_path(item)
+            if item_abs_path is None:
+                lines.append(f"- {item['name']} ({item['type']}) [路径无效]")
+                continue
             if item["type"] == "document" and os.path.splitext(item["name"])[1].lower() in {".txt", ".md"}:
                 item_snippet: str = self._safe_read_text_file(item_abs_path)
                 lines.append(f"- {item['name']} ({item['type']})")

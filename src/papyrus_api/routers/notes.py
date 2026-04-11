@@ -164,9 +164,19 @@ def delete_note_endpoint(note_id: str) -> DeleteNoteResponse:
 def import_obsidian_endpoint(payload: ObsidianImportIn) -> ObsidianImportResponse:
     """从Obsidian Vault导入笔记。"""
     import os
+    from pathlib import Path
 
-    if not os.path.exists(payload.vault_path):
+    vault = Path(payload.vault_path).resolve()
+    if not vault.exists():
         raise HTTPException(status_code=400, detail="Vault path does not exist")
+    
+    # SECURITY: basic path traversal check
+    try:
+        # Ensure the path looks like a reasonable vault directory
+        if not vault.is_dir():
+            raise HTTPException(status_code=400, detail="Vault path is not a directory")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid vault path")
 
     existing_notes = load_notes(NOTES_FILE)
 

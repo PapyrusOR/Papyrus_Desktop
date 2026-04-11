@@ -63,7 +63,7 @@ function commandExists(command) {
 function exec(command, options = {}) {
   const defaultOptions = {
     stdio: 'inherit',
-    shell: true,
+    shell: false,
     cwd: process.cwd(),
   };
   

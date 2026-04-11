@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         vault_tools=vault_tools,
     )
     _mcp_server.start()
-    logger.info("MCP server started on port 9100")
+    logger.info(f"MCP server started on port 9100 (auth enabled)")
 
     yield
 
@@ -102,14 +102,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="Papyrus API", version="v2.0.0-beta.1", lifespan=lifespan)
 
-# 注意：这是本地应用，仅绑定到 127.0.0.1，不暴露到公网
-# 使用正则表达式仅允许安全来源：
-# - null origin (file:// 协议)
-# - http://localhost:*
-# - http://127.0.0.1:*
+# SECURITY: CORS restricted to localhost origins only.
+# null origin removed to prevent file:// and sandbox iframe attacks.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="^null$|^http://localhost(:\\d+)?$|^http://127\\.0\\.0\\.1(:\\d+)?$",
+    allow_origin_regex="^http://localhost(:\\d+)?$|^http://127\\.0\\.0\\.1(:\\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

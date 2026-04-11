@@ -54,7 +54,7 @@
     ],
     "icon": "assets/icon.ico",
     "publisherName": "Papyrus Team",
-    "verifyUpdateCodeSignature": false,
+    "verifyUpdateCodeSignature": true,
     "signAndEditExecutable": false
   },
   "nsis": {

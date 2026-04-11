@@ -212,6 +212,16 @@ def save_notes(
 
     try:
         import os
+        from papyrus.paths import DATA_DIR
+        
+        # SECURITY: restrict backup path to data directory
+        abs_backup = os.path.abspath(backup_file)
+        abs_data = os.path.abspath(DATA_DIR)
+        if not abs_backup.startswith(abs_data + os.sep) and abs_backup != abs_data:
+            if logger:
+                logger.warning("笔记自动备份失败: 备份路径必须在应用数据目录内")
+            return last_backup_time
+        
         backup_dir = backup_file
         if backup_file.endswith('.bak') or backup_file.endswith('.json'):
             backup_dir = os.path.dirname(backup_file)

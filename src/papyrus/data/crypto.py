@@ -50,15 +50,23 @@ def _get_or_create_master_key() -> bytes | None:
         # Ensure directory exists
         os.makedirs(os.path.dirname(KEY_FILE), exist_ok=True)
         
-        # Save key with restricted permissions
-        with open(KEY_FILE, "wb") as f:
-            f.write(key)
-        
-        # Set file permissions (owner read-only on Unix)
+        # SECURITY: atomic create with restricted permissions to avoid TOCTOU
         try:
-            os.chmod(KEY_FILE, 0o400)
-        except Exception:
-            pass  # Windows doesn't support this permission model
+            fd = os.open(KEY_FILE, os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0o400)
+            with os.fdopen(fd, "wb") as f:
+                f.write(key)
+        except FileExistsError:
+            # Another process created it; read it instead
+            with open(KEY_FILE, "rb") as f:
+                return f.read()
+        except OSError:
+            # Fallback for Windows or other platforms
+            with open(KEY_FILE, "wb") as f:
+                f.write(key)
+            try:
+                os.chmod(KEY_FILE, 0o400)
+            except Exception:
+                pass
         
         return key
     except Exception:
@@ -78,8 +86,21 @@ def _get_or_create_salt() -> bytes:
         # Ensure directory exists
         os.makedirs(os.path.dirname(SALT_FILE), exist_ok=True)
         
-        with open(SALT_FILE, "wb") as f:
-            f.write(salt)
+        # SECURITY: atomic create with restricted permissions
+        try:
+            fd = os.open(SALT_FILE, os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "wb") as f:
+                f.write(salt)
+        except FileExistsError:
+            with open(SALT_FILE, "rb") as f:
+                return f.read()
+        except OSError:
+            with open(SALT_FILE, "wb") as f:
+                f.write(salt)
+            try:
+                os.chmod(SALT_FILE, 0o600)
+            except Exception:
+                pass
         
         return salt
     except Exception:
@@ -130,24 +151,27 @@ def encrypt_api_key(api_key: str) -> str:
         api_key: The API key to encrypt
         
     Returns:
-        Base64 encoded encrypted string, or the original key if encryption fails
+        Base64 encoded encrypted string.
+        
+    Raises:
+        RuntimeError: If cryptography library is not available or encryption fails.
     """
     if not api_key:
         return api_key
     
     if not CRYPTO_AVAILABLE:
-        # Fallback: base64 encode (not secure, but prevents casual viewing)
-        return f"plain:{api_key}"
+        # SECURITY: refuse to store plaintext when encryption is unavailable
+        raise RuntimeError("cryptography library is required to store API keys securely")
     
     cipher = _get_cipher()
     if cipher is None:
-        return f"plain:{api_key}"
+        raise RuntimeError("Failed to initialize encryption cipher")
     
     try:
         encrypted = cipher.encrypt(api_key.encode())
         return f"enc:{base64.urlsafe_b64encode(encrypted).decode()}"
-    except Exception:
-        return f"plain:{api_key}"
+    except Exception as e:
+        raise RuntimeError(f"Encryption failed: {e}") from e
 
 
 def decrypt_api_key(encrypted_key: str) -> str:
