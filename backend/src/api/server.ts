@@ -5,6 +5,7 @@ import { paths } from '../utils/paths.js';
 import { PapyrusLogger } from '../utils/logger.js';
 import { MCPServer } from '../mcp/server.js';
 import { startFileWatching } from '../integrations/file-watcher.js';
+import { setGlobalLogger } from './routes/logs.js';
 
 const logger = new PapyrusLogger(paths.logDir, 'INFO');
 
@@ -31,6 +32,7 @@ app.setNotFoundHandler((_request, reply) => {
 const PORT = process.env.PAPYRUS_PORT ? parseInt(process.env.PAPYRUS_PORT, 10) : 8000;
 
 export async function initApp(): Promise<void> {
+  setGlobalLogger(logger);
   await app.register(cors, {
     origin: (origin, cb) => {
       if (!origin || /^http:\/\/localhost(:\d+)?$/.test(origin) || /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {

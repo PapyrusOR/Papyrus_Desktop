@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 
 const CURRENT_VERSION = 'v2.0.0-beta.2';
-const REPO = 'Alpaca233114514/Papyrus';
+const REPO = 'PapyrusOR/Papyrus_Desktop';
 
 export default async function updateRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/check', async (_request, reply) => {

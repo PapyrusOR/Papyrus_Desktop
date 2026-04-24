@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { getAllNotes, createNote, updateNote, deleteNote, getNoteById } from '../../core/notes.js';
 import { importObsidianVault } from '../../core/notes.js';
+import { recordNoteCreated } from './progress.js';
 
 export default async function notesRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/', async (_request, reply) => {
@@ -15,6 +16,7 @@ export default async function notesRoutes(fastify: FastifyInstance): Promise<voi
       return;
     }
     const note = createNote(body.title, body.content ?? '', body.folder, body.tags ?? []);
+    recordNoteCreated();
     reply.send({ success: true, note });
   });
 

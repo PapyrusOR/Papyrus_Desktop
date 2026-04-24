@@ -4,13 +4,16 @@ import { loadAllCards } from '../../db/database.js';
 
 export default async function searchRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/', async (request, reply) => {
-    const { query } = request.query as { query?: string };
+    const { query, limit: limitStr, offset: offsetStr } = request.query as { query?: string; limit?: string; offset?: string };
     if (!query) {
       reply.send({ success: true, query: '', results: [], total: 0, notes_count: 0, cards_count: 0 });
       return;
     }
 
     const lowerQuery = query.toLowerCase();
+    const limit = Math.min(parseInt(limitStr ?? '50', 10) || 50, 200);
+    const offset = Math.max(parseInt(offsetStr ?? '0', 10) || 0, 0);
+
     const notes = loadAllNotes().filter(
       n => n.title.toLowerCase().includes(lowerQuery) ||
            n.content.toLowerCase().includes(lowerQuery) ||
@@ -21,7 +24,7 @@ export default async function searchRoutes(fastify: FastifyInstance): Promise<vo
       c => c.q.toLowerCase().includes(lowerQuery) || c.a.toLowerCase().includes(lowerQuery)
     );
 
-    const results = [
+    const allResults = [
       ...notes.map(n => ({
         id: n.id,
         type: 'note' as const,
@@ -44,13 +47,18 @@ export default async function searchRoutes(fastify: FastifyInstance): Promise<vo
       })),
     ];
 
+    const total = allResults.length;
+    const results = allResults.slice(offset, offset + limit);
+
     reply.send({
       success: true,
       query,
       results,
-      total: results.length,
+      total,
       notes_count: notes.length,
       cards_count: cards.length,
+      limit,
+      offset,
     });
   });
 }

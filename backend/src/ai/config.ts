@@ -82,7 +82,7 @@ function isValidAscii(text: string): boolean {
   return /^[\x00-\x7F]*$/.test(text);
 }
 
-function isPrivateUrl(urlStr: string): boolean {
+export function isPrivateUrl(urlStr: string): boolean {
   if (!urlStr) return false;
   try {
     const parsed = new URL(urlStr);
@@ -303,7 +303,9 @@ export class AIConfig {
       fs.mkdirSync(dir, { recursive: true });
     }
     const configToSave = this.configWithEncryptedKeys();
-    fs.writeFileSync(this.configFile, JSON.stringify(configToSave, null, 2), 'utf8');
+    const tempFile = `${this.configFile}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(configToSave, null, 2), 'utf8');
+    fs.renameSync(tempFile, this.configFile);
   }
 
   private configWithEncryptedKeys(): AIConfigData {

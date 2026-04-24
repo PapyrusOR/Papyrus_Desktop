@@ -91,7 +91,7 @@ export class ToolManager {
 
   markExecuting(callId: string): ToolCallRecord | null {
     const record = this.allCalls.get(callId);
-    if (!record) return null;
+    if (!record || record.status !== 'approved') return null;
     record.status = 'executing';
     return { ...record, params: { ...record.params } };
   }
@@ -99,11 +99,12 @@ export class ToolManager {
   completeCall(callId: string, result: Record<string, unknown>): ToolCallRecord | null {
     let record = this.pendingCalls.get(callId);
     if (record) {
+      if (record.status !== 'executing') return null;
       this.pendingCalls.delete(callId);
     } else {
       record = this.allCalls.get(callId);
+      if (!record || record.status !== 'executing') return null;
     }
-    if (!record) return null;
     record.status = 'success';
     record.result = result;
     record.executed_at = Date.now() / 1000;
@@ -113,11 +114,12 @@ export class ToolManager {
   failCall(callId: string, error: string): ToolCallRecord | null {
     let record = this.pendingCalls.get(callId);
     if (record) {
+      if (record.status !== 'executing') return null;
       this.pendingCalls.delete(callId);
     } else {
       record = this.allCalls.get(callId);
+      if (!record || record.status !== 'executing') return null;
     }
-    if (!record) return null;
     record.status = 'failed';
     record.error = error;
     record.executed_at = Date.now() / 1000;

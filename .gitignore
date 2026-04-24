@@ -186,6 +186,7 @@ security_poc.py
 coverage/
 nyc_output/
 .nyc_output/
+test-results/
 
 # ----------------------------------------------------------------------------
 # Temporary Files

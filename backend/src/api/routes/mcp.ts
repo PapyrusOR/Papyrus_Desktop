@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
+import { v4 as uuidv4 } from 'uuid';
 import { loadAllNotes, getNoteById, insertNote, updateNote, deleteNoteById } from '../../db/database.js';
 import type { Note } from '../../core/types.js';
+import { computeWordCount, computeHash } from '../../core/notes.js';
 import { logger } from '../server.js';
 
 function noteToInfo(note: Note): Record<string, unknown> {
@@ -64,18 +66,19 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
       tags?: string[];
     };
 
+    const content = payload.content ?? '';
     const now = Date.now() / 1000;
     const note: Note = {
-      id: String(Date.now()),
+      id: uuidv4().replace(/-/g, ''),
       title: payload.title,
       folder: payload.folder ?? '默认',
-      content: payload.content ?? '',
-      preview: (payload.content ?? '').slice(0, 200),
+      content,
+      preview: content.slice(0, 200),
       tags: payload.tags ?? [],
       created_at: now,
       updated_at: now,
-      word_count: (payload.content ?? '').split(/\s+/).filter(Boolean).length,
-      hash: '',
+      word_count: computeWordCount(content),
+      hash: computeHash(content),
       headings: [],
       outgoing_links: [],
       incoming_count: 0,
@@ -100,7 +103,8 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
     if (payload.content !== undefined) {
       note.content = payload.content;
       note.preview = payload.content.slice(0, 200);
-      note.word_count = payload.content.split(/\s+/).filter(Boolean).length;
+      note.word_count = computeWordCount(payload.content);
+      note.hash = computeHash(payload.content);
     }
     if (payload.tags !== undefined) note.tags = payload.tags;
     note.updated_at = Date.now() / 1000;

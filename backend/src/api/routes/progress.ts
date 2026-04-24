@@ -53,30 +53,33 @@ export default async function progressRoutes(fastify: FastifyInstance): Promise<
     const rows = stmt.all() as Array<{ date: string; cards_reviewed: number }>;
     db.close();
 
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
     const todayRow = rows.find(r => r.date === today);
     const todayCompleted = (todayRow?.cards_reviewed ?? 0) > 0;
     const todayCards = todayRow?.cards_reviewed ?? 0;
 
-    for (const row of rows) {
+    let currentStreak = 0;
+    const checkDate = new Date();
+    while (true) {
+      const dateStr = checkDate.toISOString().slice(0, 10);
+      const row = rows.find(r => r.date === dateStr);
+      if ((row?.cards_reviewed ?? 0) > 0) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    let longestStreak = 0;
+    let tempStreak = 0;
+    const sortedRows = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    for (const row of sortedRows) {
       if (row.cards_reviewed > 0) {
         tempStreak++;
         longestStreak = Math.max(longestStreak, tempStreak);
       } else {
         tempStreak = 0;
       }
-    }
-
-    if (todayCompleted) {
-      currentStreak = tempStreak;
-    } else if (rows.length > 0 && rows[0]?.date !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yestStr = yesterday.toISOString().slice(0, 10);
-      const yestRow = rows.find(r => r.date === yestStr);
-      currentStreak = (yestRow?.cards_reviewed ?? 0) > 0 ? tempStreak : 0;
     }
 
     const dailyTarget = 20;

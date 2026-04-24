@@ -126,7 +126,7 @@ export class CardTools {
       q: question,
       a: answer,
       next_review: Date.now() / 1000,
-      interval: 86400,
+      interval: 0,
       tags: tags ?? [],
       ef: 2.5,
       repetitions: 0,

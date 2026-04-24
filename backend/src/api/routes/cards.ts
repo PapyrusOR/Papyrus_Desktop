@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { getAllCards, createCard, updateCard, deleteCard, importCardsFromTxt } from '../../core/cards.js';
+import { recordCardCreated } from './progress.js';
 
 export default async function cardsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/', async (_request, reply) => {
@@ -16,6 +17,7 @@ export default async function cardsRoutes(fastify: FastifyInstance): Promise<voi
       return;
     }
     const card = createCard(q, a, body.tags ?? []);
+    recordCardCreated();
     reply.send({ success: true, card });
   });
 
@@ -32,7 +34,7 @@ export default async function cardsRoutes(fastify: FastifyInstance): Promise<voi
   fastify.patch('/:cardId', async (request, reply) => {
     const { cardId } = request.params as { cardId: string };
     const body = request.body as { q?: string; a?: string; tags?: string[] };
-    const card = updateCard(cardId, body);
+    const card = await updateCard(cardId, body);
     if (!card) {
       reply.status(404).send({ success: false, error: 'Card not found' });
       return;
@@ -47,6 +49,9 @@ export default async function cardsRoutes(fastify: FastifyInstance): Promise<voi
       return;
     }
     const cards = importCardsFromTxt(body.content);
+    for (const _c of cards) {
+      recordCardCreated();
+    }
     if (cards.length === 0) {
       reply.status(400).send({ success: false, error: 'No valid cards found' });
       return;

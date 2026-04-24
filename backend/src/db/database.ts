@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { paths } from '../utils/paths.js';
-import { encryptApiKey } from '../core/crypto.js';
+import { encryptApiKey, decryptApiKey } from '../core/crypto.js';
 import type { CardRecord, Note, Provider } from '../core/types.js';
 import type { PapyrusLogger } from '../utils/logger.js';
 
@@ -13,6 +13,7 @@ function getDb(): DatabaseSync {
     const dbPath = paths.dbFile;
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     db = new DatabaseSync(dbPath);
+    db.exec('PRAGMA journal_mode = WAL;');
     db.exec('PRAGMA foreign_keys = ON;');
     initSchema(db);
   }
@@ -487,8 +488,6 @@ export function getAllFolders(): string[] {
 
 // ==================== Providers ====================
 
-import { decryptApiKey } from '../core/crypto.js';
-
 export function loadAllProviders(logger?: PapyrusLogger): Provider[] {
   const database = getDb();
   const providerStmt = database.prepare('SELECT * FROM providers ORDER BY created_at');
@@ -678,6 +677,23 @@ export function migrateFromJson(cardsFile?: string, notesFile?: string, logger?:
     } catch (e) {
       logger?.error(`迁移笔记失败: ${e}`);
     }
+  }
+}
+
+export function checkpointDb(): void {
+  const database = getDb();
+  database.exec('PRAGMA wal_checkpoint(FULL);');
+}
+
+export function runInTransaction(fn: () => void): void {
+  const database = getDb();
+  database.exec('BEGIN TRANSACTION;');
+  try {
+    fn();
+    database.exec('COMMIT;');
+  } catch (e) {
+    database.exec('ROLLBACK;');
+    throw e;
   }
 }
 

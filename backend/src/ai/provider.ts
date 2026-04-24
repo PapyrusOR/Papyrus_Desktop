@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
+import { Mutex } from 'async-mutex';
 import OpenAI from 'openai';
 import type { AIConfig } from './config.js';
 
@@ -63,6 +64,7 @@ export class AIManager {
   sessionsFile: string;
   sessions: Record<string, SessionData> = {};
   activeSessionId: string | null = null;
+  private saveMutex = new Mutex();
 
   constructor(config: AIConfig) {
     this.config = config;
@@ -586,6 +588,15 @@ export class AIManager {
     activeSession.updated_at = Date.now() / 1000;
     this.saveSessions();
     return chunks.join('');
+  }
+
+  async appendAssistantMessage(content: string): Promise<void> {
+    await this.saveMutex.runExclusive(() => {
+      const activeSession = this.getActiveSession();
+      activeSession.messages.push({ role: 'assistant', content });
+      activeSession.updated_at = Date.now() / 1000;
+      this.saveSessions();
+    });
   }
 }
 

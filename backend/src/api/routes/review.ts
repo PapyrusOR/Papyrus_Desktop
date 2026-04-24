@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { getNextDueCard, rateCard } from '../../core/cards.js';
+import { recordCardReviewed } from './progress.js';
 
 export default async function reviewRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/next', async (_request, reply) => {
@@ -26,6 +27,7 @@ export default async function reviewRoutes(fastify: FastifyInstance): Promise<vo
       reply.status(404).send({ success: false, error: 'Card not found' });
       return;
     }
+    recordCardReviewed();
 
     const next = getNextDueCard();
     reply.send({

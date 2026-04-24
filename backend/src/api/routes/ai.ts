@@ -4,6 +4,7 @@ import { AIManager } from '../../ai/provider.js';
 import { CardTools, AIResponseParser } from '../../ai/tools.js';
 import { getToolManager } from '../../ai/tool-manager.js';
 import type { ToolCallRecord } from '../../ai/tool-manager.js';
+import { isPrivateUrl } from '../../ai/config.js';
 import { paths } from '../../utils/paths.js';
 import { logger } from '../server.js';
 
@@ -143,6 +144,10 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
         reply.send({ success: false, message: 'Base URL 未设置' });
         return;
       }
+      if (isPrivateUrl(baseUrl)) {
+        reply.send({ success: false, message: 'SSRF: 禁止通过连接测试访问私有地址' });
+        return;
+      }
 
       try {
         const resp = await fetch(`${baseUrl}/models`, {
@@ -196,6 +201,7 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
 
     const userPrompt = `请根据以下内容续写：\n\n${payload.prefix}`;
 
+    reply.hijack();
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -387,6 +393,7 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
       attachments?: Array<{ path?: string } | string>;
     };
 
+    reply.hijack();
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -422,21 +429,7 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
 
       // Save assistant response to session
       if (assistantContent) {
-        const activeSession = aiManager.getActiveSession();
-        activeSession.messages.push({ role: 'assistant', content: assistantContent });
-        activeSession.updated_at = Date.now() / 1000;
-        // saveSessions is called internally by chatStream for user message,
-        // but we need to save assistant message too
-        const fs = await import('node:fs');
-        const path = await import('node:path');
-        const sessionsFile = path.join(aiManager.conversationsDir, 'sessions.json');
-        const payload2 = {
-          active_session_id: aiManager.activeSessionId,
-          sessions: Object.values(aiManager.sessions),
-        };
-        const tempFile = `${sessionsFile}.tmp`;
-        fs.writeFileSync(tempFile, JSON.stringify(payload2, null, 2), 'utf8');
-        fs.renameSync(tempFile, sessionsFile);
+        await aiManager.appendAssistantMessage(assistantContent);
       }
 
       reply.raw.end();

@@ -55,6 +55,7 @@ describe('ToolManager', () => {
   it('should clear history while keeping pending', () => {
     const callId = manager.createPendingCall('search_cards', { keyword: 'test' });
     manager.approveCall(callId);
+    manager.markExecuting(callId);
     manager.completeCall(callId, { success: true });
     manager.createPendingCall('search_cards', { keyword: 'pending' });
 

@@ -44,13 +44,13 @@ function extractWikiLinks(content: string): string[] {
   return [...new Set(links)];
 }
 
-function computeWordCount(content: string): number {
+export function computeWordCount(content: string): number {
   const chineseChars = (content.match(/[一-鿿]/g) ?? []).length;
   const englishWords = (content.match(/[a-zA-Z]+/g) ?? []).length;
   return chineseChars + englishWords;
 }
 
-function computeHash(content: string): string {
+export function computeHash(content: string): string {
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
     const char = content.charCodeAt(i);
