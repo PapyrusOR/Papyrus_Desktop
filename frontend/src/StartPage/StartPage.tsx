@@ -98,14 +98,16 @@ function useStartPageData(): StartPageData {
 
         setScenery(nextScenery);
 
-        // 获取真实统计数据
+        // 获取真实统计数据 — 后端字段缺失时回落 0,避免渲染 undefined 导致空白
         if (nextDueRes.success) {
+          const dueCount = nextDueRes.due_count ?? 0;
+          const totalCount = nextDueRes.total_count ?? 0;
           setStats({
-            cardsDue: nextDueRes.due_count,
-            totalCards: nextDueRes.total_count,
-            streakDays: 7, // 暂时使用默认值，后续可从后端获取
-            todayProgress: nextDueRes.total_count > 0
-              ? Math.round(((nextDueRes.total_count - nextDueRes.due_count) / nextDueRes.total_count) * 100)
+            cardsDue: dueCount,
+            totalCards: totalCount,
+            streakDays: 7,
+            todayProgress: totalCount > 0
+              ? Math.round(((totalCount - dueCount) / totalCount) * 100)
               : 100,
           });
         }
@@ -473,7 +475,7 @@ const DoneCard = ({ scenery }: { scenery: SceneryContent | null }) => {
               fontSize: '18px',
               fontWeight: 400,
               letterSpacing: '0.3em',
-              color: '#2C2C2C',
+              color: 'var(--color-text-1)',
               lineHeight: 1.6,
               height: '100%',
               overflow: 'hidden',

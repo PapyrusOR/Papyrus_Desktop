@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 function extractChangelog(version) {
-  const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
+  const changelogPath = path.join(process.cwd(), 'docs', 'guides', 'CHANGELOG.md');
   
   if (!fs.existsSync(changelogPath)) {
     console.error('Error: CHANGELOG.md not found');
@@ -27,30 +27,31 @@ function extractChangelog(version) {
     searchVersion = 'v' + searchVersion;
   }
   
-  const headerPattern = searchVersion === 'Unreleased' 
-    ? '## [Unreleased]'
-    : `## [${searchVersion}]`;
-  
+  // Support both ## [version] and ## version formats
+  const headerPatterns = searchVersion === 'Unreleased'
+    ? ['## [Unreleased]', '## Unreleased']
+    : [`## [${searchVersion}]`, `## ${searchVersion}`];
+
   // Find the section
   const lines = content.split('\n');
   let startIndex = -1;
   let endIndex = -1;
-  
+
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith(headerPattern)) {
+    if (headerPatterns.some(p => lines[i].startsWith(p))) {
       startIndex = i;
       break;
     }
   }
-  
+
   if (startIndex === -1) {
     console.error(`Error: Version ${searchVersion} not found in CHANGELOG.md`);
     process.exit(1);
   }
-  
+
   // Find the next version header or end of file
   for (let i = startIndex + 1; i < lines.length; i++) {
-    if (lines[i].match(/^## \[/) || lines[i].match(/^---$/)) {
+    if (lines[i].match(/^## /) || lines[i].match(/^---$/)) {
       endIndex = i;
       break;
     }

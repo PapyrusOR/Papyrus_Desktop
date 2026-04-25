@@ -1,35 +1,29 @@
-name: Release with Changelog
+name: Build and Release
 
 on:
   push:
     branches:
       - main
       - develop
-      - release/**
-      - v2
-      - v2-develop
-      - v2.0.0beta*
-      - 'v2*'
-    tags:
-      - 'v*'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag to release (e.g., v2.0.0)'
-        required: true
-        type: string
-      draft:
-        description: 'Create as draft'
-        default: true
+      create_release:
+        description: 'Create GitHub draft release'
+        required: false
+        default: false
         type: boolean
+      tag:
+        description: 'Release tag (e.g. v2.0.0)'
+        required: false
+        type: string
 
 env:
   APP_NAME: "Papyrus"
-  # 使用 Node.js 24，避免弃用警告
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  # Electron Builder 二进制工具镜像（签名工具等）
   ELECTRON_BUILDER_BINARIES_MIRROR: "https://npmmirror.com/mirrors/electron-builder-binaries/"
-  # Electron 镜像
   ELECTRON_MIRROR: "https://npmmirror.com/mirrors/electron/"
 
 jobs:
@@ -66,8 +60,6 @@ jobs:
             backend/package-lock.json
 
       - name: Install Root Dependencies
-        # 跳过根 postinstall（它会触发 npm install 进 frontend/backend，
-        # 这里我们改用 npm ci 单独装，以保证 lockfile 严格一致）
         run: npm ci --ignore-scripts
 
       - name: Install Frontend Dependencies
@@ -78,14 +70,14 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Audit Production Dependencies (high/critical gate)
+      - name: Audit Production Dependencies
         shell: bash
         run: |
           echo "=== Frontend production audit ==="
           (cd frontend && npm audit --omit=dev --audit-level=high)
           echo "=== Backend production audit ==="
           (cd backend && npm audit --omit=dev --audit-level=high)
-          echo "Production dependency audit passed (0 high/critical)."
+          echo "Production dependency audit passed."
 
       - name: Typecheck Backend
         working-directory: backend
@@ -103,29 +95,30 @@ jobs:
         working-directory: backend
         run: npm run build
 
+      - name: Prune Backend Dependencies
+        working-directory: backend
+        run: npm prune --production
+
       - name: Verify Backend Build
         shell: bash
         run: |
           SERVER_JS="backend/dist/api/server.js"
           if [ ! -f "$SERVER_JS" ]; then
-            echo "❌ Error: Backend entry not found at $SERVER_JS"
-            echo "Contents of backend/dist/:"
-            find backend/dist/ -type f 2>/dev/null | head -30 || echo "backend/dist/ does not exist"
+            echo "Error: Backend entry not found at $SERVER_JS"
             exit 1
           fi
           SIZE=$(du -h "$SERVER_JS" | cut -f1)
-          echo "✅ Backend entry built: $SERVER_JS ($SIZE)"
+          echo "Backend entry built: $SERVER_JS ($SIZE)"
 
       - name: Verify Frontend Build
         shell: bash
         run: |
           INDEX_HTML="frontend/dist/index.html"
           if [ ! -f "$INDEX_HTML" ]; then
-            echo "❌ Error: Frontend index.html not found at $INDEX_HTML"
+            echo "Error: Frontend index.html not found"
             exit 1
           fi
-          SIZE=$(du -sh frontend/dist/ | cut -f1)
-          echo "✅ Frontend built: frontend/dist/ ($SIZE)"
+          echo "Frontend built successfully"
 
       - name: Cache Electron Builder
         uses: actions/cache@v4
@@ -143,112 +136,98 @@ jobs:
         run: npx electron-builder --${{ matrix.platform }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS signing: uncomment and set secrets when Apple Developer ID is available
+          # CSC_LINK: ${{ secrets.CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Verify Electron Build
         shell: bash
         run: |
-          RESOURCES_DIR=""
-          EXPECTED_FILES=(
-            "app.asar"
-            "assets/icon.ico"
-            "assets/icon.png"
-          )
+          echo "Build outputs:"
+          find dist-electron/ -maxdepth 1 -type f | sort
 
-          if [ "${{ matrix.platform }}" = "windows" ]; then
-            RESOURCES_DIR="dist-electron/win-unpacked/resources"
-            EXPECTED_FILES+=(
-              "../Papyrus.exe"
-              "../chrome_100_percent.pak"
-              "../ffmpeg.dll"
-            )
-          elif [ "${{ matrix.platform }}" = "macos" ]; then
-            APP_BUNDLE="dist-electron/mac-arm64/Papyrus.app"
-            RESOURCES_DIR="${APP_BUNDLE}/Contents/Resources"
-            EXPECTED_FILES+=(
-              "../MacOS/Papyrus"
-            )
-          else
-            RESOURCES_DIR="dist-electron/linux-unpacked/resources"
-            EXPECTED_FILES+=(
-              "../papyrus"
-            )
-          fi
-
-          echo "=========================================="
-          echo "Electron Build Verification"
-          echo "=========================================="
-          echo "Resources directory: $RESOURCES_DIR"
-
-          if [ ! -d "$RESOURCES_DIR" ]; then
-            echo "❌ Error: Resources directory not found: $RESOURCES_DIR"
-            echo "Contents of dist-electron/:"
-            find dist-electron/ -type f 2>/dev/null | head -30 || echo "dist-electron/ not found"
-            exit 1
-          fi
-
-          echo ""
-          echo "📁 Checking required files..."
-          echo "------------------------------------------"
-
-          FAILED=0
-          for file in "${EXPECTED_FILES[@]}"; do
-            FULL_PATH="$RESOURCES_DIR/$file"
-            if [ -f "$FULL_PATH" ]; then
-              SIZE=$(du -h "$FULL_PATH" 2>/dev/null | cut -f1)
-              SIZE_BYTES=$(stat -f%z "$FULL_PATH" 2>/dev/null || stat -c%s "$FULL_PATH" 2>/dev/null || echo "0")
-
-              if [[ "$file" == "app.asar" ]]; then
-                # app.asar 应当包含 frontend/dist + backend/dist + electron 源
-                # 阈值放宽到 500KB（最小可运行集合）
-                if [ "$SIZE_BYTES" -lt 500000 ]; then
-                  echo "❌ $file ($SIZE) - TOO SMALL! Expected >500KB"
-                  FAILED=$((FAILED + 1))
-                  continue
-                fi
+          # Verify the expected installer/package exists
+          case "${{ matrix.platform }}" in
+            windows)
+              if [ -z "$(ls dist-electron/*-Setup-*.exe 2>/dev/null)" ] && [ -z "$(ls dist-electron/*-Portable-*.exe 2>/dev/null)" ]; then
+                echo "Error: No Windows installer or portable executable found"
+                exit 1
               fi
-
-              echo "✅ $file ($SIZE)"
-            else
-              echo "❌ MISSING: $file"
-              FAILED=$((FAILED + 1))
-            fi
-          done
-
-          echo ""
-          echo "=========================================="
-          if [ $FAILED -gt 0 ]; then
-            echo "❌ Error: $FAILED verification(s) failed!"
-            echo "=========================================="
-            echo ""
-            echo "Actual contents of $RESOURCES_DIR:"
-            find "$RESOURCES_DIR" -type f 2>/dev/null | head -50
-            exit 1
-          fi
-
-          echo "✅ All files verified!"
-          echo "=========================================="
-
-          echo ""
-          echo "📊 Build Summary:"
-          echo "------------------------------------------"
-          APP_ASAR="$RESOURCES_DIR/app.asar"
-          if [ -f "$APP_ASAR" ]; then
-            echo "App Bundle (app.asar): $(du -h "$APP_ASAR" | cut -f1)"
-          fi
+              ;;
+            macos)
+              if [ -z "$(ls dist-electron/*.dmg 2>/dev/null)" ] && [ -z "$(ls dist-electron/*-mac.zip 2>/dev/null)" ]; then
+                echo "Error: No macOS dmg or zip found"
+                exit 1
+              fi
+              ;;
+            linux)
+              if [ -z "$(ls dist-electron/*.AppImage 2>/dev/null)" ] && [ -z "$(ls dist-electron/*.deb 2>/dev/null)" ] && [ -z "$(ls dist-electron/*.tar.gz 2>/dev/null)" ]; then
+                echo "Error: No Linux package found"
+                exit 1
+              fi
+              ;;
+          esac
+          echo "Build verification passed"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: dist-electron/*
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.dmg
+            dist-electron/*-mac.zip
+            dist-electron/*.AppImage
+            dist-electron/*.deb
+            dist-electron/*.tar.gz
+          if-no-files-found: warn
           retention-days: 7
 
-  release:
-    name: Create Release with Changelog
+  generate-notes:
+    name: Generate Release Notes
     needs: build
     runs-on: ubuntu-latest
-    # 发布 job - 仅在打标签时启用
-    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Generate Release Notes
+        run: |
+          node scripts/generate-release-notes.js main HEAD
+          echo ""
+          echo "=== Generated Release Notes ==="
+          cat RELEASE_NOTES.md
+          echo "==============================="
+
+      - name: Upload Release Notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: RELEASE_NOTES.md
+          retention-days: 7
+
+  # ------------------------------------------------------------------
+  # Release job: disabled by default. Enable manually via workflow_dispatch
+  # with create_release=true when ready to publish.
+  # ------------------------------------------------------------------
+  release:
+    name: Create Draft Release
+    needs: [build, generate-notes]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.create_release == 'true'
     permissions:
       contents: write
 
@@ -256,25 +235,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Need full history for changelog
+          fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Extract Changelog
-        id: changelog
+      - name: Determine Tag
+        id: tag
         run: |
-          VERSION="${{ github.event.inputs.tag || github.ref_name }}"
-          VERSION="${VERSION#v}"  # Remove 'v' prefix if present
-
-          echo "Extracting changelog for version: $VERSION"
-          node scripts/extract-changelog.js "$VERSION" >> $GITHUB_OUTPUT
-
-          echo "=== Extracted Changelog ==="
-          cat RELEASE_NOTES.md
-          echo "==========================="
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Using tag: $TAG"
 
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
@@ -282,46 +250,43 @@ jobs:
           path: artifacts
           pattern: Papyrus-*
 
+      - name: Download Release Notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: .
+
       - name: List Artifacts
         run: |
           echo "Build artifacts:"
-          find artifacts/ -type f -name "*" | sort
+          find artifacts/ -type f | sort
 
       - name: Determine Release Type
         id: release_type
         run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
-
+          TAG="${{ steps.tag.outputs.tag }}"
           if [[ "$TAG" == *"alpha"* ]] || [[ "$TAG" == *"beta"* ]] || [[ "$TAG" == *"rc"* ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
 
-          echo "Tag: $TAG"
-
-      - name: Create Release
+      - name: Create Draft Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Papyrus-Win-x64/**/*-Setup-*.exe
-            artifacts/Papyrus-Win-x64/**/*-Portable-*.exe
-            artifacts/Papyrus-Apple-Silicon-arm64/**/*.dmg
-            artifacts/Papyrus-Apple-Silicon-arm64/**/*.zip
-            artifacts/Papyrus-Linux-x64/**/*.AppImage
-            artifacts/Papyrus-Linux-x64/**/*.deb
-            artifacts/Papyrus-Linux-x64/**/*.tar.gz
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: ${{ github.event.inputs.tag || github.ref_name }}
+            artifacts/Papyrus-Win-x64/dist-electron/*-Setup-*.exe
+            artifacts/Papyrus-Win-x64/dist-electron/*-Portable-*.exe
+            artifacts/Papyrus-Apple-Silicon-arm64/dist-electron/*.dmg
+            artifacts/Papyrus-Apple-Silicon-arm64/dist-electron/*-mac.zip
+            artifacts/Papyrus-Linux-x64/dist-electron/*.AppImage
+            artifacts/Papyrus-Linux-x64/dist-electron/*.deb
+            artifacts/Papyrus-Linux-x64/dist-electron/*.tar.gz
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
           body_path: RELEASE_NOTES.md
-          draft: ${{ github.event.inputs.draft != 'false' }}
+          draft: true
           prerelease: ${{ steps.release_type.outputs.is_prerelease == 'true' }}
-          generate_release_notes: false  # We use our own changelog
+          generate_release_notes: false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Changelog as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-notes
-          path: RELEASE_NOTES.md

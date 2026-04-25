@@ -1,15 +1,27 @@
 import type { FastifyInstance } from 'fastify';
-import { getNextDueCard, rateCard } from '../../core/cards.js';
+import { getNextDueCard, rateCard, getCardStats } from '../../core/cards.js';
 import { recordCardReviewed } from '../../core/progress.js';
 
 export default async function reviewRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/next', async (_request, reply) => {
     const card = getNextDueCard();
+    const stats = getCardStats();
     if (!card) {
-      reply.send({ success: true, card: null, message: 'No cards due for review' });
+      reply.send({
+        success: true,
+        card: null,
+        due_count: stats.due,
+        total_count: stats.total,
+        message: 'No cards due for review',
+      });
       return;
     }
-    reply.send({ success: true, card });
+    reply.send({
+      success: true,
+      card,
+      due_count: stats.due,
+      total_count: stats.total,
+    });
   });
 
   fastify.post('/:cardId/rate', async (request, reply) => {

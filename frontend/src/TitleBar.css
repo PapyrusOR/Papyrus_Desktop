@@ -100,10 +100,26 @@ body[arco-theme="dark"] .titlebar-logo-icon {
 }
 
 .titlebar-search .arco-input-inner-wrapper:hover,
-.titlebar-search .arco-input-inner-wrapper:focus-within,
 .titlebar-center .arco-input-wrapper .arco-input-inner-wrapper:hover,
-.titlebar-center .arco-input-wrapper .arco-input-inner-wrapper:focus-within {
+.titlebar-search-input .arco-input-inner-wrapper:hover {
   border-color: var(--color-primary);
+}
+
+/* 焦点指示挂在外层 wrapper 上,用 box-shadow 跟随 32px 圆角,而不是内层 input 的方形 outline */
+.titlebar-search .arco-input-inner-wrapper:focus-within,
+.titlebar-center .arco-input-wrapper .arco-input-inner-wrapper:focus-within,
+.titlebar-search-input .arco-input-inner-wrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(32, 108, 207, 0.25);
+}
+
+.titlebar-search .arco-input:focus,
+.titlebar-search .arco-input:focus-visible,
+.titlebar-center .arco-input-wrapper .arco-input:focus,
+.titlebar-center .arco-input-wrapper .arco-input:focus-visible,
+.titlebar-search-input .arco-input:focus,
+.titlebar-search-input .arco-input:focus-visible {
+  outline: none;
 }
 
 /* avatar */

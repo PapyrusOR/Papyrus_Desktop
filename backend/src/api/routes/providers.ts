@@ -69,15 +69,33 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
   fastify.post('/:providerId/models', async (request, reply) => {
     const { providerId } = request.params as { providerId: string };
     const body = request.body as { name: string; modelId: string; port?: string; capabilities?: string[]; apiKeyId?: string; enabled?: boolean };
-    const modelId = saveModel(providerId, body);
-    reply.send({ success: true, modelId, message: 'Model added' });
+    try {
+      const modelId = saveModel(providerId, body);
+      reply.send({ success: true, modelId, message: 'Model added' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('FOREIGN KEY')) {
+        reply.status(400).send({ success: false, error: `添加模型失败:外键约束失败,apiKeyId 或 providerId 不存在 (${msg})` });
+        return;
+      }
+      reply.status(500).send({ success: false, error: `添加模型失败: ${msg}` });
+    }
   });
 
   fastify.put('/:providerId/models/:modelId', async (request, reply) => {
     const { providerId, modelId } = request.params as { providerId: string; modelId: string };
     const body = request.body as { name?: string; modelId?: string; port?: string; capabilities?: string[]; apiKeyId?: string; enabled?: boolean };
-    saveModel(providerId, { ...body, id: modelId });
-    reply.send({ success: true, message: 'Model updated' });
+    try {
+      saveModel(providerId, { ...body, id: modelId });
+      reply.send({ success: true, message: 'Model updated' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('FOREIGN KEY')) {
+        reply.status(400).send({ success: false, error: `更新模型失败:外键约束失败,apiKeyId 或 providerId 不存在 (${msg})` });
+        return;
+      }
+      reply.status(500).send({ success: false, error: `更新模型失败: ${msg}` });
+    }
   });
 
   fastify.delete('/:providerId/models/:modelId', async (request, reply) => {

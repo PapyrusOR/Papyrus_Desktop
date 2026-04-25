@@ -76,7 +76,9 @@ function getBackendExecutableInfo() {
     };
   }
   return {
-    command: process.execPath, // Node.js executable bundled with Electron
+    // In production, process.execPath is the Electron executable itself.
+    // We set ELECTRON_RUN_AS_NODE=1 so it runs in Node.js mode.
+    command: process.execPath,
     args: [path.join(__dirname, '..', 'backend', 'dist', 'api', 'server.js')],
     cwd: path.join(__dirname, '..', 'backend'),
   };
@@ -169,6 +171,13 @@ async function startBackend() {
     PAPYRUS_PORT: CONFIG.backendPort.toString(),
     PAPYRUS_AUTH_TOKEN: PAPYRUS_AUTH_TOKEN,
   };
+
+  // In production, the Electron executable acts as the Node.js runtime
+  // for the backend process. ELECTRON_RUN_AS_NODE tells Electron to
+  // run in headless Node.js mode instead of launching a GUI.
+  if (!isDevMode) {
+    env.ELECTRON_RUN_AS_NODE = '1';
+  }
 
   backendProcess = spawn(command, args, {
     cwd,

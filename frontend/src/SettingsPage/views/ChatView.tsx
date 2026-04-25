@@ -384,7 +384,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
         name: model.name,
         modelId: model.modelId,
         port: model.port,
-        apiKeyId: model.apiKeyId || '1',
+        apiKeyId: model.apiKeyId,
         cap_tools: model.capabilities.includes('tools'),
         cap_vision: model.capabilities.includes('vision'),
         cap_reasoning: model.capabilities.includes('reasoning'),
@@ -394,7 +394,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       modelForm.resetFields();
       modelForm.setFieldValue('providerId', effectiveProviderId);
       modelForm.setFieldValue('port', effectiveProvider?.type || 'openai');
-      modelForm.setFieldValue('apiKeyId', effectiveProvider?.apiKeys[0]?.id || '1');
+      modelForm.setFieldValue('apiKeyId', effectiveProvider?.apiKeys[0]?.id);
       modelForm.setFieldValue('cap_tools', false);
       modelForm.setFieldValue('cap_vision', false);
       modelForm.setFieldValue('cap_reasoning', false);
@@ -407,7 +407,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       name: string;
       modelId: string;
       port: string;
-      apiKeyId: string;
+      apiKeyId?: string;
       providerId?: string;
       cap_tools?: boolean;
       cap_vision?: boolean;
@@ -441,7 +441,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
               Message.success('模型已更新');
               loadProviders();
             } else {
-              Message.error(data.message || '更新失败');
+              Message.error(data.error || data.message || '更新失败');
             }
           })
           .catch(err => {
@@ -460,7 +460,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
               Message.success('模型已添加');
               loadProviders();
             } else {
-              Message.error(data.message || '添加失败');
+              Message.error(data.error || data.message || '添加失败');
             }
           })
           .catch(err => {

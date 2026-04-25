@@ -230,28 +230,48 @@ const WeekChart = ({ cards }: { cards: CardType[] }) => {
   );
 };
 
-// 热力图 - 使用真实数据
+// 热力图 - GitHub 风格,过去 365 天补齐网格,按周列布局
 const Heatmap = ({ data }: { data: HeatmapItem[] }) => {
   const weeks = useMemo(() => {
-    const weeks: { date: string; count: number; level: number }[][] = [];
-    
-    // 将数据按周分组
-    for (let i = 0; i < data.length; i += 7) {
-      const weekData: { date: string; count: number; level: number }[] = [];
-      for (let d = 0; d < 7 && i + d < data.length; d++) {
-        const item = data[i + d];
-        const date = new Date(item.date);
-        weekData.push({
-          date: date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
-          count: item.count,
-          level: item.level,
-        });
-      }
-      weeks.push(weekData);
+    const dataMap = new Map<string, { count: number; level: number }>();
+    data.forEach(item => {
+      dataMap.set(item.date, { count: item.count, level: item.level });
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 364);
+
+    // 退到起始周的周一(getDay: 0=Sun..6=Sat,统一用 1..7)
+    const startDayMonFirst = startDate.getDay() === 0 ? 7 : startDate.getDay();
+    const gridStart = new Date(startDate);
+    gridStart.setDate(startDate.getDate() - (startDayMonFirst - 1));
+
+    const allDays: { date: string; count: number; level: number }[] = [];
+    const cursor = new Date(gridStart);
+    while (cursor <= today) {
+      const yyyy = cursor.getFullYear();
+      const mm = String(cursor.getMonth() + 1).padStart(2, '0');
+      const dd = String(cursor.getDate()).padStart(2, '0');
+      const iso = `${yyyy}-${mm}-${dd}`;
+      const item = dataMap.get(iso);
+      allDays.push({
+        date: cursor.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
+        count: item?.count ?? 0,
+        level: item?.level ?? 0,
+      });
+      cursor.setDate(cursor.getDate() + 1);
     }
-    return weeks;
+
+    const result: { date: string; count: number; level: number }[][] = [];
+    for (let i = 0; i < allDays.length; i += 7) {
+      result.push(allDays.slice(i, i + 7));
+    }
+    return result;
   }, [data]);
-  
+
   const getColor = (level: number) => {
     const colors = [
       'var(--color-fill-2)',
@@ -262,18 +282,10 @@ const Heatmap = ({ data }: { data: HeatmapItem[] }) => {
     return colors[level];
   };
 
-  if (data.length === 0) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '120px' }}>
-        <Typography.Text type="secondary">暂无学习记录</Typography.Text>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+    <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '4px' }}>
       {weeks.map((week, weekIndex) => (
-        <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
           {week.map((day, dayIndex) => (
             <Tooltip
               key={dayIndex}

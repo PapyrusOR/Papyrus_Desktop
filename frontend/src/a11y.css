@@ -316,18 +316,6 @@ html.aaa-section-nav section:focus-within {
   position: relative;
 }
 
-[aria-pressed="true"]::after {
-  content: '';
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  background: var(--color-primary);
-  border-radius: 50%;
-}
-
 /* 禁用状态 */
 [aria-disabled="true"],
 [disabled] {

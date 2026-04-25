@@ -1,36 +1,14 @@
-## [v2.0.0-beta.1] - 2026-03-29
+## v1.2.2 (2026-03-13)
 
-### 🎉 New Features
-- **Complete UI Rewrite**: Brand new interface with React 19 + TypeScript + Arco Design
-  - New Start Page with recent notes, review queue, and solar term themes
-  - New Scroll Page for flashcard study
-  - New Notes Page with folder management and relation graph
-  - Chat Panel for AI conversations
-  - Settings Page with accessibility options
+### 🐛 Bug 修复
+- **修复 API Key 编码错误**：解决使用 requests 库时 'latin-1' codec 无法编码中文字符的问题
+- **添加配置验证机制**：在保存配置前检查 API Key 和 Base URL 是否包含非 ASCII 字符
+- **三层防护机制**：
+  - 配置验证层：`AIConfig.validate_config()` 在保存前检查
+  - UI 提示层：设置窗口捕获 `ValueError` 并显示友好提示
+  - 请求兜底层：`AIProvider` 捕获 `UnicodeEncodeError` 并给出明确提示
 
-- **Accessibility Improvements**: WCAG 2.1 AAA compliance
-  - Global accessibility styles (`frontend/src/a11y.css`)
-  - Accessibility settings panel (reduce motion, high contrast, screen reader optimization)
-  - Complete ARIA attributes support
-  - Keyboard navigation optimization
-  - Skip Link navigation
-  - Accessibility icons
-
-- **MCP (Model Context Protocol) Support**
-  - REST API for note CRUD operations
-  - Vault indexing and reading endpoints
-  - Search functionality
-  - Extension-friendly architecture
-
-### 🚀 Architecture
-- **Frontend**: React 19 + TypeScript + Arco Design + Tailwind CSS
-- **Backend**: Python 3.14 + FastAPI + Uvicorn
-- **Desktop**: Electron 30 + Electron Builder
-- **AI Integration**: OpenAI, Anthropic, Ollama support
-
-### 🔧 Build & Distribution
-- Single-file PyInstaller builds
-- Cross-platform support (Windows, macOS, Linux)
-- Automated GitHub Actions workflows
-- Smaller app size with dependency optimization
+### 💡 改进
+- **更友好的错误提示**：明确指出哪个提供商的哪个字段包含非法字符
+- **阻止保存非法配置**：用户必须修正错误才能保存设置
 

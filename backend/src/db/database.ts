@@ -142,13 +142,13 @@ function seedDefaults(database: DatabaseSync): void {
   const encryptedEmpty = encryptApiKey('');
 
   const providers = [
-    ['p-openai', 'openai', 'OpenAI', 'https://api.openai.com/v1', 0, 0, now, now],
-    ['p-anthropic', 'anthropic', 'Anthropic', 'https://api.anthropic.com/v1', 0, 0, now, now],
-    ['p-gemini', 'gemini', 'Gemini', 'https://generativelanguage.googleapis.com/v1beta', 0, 0, now, now],
-    ['p-deepseek', 'deepseek', 'DeepSeek', 'https://api.deepseek.com', 0, 0, now, now],
-    ['p-moonshot', 'moonshot', '月之暗面', 'https://api.moonshot.cn', 0, 0, now, now],
-    ['p-siliconflow', 'siliconflow', '硅基流动', 'https://api.siliconflow.cn', 0, 0, now, now],
-    ['p-ollama', 'ollama', 'Ollama', 'http://localhost:11434', 0, 0, now, now],
+    ['p-openai', 'openai', 'OpenAI', 'https://api.openai.com/v1', 1, 0, now, now],
+    ['p-anthropic', 'anthropic', 'Anthropic', 'https://api.anthropic.com/v1', 1, 0, now, now],
+    ['p-gemini', 'gemini', 'Gemini', 'https://generativelanguage.googleapis.com/v1beta', 1, 0, now, now],
+    ['p-deepseek', 'deepseek', 'DeepSeek', 'https://api.deepseek.com', 1, 0, now, now],
+    ['p-moonshot', 'moonshot', '月之暗面', 'https://api.moonshot.cn', 1, 0, now, now],
+    ['p-siliconflow', 'siliconflow', '硅基流动', 'https://api.siliconflow.cn', 1, 0, now, now],
+    ['p-ollama', 'ollama', 'Ollama', 'http://localhost:11434', 1, 0, now, now],
   ];
 
   const insertProvider = database.prepare(
@@ -179,13 +179,13 @@ function seedDefaults(database: DatabaseSync): void {
   const dsCaps = JSON.stringify(['tools', 'reasoning']);
 
   const models = [
-    ['m-openai-1', 'p-openai', 'GPT 5.4', 'gpt-5.4', 'openai', allCaps, 'k-openai', 1],
+    ['m-openai-1', 'p-openai', 'GPT 5.5', 'gpt-5.5', 'openai', allCaps, 'k-openai', 1],
     ['m-anthropic-1', 'p-anthropic', 'Claude Mythos', 'claude-mythos', 'anthropic', allCaps, 'k-anthropic', 1],
-    ['m-anthropic-2', 'p-anthropic', 'Claude Opus 4.6', 'claude-opus-4.6', 'anthropic', allCaps, 'k-anthropic', 1],
+    ['m-anthropic-2', 'p-anthropic', 'Opus 4.7', 'claude-opus-4.7', 'anthropic', allCaps, 'k-anthropic', 1],
     ['m-gemini-1', 'p-gemini', 'Gemini 3.1 Pro', 'gemini-3.1-pro-preview', 'gemini', allCaps, 'k-gemini', 1],
     ['m-gemini-2', 'p-gemini', 'Gemini 3.0 Flash', 'gemini-3-flash-preview', 'gemini', allCaps, 'k-gemini', 1],
-    ['m-deepseek-1', 'p-deepseek', 'DeepSeek V3.2', 'deepseek-v3.2', 'openai', dsCaps, 'k-deepseek', 1],
-    ['m-moonshot-1', 'p-moonshot', 'Kimi K2.5', 'kimi-k2.5', 'openai', allCaps, 'k-moonshot', 1],
+    ['m-deepseek-1', 'p-deepseek', 'DeepSeek V4 Pro', 'deepseek-v4-pro', 'openai', dsCaps, 'k-deepseek', 1],
+    ['m-moonshot-1', 'p-moonshot', 'Kimi K2.6', 'kimi-k2.6', 'openai', allCaps, 'k-moonshot', 1],
   ];
 
   const insertModel = database.prepare(
