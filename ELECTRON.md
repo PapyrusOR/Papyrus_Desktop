@@ -6,21 +6,23 @@
 
 ```
 Papyrus/
-├── electron/               # Electron 主进程代码
-│   ├── main.js            # 主进程入口
-│   └── preload.js         # 预加载脚本（安全桥接）
-├── scripts/               # 构建脚本
-│   └── build-electron.js  # 统一构建脚本
-├── build/                 # 构建资源
+├── electron/                # Electron 主进程代码
+│   ├── main.js              # 主进程入口（启动 Node 后端、创建窗口、托盘等）
+│   └── preload.js           # 预加载脚本（安全桥接）
+├── scripts/                 # 构建脚本
+│   └── build-electron.js    # 统一构建脚本（dev / build / build:win / ...）
+├── build/                   # 构建资源
 │   ├── entitlements.mac.plist  # macOS 权限配置
-│   └── installer.nsh      # Windows 安装脚本
-├── frontend/              # React + Vite 前端
-│   └── dist/              # 前端构建输出
-├── src/                   # Python FastAPI 后端
-├── assets/                # 应用图标等资源
-├── package.json           # Electron 配置
-├── electron-builder.json  # 打包配置
-└── PapyrusAPI.spec        # PyInstaller 配置
+│   └── installer.nsh        # Windows 安装脚本
+├── frontend/                # React + Vite 前端
+│   └── dist/                # 前端构建输出
+├── backend/                 # Node.js TypeScript 后端
+│   ├── src/                 # Fastify 服务源码
+│   ├── dist/                # tsc 编译输出（运行入口：dist/api/server.js）
+│   └── package.json
+├── assets/                  # 应用图标等资源
+├── package.json             # 根目录（Electron 主入口 + electron-builder 配置）
+└── electron-builder.json    # 打包配置
 ```
 
 ## 快速开始
@@ -28,23 +30,28 @@ Papyrus/
 ### 1. 安装依赖
 
 ```bash
-# 安装根目录依赖（包含 Electron）
+# 在项目根目录执行；postinstall 会自动级联安装 frontend/ 和 backend/
 npm install
-
-# 安装前端依赖
-cd frontend && npm install
 ```
 
 ### 2. 开发模式
 
 ```bash
-# 启动开发服务器（同时启动前端、后端和 Electron）
+# 一键启动前后端 + Electron
 npm run electron:dev
+```
 
-# 或者手动启动各服务
-# 终端 1: cd frontend && npm run dev:frontend
-# 终端 2: python -m uvicorn src.papyrus_api.main:app --reload --port 8000
-# 终端 3: npx electron .
+或者手动启动各服务：
+
+```bash
+# 终端 1
+cd frontend && npm run dev
+
+# 终端 2
+cd backend && npm run dev
+
+# 终端 3
+npx electron .
 ```
 
 ### 3. 构建应用
@@ -63,18 +70,20 @@ npm run electron:build:mac
 npm run electron:build:linux
 ```
 
+`scripts/build-electron.js` 在 build 时会依次执行：依赖检查 → 构建前端 (`frontend/dist/`) → 构建后端 (`backend/dist/`) → 调用 `electron-builder`。
+
 ## 配置说明
 
 ### 开发模式
 
 - **前端**: `http://localhost:5173` (Vite 开发服务器)
-- **后端**: `http://localhost:8000` (FastAPI + Uvicorn)
-- **Electron**: 加载 localhost:5173，启用 DevTools
+- **后端**: `http://127.0.0.1:8000` (Fastify, 通过 `tsx watch` 热重载)
+- **Electron**: 加载 `localhost:5173`，启用 DevTools
 
 ### 生产模式
 
-- **前端**: 打包后的静态文件 (`frontend/dist`)
-- **后端**: PyInstaller 生成的可执行文件 (`dist-python/Papyrus`)
+- **前端**: 打包后的静态文件 (`frontend/dist/`)
+- **后端**: 编译后的 JS (`backend/dist/api/server.js`)，由主进程通过 `child_process.spawn` 拉起 Node 子进程
 - **Electron**: 加载本地文件，禁用 DevTools
 
 ## 平台支持
@@ -82,7 +91,7 @@ npm run electron:build:linux
 | 平台 | 架构 | 输出格式 |
 |------|------|----------|
 | Windows | x64 | NSIS 安装程序 (.exe), 便携版 (.exe) |
-| macOS | arm64, x64 | DMG (.dmg), ZIP (.zip) |
+| macOS | arm64 | DMG (.dmg), ZIP (.zip) |
 | Linux | x64 | AppImage, DEB (.deb), TAR.GZ |
 
 ## 关键文件说明
@@ -91,7 +100,8 @@ npm run electron:build:linux
 
 Electron 主进程，负责：
 - 创建应用窗口
-- 启动/停止 Python 后端
+- 启动 / 停止 Node.js 后端子进程（`backend/dist/api/server.js`）
+- 后端就绪轮询（轮询 `/api/health`）
 - 系统托盘集成
 - 平台适配
 
@@ -104,17 +114,17 @@ Electron 主进程，负责：
 ### scripts/build-electron.js
 
 统一构建脚本：
-- 检查依赖
+- 检查依赖（root / frontend / backend）
 - 构建前端
-- 打包 Python 后端（可选）
-- 打包 Electron 应用
+- 构建 Node 后端（`tsc` 输出到 `backend/dist/`）
+- 调用 `electron-builder` 打包
 
-### electron-builder.json
+### electron-builder.json / package.json `build`
 
 打包配置：
 - 应用标识和元数据
 - 平台特定配置
-- 文件包含/排除规则
+- 文件包含 / 排除规则（包含 `electron/**`、`frontend/dist/**`、`backend/dist/**`、`backend/package.json`）
 - 输出格式配置
 
 ## 环境变量
@@ -123,31 +133,35 @@ Electron 主进程，负责：
 |------|------|--------|
 | `NODE_ENV` | 运行环境 | `production` |
 | `ELECTRON_IS_DEV` | 开发模式标志 | 自动检测 |
+| `PAPYRUS_PORT` | 后端监听端口 | `8000` |
+| `PAPYRUS_DEBUG` | 后端启用详细错误响应 | 未设置 |
 
 ## 常见问题
 
 ### 1. 后端启动失败
 
 检查：
-- Python 3.8+ 是否安装
-- 依赖是否安装: `pip install -r requirements.txt`
+- Node.js 24+ 是否安装
+- 后端依赖是否安装：`cd backend && npm install`
+- 后端是否可单独构建：`cd backend && npm run build`
 - 端口 8000 是否被占用
 
 ### 2. 前端构建失败
 
 检查：
-- Node.js 16+ 是否安装
-- 前端依赖是否安装: `cd frontend && npm install`
+- Node.js 24+ 是否安装
+- 前端依赖是否安装：`cd frontend && npm install`
 
-### 3. PyInstaller 打包失败
+### 3. electron-builder 打包失败
 
 检查：
-- PyInstaller 是否安装: `pip install pyinstaller`
+- 是否先成功构建了 `frontend/dist/` 与 `backend/dist/`
 - 是否有足够的磁盘空间
+- Windows 上若涉及代码签名，确认 `package.json` 的 `win.publisherName` 与证书匹配
 
 ### 4. macOS 签名问题
 
-如需代码签名，修改 `electron-builder.json`：
+如需代码签名，修改 `package.json` 中 `build.mac` 配置：
 ```json
 "mac": {
   "codesignIdentity": "Developer ID Application: Your Name (TEAM_ID)"
@@ -169,11 +183,13 @@ Electron 主进程，负责：
 ## 发布
 
 1. 更新版本号 (`package.json`)
-2. 运行构建命令
-3. 检查 `dist-electron` 目录
-4. 上传到 GitHub Releases（配置了自动发布）
+2. 在 `CHANGELOG.md` 中归档当前 `[Unreleased]` 内容到对应版本
+3. 运行构建命令验证本地能产出安装包
+4. 打 tag 并推送，GitHub Actions（`.github/workflows/release.yml`）会自动构建并发布到 Releases
 
 ```bash
-# 构建所有平台
-npm run electron:build:all
+# 本地构建所有平台（需对应宿主机器或交叉构建支持）
+npm run electron:build:win
+npm run electron:build:mac
+npm run electron:build:linux
 ```

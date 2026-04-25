@@ -1,8 +1,11 @@
 # 📜 Papyrus (莎草纸)
 
 ![Minecraft Paper](https://img.shields.io/badge/Icon-Minecraft_Paper-green)
-![Python](https://img.shields.io/badge/Python-3.14-blue)
+![Node.js](https://img.shields.io/badge/Node.js-24-339933)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
+![Fastify](https://img.shields.io/badge/Fastify-5-000000)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
+![Electron](https://img.shields.io/badge/Electron-41-47848F)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![AI-Assisted](https://img.shields.io/badge/Dev-AI--Assisted-blueviolet)
 ![Accessibility](https://img.shields.io/badge/a11y-WCAG%202.1%20AA%2FAAA-green)
@@ -20,7 +23,7 @@
 - 🤖 **AI 助手**：支持 OpenAI、Anthropic、Ollama 等多种 AI 提供商，智能辅助学习。
 - 📝 **笔记系统**：支持 Obsidian Vault 导入，统一学习资料管理。
 - ♿ **无障碍支持**：全站达到 WCAG 2.1 AA 级标准，支持屏幕阅读器和键盘导航。
-- 🌐 **现代架构**：Python FastAPI 后端 + React TypeScript 前端。
+- 🌐 **现代架构**：Node.js TypeScript (Fastify) 后端 + React TypeScript (Vite) 前端，Electron 桌面壳。
 - 📦 **轻量便携**：数据本地化存储，隐私安全。
 
 ---
@@ -42,41 +45,48 @@
 
 ### 环境要求
 
-- **Python**: 3.14+
-- **Node.js**: 24.14+ (前端开发)
-- **npm**: 11.9+
+- **Node.js**: 24+
+- **npm**: 11+
 
 ### 安装依赖
 
 ```bash
-# Python 依赖
-pip install -r requirements.txt
-
-# 前端依赖
-cd frontend
+# 在项目根目录执行；postinstall 会自动级联安装 frontend/ 和 backend/ 的依赖
 npm install
 ```
 
 ### 启动应用
 
-**方式 1：同时启动前后端（推荐开发）**
+**方式 1：一键启动前后端（推荐开发）**
 
 ```bash
-# 终端 1：启动后端
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
+# 在项目根目录
+npm run dev
+# 等价于并发运行 backend (tsx watch) 和 frontend (vite)
+```
 
-# 终端 2：启动前端
+**方式 2：分别启动前后端（手动调试）**
+
+```bash
+# 终端 1：启动后端（Fastify + tsx watch）
+cd backend
+npm run dev
+
+# 终端 2：启动前端（Vite）
 cd frontend
 npm run dev
 ```
 
-**方式 2：通过主入口启动**
+**方式 3：连同 Electron 一起启动**
 
 ```bash
-python src/Papyrus.pyw
+npm run electron:dev
+# 自动构建依赖、释放占用端口、启动前后端、再拉起 Electron
 ```
 
-访问 http://localhost:5173 查看应用。
+- 前端开发地址：http://localhost:5173
+- 后端 API：http://127.0.0.1:8000
+- 健康检查：http://127.0.0.1:8000/api/health
 
 ---
 
@@ -144,22 +154,25 @@ Papyrus 致力于让所有用户都能轻松使用：
 
 ```
 Papyrus/
-├── src/
-│   ├── papyrus/           # Python 后端核心
-│   │   ├── core/          # 卡片和复习逻辑 (SM-2)
-│   │   ├── data/          # 数据存储
-│   │   ├── logic/         # 算法实现
-│   │   └── integrations/  # 第三方集成 (Obsidian)
-│   ├── papyrus_api/       # FastAPI 后端服务
-│   ├── ai/                # AI 功能模块
-│   └── mcp/               # MCP 服务
-├── frontend/              # React + TypeScript 前端
+├── backend/               # Node.js TypeScript 后端
 │   ├── src/
-│   │   ├── StartPage/     # 开始页面
-│   │   ├── ScrollPage/    # 卷轴复习页面
-│   │   ├── NotesPage/     # 笔记页面
-│   │   ├── SettingsPage/  # 设置页面
-│   │   └── ...
+│   │   ├── api/           # Fastify 路由与服务器入口 (server.ts)
+│   │   ├── core/          # 卡片与复习核心逻辑 (SM-2)
+│   │   ├── db/            # 数据持久化
+│   │   ├── ai/            # AI 提供商适配 (OpenAI / Anthropic / Ollama)
+│   │   ├── mcp/           # MCP (Model Context Protocol) 服务
+│   │   ├── integrations/  # 第三方集成 (Obsidian、文件监听)
+│   │   └── utils/         # 通用工具
+│   ├── tests/             # 单元测试 + 集成测试 (Jest)
+│   └── package.json
+├── frontend/              # React + TypeScript 前端
+│   └── src/
+│       ├── StartPage/     # 开始页面
+│       ├── ScrollPage/    # 卷轴复习页面
+│       ├── NotesPage/     # 笔记页面
+│       └── SettingsPage/  # 设置页面
+├── electron/              # Electron 主进程 + preload
+├── scripts/               # 构建脚本 (build-electron.js, extract-changelog.js)
 ├── data/                  # 用户数据（不进 Git）
 ├── backup/                # 自动备份
 └── docs/                  # 项目文档
@@ -167,10 +180,11 @@ Papyrus/
 
 ### 技术栈
 
-- **后端**: Python 3.14, FastAPI, Uvicorn
-- **前端**: React 19, TypeScript, Arco Design, Vite
+- **后端**: Node.js 24, TypeScript 5, Fastify 5, Jest
+- **前端**: React 19, TypeScript, Arco Design, Tailwind CSS, Vite
+- **桌面**: Electron 41 + electron-builder
 - **算法**: SM-2 间隔重复
-- **存储**: JSON 文件
+- **存储**: 本地 JSON 文件
 
 ---
 
@@ -179,26 +193,31 @@ Papyrus/
 ### 后端开发
 
 ```bash
-# 启动开发服务器
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
-
-# API 文档
-http://127.0.0.1:8000/docs
+cd backend
+npm run dev        # tsx watch，热重载启动 Fastify 服务
+npm run build      # 编译 TypeScript 到 dist/
+npm run typecheck  # 仅做类型检查（tsc --noEmit）
+npm start          # 运行已编译的 dist/api/server.js
 ```
+
+后端默认监听 `127.0.0.1:8000`，可通过环境变量 `PAPYRUS_PORT` 覆盖。
 
 ### 前端开发
 
 ```bash
 cd frontend
-npm run dev      # 开发服务器
-npm run build    # 生产构建
-npm run typecheck # 类型检查
+npm run dev        # 开发服务器 (Vite, http://localhost:5173)
+npm run build      # 生产构建到 dist/
+npm run typecheck  # 类型检查
 ```
 
 ### 运行测试
 
 ```bash
-python -m pytest tests/
+# 后端单元 + 集成测试 (Jest)
+cd backend
+npm test
+npm run test:watch
 ```
 
 ### 发布流程

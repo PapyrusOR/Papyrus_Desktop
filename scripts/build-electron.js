@@ -276,11 +276,14 @@ function devMode() {
       ? require('path').join(require('path').dirname(electronModulePath), 'dist', 'electron.exe')
       : require('path').join(require('path').dirname(electronModulePath), 'dist', 'electron');
 
+    const electronEnv = { ...process.env };
+    delete electronEnv.ELECTRON_RUN_AS_NODE;
+
     const electron = spawn(electronPath, ['.'], {
       stdio: 'inherit',
       shell: false,
       cwd: process.cwd(),
-      env: process.env
+      env: electronEnv
     });
     
     // Handle cleanup

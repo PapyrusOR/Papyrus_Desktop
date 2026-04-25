@@ -6,11 +6,10 @@ import { getToolManager } from '../../ai/tool-manager.js';
 import type { ToolCallRecord } from '../../ai/tool-manager.js';
 import { isPrivateUrl } from '../../ai/config.js';
 import { paths } from '../../utils/paths.js';
-import { logger } from '../server.js';
 
 const aiConfig = new AIConfig(paths.dataDir);
 const aiManager = new AIManager(aiConfig);
-const cardTools = new CardTools(logger);
+const cardTools = new CardTools();
 
 const _completionConfig: Record<string, unknown> = {
   enabled: true,

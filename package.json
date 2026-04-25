@@ -3,9 +3,9 @@
   "version": "v2.0.0-beta.2",
   "description": "Papyrus - A modern note-taking and learning application",
   "main": "electron/main.js",
-  "author": "Papyrus Team",
+  "author": "PapyrusOR",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "scripts": {
     "dev": "concurrently -k -n BACKEND,FRONTEND -c cyan,magenta \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
     "dev:frontend": "cd frontend && npm run dev",
@@ -139,5 +139,8 @@
       "synopsis": "Modern note-taking and learning application",
       "description": "Papyrus is a modern note-taking and learning application with AI integration and spaced repetition."
     }
+  },
+  "dependencies": {
+    "wait-on": "^9.0.5"
   }
 }

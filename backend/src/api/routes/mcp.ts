@@ -2,7 +2,6 @@ import type { FastifyInstance } from 'fastify';
 import { loadAllNotes, getNoteById, deleteNoteById } from '../../db/database.js';
 import type { Note } from '../../core/types.js';
 import { createNote, updateNote } from '../../core/notes.js';
-import { logger } from '../server.js';
 
 function noteToInfo(note: Note): Record<string, unknown> {
   return {
@@ -39,7 +38,7 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
   });
 
   fastify.get('/notes', async (_request, reply) => {
-    const notes = loadAllNotes(logger);
+    const notes = loadAllNotes();
     reply.send({
       success: true,
       notes: notes.map(noteToInfo),
@@ -65,7 +64,7 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
       tags?: string[];
     };
 
-    const note = createNote(payload.title, payload.content ?? '', payload.folder, payload.tags ?? [], logger);
+    const note = createNote(payload.title, payload.content ?? '', payload.folder, payload.tags ?? []);
     reply.send({ success: true, note: noteToDetail(note) });
   });
 
@@ -73,7 +72,7 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
     const { noteId } = request.params as { noteId: string };
     const payload = request.body as Partial<Pick<Note, 'title' | 'folder' | 'content' | 'tags'>>;
 
-    const updated = updateNote(noteId, payload, logger);
+    const updated = updateNote(noteId, payload);
     if (!updated) {
       reply.status(404).send({ success: false, note: null, error: 'note not found' });
       return;
@@ -84,7 +83,7 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
 
   fastify.delete('/notes/:noteId', async (request, reply) => {
     const { noteId } = request.params as { noteId: string };
-    const ok = deleteNoteById(noteId, logger);
+    const ok = deleteNoteById(noteId);
     if (!ok) {
       reply.status(404).send({ success: false, error: 'note not found' });
       return;
@@ -99,7 +98,7 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
       search_content?: boolean;
     };
 
-    const notes = loadAllNotes(logger);
+    const notes = loadAllNotes();
     const query = payload.query.toLowerCase();
     const limit = payload.limit ?? 20;
     const searchContent = payload.search_content ?? true;
@@ -128,7 +127,7 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
   });
 
   fastify.post('/vault/index', async (_request, reply) => {
-    const notes = loadAllNotes(logger);
+    const notes = loadAllNotes();
     reply.send({
       success: true,
       notes: notes.map(n => ({

@@ -2,7 +2,6 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:
 import fs from 'node:fs';
 import path from 'node:path';
 import { paths } from '../utils/paths.js';
-import { logger } from '../api/server.js';
 
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32;
@@ -125,7 +124,7 @@ export function decryptApiKey(encryptedKey: string): string {
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     return decrypted.toString('utf8');
   } catch (e) {
-    logger?.error(`解密 API Key 失败: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(`解密 API Key 失败: ${e instanceof Error ? e.message : String(e)}`);
     return '';
   }
 }

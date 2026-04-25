@@ -100,8 +100,8 @@ const StatsCard = ({
       }}>
         <div style={{ display: 'flex', gap: '48px' }}>
           <StatItem label='待复习' value={dueCount} color={dueCount > 0 ? PRIMARY_COLOR : undefined} />
-          <StatItem label='已掌握' value={`${Math.round(totalCount * overallProgress / 100)}/${totalCount}`} color={SUCCESS_COLOR} />
-          <StatItem label='总进度' value={`${overallProgress}%`} />
+          <StatItem label='已掌握' value={`${totalCount && overallProgress ? Math.round(totalCount * overallProgress / 100) : 0}/${totalCount ?? 0}`} color={SUCCESS_COLOR} />
+          <StatItem label='总进度' value={`${overallProgress ?? 0}%`} />
         </div>
       </div>
     );

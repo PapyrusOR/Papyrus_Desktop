@@ -93,7 +93,7 @@ backend.stdout.on('data', (data) => {
   const output = data.toString();
   backendOutput.push(output);
 
-  if (output.includes('Server listening on') || output.includes('8000')) {
+  if (output.includes('Server listening on') || output.includes('8000') || output.includes('Papyrus backend started')) {
     if (!backendReady) {
       backendReady = true;
       console.log(`${colors.green}后端已启动: http://127.0.0.1:8000${colors.reset}\n`);
@@ -108,7 +108,7 @@ backend.stdout.on('data', (data) => {
 
 backend.stderr.on('data', (data) => {
   const output = data.toString();
-  if (output.includes('Server listening on') || output.includes('8000')) {
+  if (output.includes('Server listening on') || output.includes('8000') || output.includes('Papyrus backend started')) {
     if (!backendReady) {
       backendReady = true;
       console.log(`${colors.green}后端已启动: http://127.0.0.1:8000${colors.reset}\n`);

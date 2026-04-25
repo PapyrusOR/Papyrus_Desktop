@@ -25,7 +25,7 @@ on:
 
 env:
   APP_NAME: "Papyrus"
-  # 使用 Node.js 24，避免 Node.js 20 弃用警告
+  # 使用 Node.js 24，避免弃用警告
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   # Electron Builder 二进制工具镜像（签名工具等）
   ELECTRON_BUILDER_BINARIES_MIRROR: "https://npmmirror.com/mirrors/electron-builder-binaries/"
@@ -63,84 +63,69 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+            backend/package-lock.json
 
-      - name: Install Node Dependencies
+      - name: Install Root Dependencies
+        # 跳过根 postinstall（它会触发 npm install 进 frontend/backend，
+        # 这里我们改用 npm ci 单独装，以保证 lockfile 严格一致）
+        run: npm ci --ignore-scripts
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Audit Production Dependencies (high/critical gate)
+        shell: bash
         run: |
-          npm ci
-          cd frontend && npm ci
+          echo "=== Frontend production audit ==="
+          (cd frontend && npm audit --omit=dev --audit-level=high)
+          echo "=== Backend production audit ==="
+          (cd backend && npm audit --omit=dev --audit-level=high)
+          echo "Production dependency audit passed (0 high/critical)."
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
+      - name: Typecheck Backend
+        working-directory: backend
+        run: npm run typecheck
 
-      - name: Install Python Dependencies
-        run: |
-          pip install --upgrade pip wheel
-          pip install pytest pytest-asyncio httpx pyinstaller
-          pip install -r requirements.txt
+      - name: Test Backend
+        working-directory: backend
+        run: npm test
 
       - name: Build Frontend
-        run: |
-          cd frontend
-          npm run build
+        working-directory: frontend
+        run: npm run build
 
-      - name: Run Tests & Verify Accuracy
-        shell: bash
-        env:
-          PYTHONIOENCODING: utf-8
-        run: |
-          echo "Running tests with PYTHONPATH=$PYTHONPATH:src"
-          PYTHONPATH=src python scripts/verify-tests.py
+      - name: Build Backend
+        working-directory: backend
+        run: npm run build
 
-      - name: Cache PyInstaller
-        uses: actions/cache@v4
-        with:
-          path: |
-            build
-            *.pyc
-          key: pyinstaller-${{ matrix.platform }}-${{ hashFiles('requirements.txt', 'PapyrusAPI.spec') }}
-          restore-keys: |
-            pyinstaller-${{ matrix.platform }}-
-
-      - name: Build Python Backend
-        run: |
-          pyinstaller PapyrusAPI.spec --distpath dist-python
-
-      - name: Verify Python Build
+      - name: Verify Backend Build
         shell: bash
         run: |
-          # PyInstaller one-dir mode: executable is in dist-python/Papyrus/
-          if [ "${{ matrix.platform }}" = "windows" ]; then
-            EXECUTABLE="dist-python/Papyrus/Papyrus.exe"
-          else
-            EXECUTABLE="dist-python/Papyrus/Papyrus"
-          fi
-          
-          if [ ! -f "$EXECUTABLE" ]; then
-            echo "❌ Error: Python executable not found at $EXECUTABLE"
-            echo "Contents of dist-python/:"
-            ls -la dist-python/ || echo "dist-python directory does not exist"
-            ls -la dist-python/Papyrus/ 2>/dev/null || echo "dist-python/Papyrus/ directory does not exist"
+          SERVER_JS="backend/dist/api/server.js"
+          if [ ! -f "$SERVER_JS" ]; then
+            echo "❌ Error: Backend entry not found at $SERVER_JS"
+            echo "Contents of backend/dist/:"
+            find backend/dist/ -type f 2>/dev/null | head -30 || echo "backend/dist/ does not exist"
             exit 1
           fi
-          
-          # Check executable exists
-          SIZE_MB=$(du -m "$EXECUTABLE" | cut -f1)
-          echo "✅ Python executable built: $EXECUTABLE (${SIZE_MB}MB)"
-          
-          # Check total directory size (one-dir mode: dependencies are in _internal/)
-          TOTAL_SIZE=$(du -sm dist-python/Papyrus/ | cut -f1)
-          echo "✅ Total directory size: ${TOTAL_SIZE}MB"
-          
-          # All platforms use one-dir mode, check total size (>25MB is reasonable for minimal build)
-          if [ "$TOTAL_SIZE" -lt 25 ]; then
-            echo "❌ Error: Build directory too small (${TOTAL_SIZE}MB), may be incomplete"
+          SIZE=$(du -h "$SERVER_JS" | cut -f1)
+          echo "✅ Backend entry built: $SERVER_JS ($SIZE)"
+
+      - name: Verify Frontend Build
+        shell: bash
+        run: |
+          INDEX_HTML="frontend/dist/index.html"
+          if [ ! -f "$INDEX_HTML" ]; then
+            echo "❌ Error: Frontend index.html not found at $INDEX_HTML"
             exit 1
           fi
+          SIZE=$(du -sh frontend/dist/ | cut -f1)
+          echo "✅ Frontend built: frontend/dist/ ($SIZE)"
 
       - name: Cache Electron Builder
         uses: actions/cache@v4
@@ -150,7 +135,7 @@ jobs:
             ~/.cache/electron-builder
             ~/Library/Caches/electron
             ~/Library/Caches/electron-builder
-          key: electron-${{ matrix.platform }}-${{ hashFiles('frontend/package-lock.json') }}
+          key: electron-${{ matrix.platform }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             electron-${{ matrix.platform }}-
 
@@ -167,113 +152,68 @@ jobs:
             "app.asar"
             "assets/icon.ico"
             "assets/icon.png"
-            "certs/root-ca.cer"
           )
-          EXPECTED_DIRS=(
-            "python/Papyrus/_internal"
-          )
-          
-          # Determine resources directory and platform-specific files
+
           if [ "${{ matrix.platform }}" = "windows" ]; then
             RESOURCES_DIR="dist-electron/win-unpacked/resources"
             EXPECTED_FILES+=(
-              "python/Papyrus/Papyrus.exe"
               "../Papyrus.exe"
               "../chrome_100_percent.pak"
               "../ffmpeg.dll"
             )
           elif [ "${{ matrix.platform }}" = "macos" ]; then
-            APP_NAME="dist-electron/mac-arm64/Papyrus.app"
-            RESOURCES_DIR="${APP_NAME}/Contents/Resources"
+            APP_BUNDLE="dist-electron/mac-arm64/Papyrus.app"
+            RESOURCES_DIR="${APP_BUNDLE}/Contents/Resources"
             EXPECTED_FILES+=(
-              "python/Papyrus/Papyrus"
               "../MacOS/Papyrus"
             )
           else
-            # Linux
             RESOURCES_DIR="dist-electron/linux-unpacked/resources"
             EXPECTED_FILES+=(
-              "python/Papyrus/Papyrus"
               "../papyrus"
             )
           fi
-          
+
           echo "=========================================="
           echo "Electron Build Verification"
           echo "=========================================="
           echo "Resources directory: $RESOURCES_DIR"
-          
-          # Check resources directory exists
+
           if [ ! -d "$RESOURCES_DIR" ]; then
             echo "❌ Error: Resources directory not found: $RESOURCES_DIR"
             echo "Contents of dist-electron/:"
-            find dist-electron/ -type f -name "*" 2>/dev/null | head -30 || echo "dist-electron/ not found"
+            find dist-electron/ -type f 2>/dev/null | head -30 || echo "dist-electron/ not found"
             exit 1
           fi
-          
+
           echo ""
           echo "📁 Checking required files..."
           echo "------------------------------------------"
-          
-          # Verify each expected file
+
           FAILED=0
           for file in "${EXPECTED_FILES[@]}"; do
             FULL_PATH="$RESOURCES_DIR/$file"
             if [ -f "$FULL_PATH" ]; then
               SIZE=$(du -h "$FULL_PATH" 2>/dev/null | cut -f1)
               SIZE_BYTES=$(stat -f%z "$FULL_PATH" 2>/dev/null || stat -c%s "$FULL_PATH" 2>/dev/null || echo "0")
-              
-              # Check minimum size for critical files
-              MIN_SIZE=0
-              # Python backend executable in one-dir mode (launcher only, not single-exe)
-              if [[ "$file" == python/Papyrus/Papyrus* ]]; then
-                MIN_SIZE=5000000  # 5MB for Python backend launcher (one-dir mode)
-                if [ "$SIZE_BYTES" -lt "$MIN_SIZE" ]; then
-                  echo "❌ $file ($SIZE) - TOO SMALL! Expected >5MB"
-                  FAILED=$((FAILED + 1))
-                  continue
-                fi
-              fi
+
               if [[ "$file" == "app.asar" ]]; then
-                MIN_SIZE=1000000  # 1MB for app.asar
-                if [ "$SIZE_BYTES" -lt "$MIN_SIZE" ]; then
-                  echo "❌ $file ($SIZE) - TOO SMALL! Expected >1MB"
+                # app.asar 应当包含 frontend/dist + backend/dist + electron 源
+                # 阈值放宽到 500KB（最小可运行集合）
+                if [ "$SIZE_BYTES" -lt 500000 ]; then
+                  echo "❌ $file ($SIZE) - TOO SMALL! Expected >500KB"
                   FAILED=$((FAILED + 1))
                   continue
                 fi
               fi
-              
+
               echo "✅ $file ($SIZE)"
             else
               echo "❌ MISSING: $file"
               FAILED=$((FAILED + 1))
             fi
           done
-          
-          # Verify expected directories
-          echo ""
-          echo "📂 Checking required directories..."
-          echo "------------------------------------------"
-          for dir in "${EXPECTED_DIRS[@]}"; do
-            FULL_PATH="$RESOURCES_DIR/$dir"
-            if [ -d "$FULL_PATH" ]; then
-              FILE_COUNT=$(find "$FULL_PATH" -type f 2>/dev/null | wc -l)
-              DIR_SIZE=$(du -sh "$FULL_PATH" 2>/dev/null | cut -f1)
-              
-              # Check if directory has content
-              if [ "$FILE_COUNT" -eq 0 ]; then
-                echo "❌ $dir (EMPTY) - Expected files inside"
-                FAILED=$((FAILED + 1))
-              else
-                echo "✅ $dir ($FILE_COUNT files, $DIR_SIZE)"
-              fi
-            else
-              echo "❌ MISSING DIR: $dir"
-              FAILED=$((FAILED + 1))
-            fi
-          done
-          
-          # Summary
+
           echo ""
           echo "=========================================="
           if [ $FAILED -gt 0 ]; then
@@ -284,26 +224,16 @@ jobs:
             find "$RESOURCES_DIR" -type f 2>/dev/null | head -50
             exit 1
           fi
-          
-          echo "✅ All files and directories verified!"
+
+          echo "✅ All files verified!"
           echo "=========================================="
-          
-          # Print summary of key components
+
           echo ""
           echo "📊 Build Summary:"
           echo "------------------------------------------"
-          PYTHON_EXE="$RESOURCES_DIR/python/Papyrus/Papyrus.exe"
           APP_ASAR="$RESOURCES_DIR/app.asar"
-          INTERNAL_DIR="$RESOURCES_DIR/python/Papyrus/_internal"
-          
-          if [ -f "$PYTHON_EXE" ]; then
-            echo "Python Backend: $(du -h "$PYTHON_EXE" | cut -f1)"
-          fi
-          if [ -d "$INTERNAL_DIR" ]; then
-            echo "Python Dependencies: $(find "$INTERNAL_DIR" -name "*.pyd" -o -name "*.dll" | wc -l) native modules"
-          fi
           if [ -f "$APP_ASAR" ]; then
-            echo "App Bundle: $(du -h "$APP_ASAR" | cut -f1)"
+            echo "App Bundle (app.asar): $(du -h "$APP_ASAR" | cut -f1)"
           fi
 
       - name: Upload Artifact
@@ -336,16 +266,12 @@ jobs:
       - name: Extract Changelog
         id: changelog
         run: |
-          # Get version from tag or input
           VERSION="${{ github.event.inputs.tag || github.ref_name }}"
           VERSION="${VERSION#v}"  # Remove 'v' prefix if present
-          
+
           echo "Extracting changelog for version: $VERSION"
-          
-          # Run extraction script
           node scripts/extract-changelog.js "$VERSION" >> $GITHUB_OUTPUT
-          
-          # Also save to file for debugging
+
           echo "=== Extracted Changelog ==="
           cat RELEASE_NOTES.md
           echo "==========================="
@@ -365,21 +291,21 @@ jobs:
         id: release_type
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          
+
           if [[ "$TAG" == *"alpha"* ]] || [[ "$TAG" == *"beta"* ]] || [[ "$TAG" == *"rc"* ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
-          
+
           echo "Tag: $TAG"
-          echo "Is Prerelease: ${{ steps.release_type.outputs.is_prerelease }}"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/Papyrus-Win-x64/**/*-Setup-*.exe
+            artifacts/Papyrus-Win-x64/**/*-Portable-*.exe
             artifacts/Papyrus-Apple-Silicon-arm64/**/*.dmg
             artifacts/Papyrus-Apple-Silicon-arm64/**/*.zip
             artifacts/Papyrus-Linux-x64/**/*.AppImage

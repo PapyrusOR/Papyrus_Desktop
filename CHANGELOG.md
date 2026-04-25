@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows build strip command warnings
 - Asset duplication in build
 
+### Security
+- Bumped frontend `lodash` to ≥4.18.1 and `postcss` to ≥8.5.10 via `npm audit fix`
+- Production dependency audit (`npm audit --omit=dev --audit-level=high`) is now enforced in CI; both frontend and backend ship with zero high/critical advisories
+- Known dev-chain advisories remain in `vite`/`esbuild` (dev server only) and `tar` via `electron-builder` (build-host only); these do not affect the released binary and are not gated by the prod-only audit
+
 ---
 
 ## [v2.0.0-beta.1] - 2026-03-29

@@ -118,6 +118,9 @@ $RECYCLE.BIN/
 # ----------------------------------------------------------------------------
 tools/code_backups/
 
+# Claude Code local session/settings
+.claude/
+
 # ----------------------------------------------------------------------------
 # Environment & Secrets (DO NOT COMMIT)
 # ----------------------------------------------------------------------------
@@ -134,11 +137,14 @@ secrets/
 
 # Security audit files
 SECURITY_AUDIT_REPORT*.md
+security-scan-report*.md
+security_scan_report*.md
 
 # ----------------------------------------------------------------------------
 # Test & Coverage
 # ----------------------------------------------------------------------------
 coverage/
+coverage*.txt
 nyc_output/
 .nyc_output/
 test-results/
