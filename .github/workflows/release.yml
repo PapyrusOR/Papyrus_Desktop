@@ -314,13 +314,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Papyrus-Win-x64/dist-electron/*-Setup-*.exe
-            artifacts/Papyrus-Win-x64/dist-electron/*-Portable-*.exe
-            artifacts/Papyrus-Apple-Silicon-arm64/dist-electron/*.dmg
-            artifacts/Papyrus-Apple-Silicon-arm64/dist-electron/*-mac.zip
-            artifacts/Papyrus-Linux-x64/dist-electron/*.AppImage
-            artifacts/Papyrus-Linux-x64/dist-electron/*.deb
-            artifacts/Papyrus-Linux-x64/dist-electron/*.tar.gz
+            artifacts/Papyrus-Win-x64/**/*-Setup-*.exe
+            artifacts/Papyrus-Win-x64/**/*-Portable-*.exe
+            artifacts/Papyrus-Apple-Silicon-arm64/**/*.dmg
+            artifacts/Papyrus-Apple-Silicon-arm64/**/*-mac.zip
+            artifacts/Papyrus-Linux-x64/**/*.AppImage
+            artifacts/Papyrus-Linux-x64/**/*.deb
+            artifacts/Papyrus-Linux-x64/**/*.tar.gz
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.tag }}
           body_path: CHANGELOG_SECTION.md
