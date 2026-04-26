@@ -1,6 +1,8 @@
-# 📜 Papyrus (莎草纸)
+# 📜 Papyrus
 
-![Minecraft Paper](https://img.shields.io/badge/Icon-Minecraft_Paper-green)
+**English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
+
+![Version](https://img.shields.io/badge/version-v2.0.0--beta.3-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-24-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
 ![Fastify](https://img.shields.io/badge/Fastify-5-000000)
@@ -10,306 +12,301 @@
 ![AI-Assisted](https://img.shields.io/badge/Dev-AI--Assisted-blueviolet)
 ![Accessibility](https://img.shields.io/badge/a11y-WCAG%202.1%20AA%2FAAA-green)
 
-**Papyrus** 是一款专注于高强度模型记忆的极简、高效、全键盘驱动的 AI Agent 驱动暗记（SRS）复习引擎。
+**Papyrus** is a minimalist, keyboard-driven, AI-agent-powered spaced-repetition (SRS) review engine, designed for high-intensity memory drilling.
 
-> "大道至简。"
-
----
-
-## ✨ 核心特性
-
-- 🚀 **极简交互**：全流程键盘驱动，无需触碰鼠标，助你进入深度复习的"心流"状态。
-- 🧠 **智能调度**：内置基于 SM-2 间隔重复算法，根据掌握程度自动安排下一次复习时间。
-- 🤖 **AI 助手**：支持 OpenAI、Anthropic、Ollama 等多种 AI 提供商，智能辅助学习。
-- 📝 **笔记系统**：支持 Obsidian Vault 导入，统一学习资料管理。
-- ♿ **无障碍支持**：全站达到 WCAG 2.1 AA 级标准，支持屏幕阅读器和键盘导航。
-- 🌐 **现代架构**：Node.js TypeScript (Fastify) 后端 + React TypeScript (Vite) 前端，Electron 桌面壳。
-- 📦 **轻量便携**：数据本地化存储，隐私安全。
+> *"Simplicity is the ultimate sophistication."*
 
 ---
 
-## ⌨️ 快捷键 (心流模式)
+## ✨ Highlights
 
-| 按键 | 动作 | 效果 |
+- 🚀 **Flow-state interaction** — fully keyboard-driven; never touch the mouse during a review session.
+- 🧠 **Proven scheduling** — built-in SM-2 spaced-repetition algorithm tunes the next review interval per card.
+- 🤖 **AI agent** — OpenAI / Anthropic / Ollama, with tool-call approval flow (manual or auto-approve) and call history.
+- 📝 **Notes + Obsidian import** — bring your existing vault, navigate via folder tree, tags, and a relation graph.
+- 🕘 **Version history & rollback** — every note/card edit auto-saves a content-hashed version; rollback creates a forward version (no destructive history).
+- 🔐 **Encrypted API keys at rest** — AES-GCM with a per-install master key, salt, and auth tag.
+- 🛡️ **Hardened defaults** — auth token required for write APIs, SSRF guard for AI base URLs, rate limiting on the public surface, path-traversal protection (`dev`+`ino` containment).
+- ♿ **Accessibility** — WCAG 2.1 AA across the app, with AAA-grade contrast options, screen-reader optimization, and reduced-motion modes.
+- 🌐 **Modern stack** — Node.js + TypeScript (Fastify) backend, React 19 + Vite + Arco Design frontend, Electron 41 shell.
+- 📦 **Local-first** — your data never leaves the machine unless you point an AI provider at the cloud.
+
+---
+
+## 📥 Download
+
+Pre-built installers are published on the [Releases](https://github.com/PapyrusOR/Papyrus_Desktop/releases) page.
+
+| Platform | Architecture | Formats |
 | :--- | :--- | :--- |
-| **Space (空格)** | **揭晓答案** | 展开卷轴，查看"卷尾"内容 |
-| **1** | **忘记** | 标记为不熟悉，短期内高频重现 |
-| **2** | **模糊** | 标记为不确定，稍后再次复习 |
-| **3** | **秒杀** | 记忆极其稳固，复习间隔线性翻倍 |
-| **Tab** | **导航** | 在可交互元素间切换焦点 |
-| **Ctrl + K** | **搜索** | 打开全局搜索 |
+| Windows | x64 | NSIS installer (`.exe`), Portable (`.exe`) |
+| macOS | arm64 | DMG (`.dmg`), ZIP (`.zip`) |
+| Linux | x64 | AppImage, DEB (`.deb`), TAR.GZ |
+
+> ⚠️ `v2.0.0-beta.3` is a beta. The data schema is stable, but the UI and APIs may still evolve before `v2.0.0`.
 
 ---
 
-## 🚀 快速开始
+## ⌨️ Keyboard Shortcuts (Flow Mode)
 
-### 环境要求
+| Key | Action | Effect |
+| :--- | :--- | :--- |
+| **Space** | Reveal answer | Unrolls the scroll, showing the answer side |
+| **1** | Forgot | Mark unfamiliar; the card returns soon |
+| **2** | Hazy | Mark uncertain; the card returns later today |
+| **3** | Aced | Memory rock-solid; interval doubles linearly |
+| **Tab** | Navigate | Move focus between interactive elements |
+| **Ctrl + K** | Search | Open the global search palette |
 
-- **Node.js**: 24+
-- **npm**: 11+
+---
 
-### 安装依赖
+## 🚀 Quick Start (from source)
+
+### Prerequisites
+
+- **Node.js** 24+
+- **npm** 11+
+
+### Install
 
 ```bash
-# 在项目根目录执行；postinstall 会自动级联安装 frontend/ 和 backend/ 的依赖
+# postinstall cascades into frontend/ and backend/
 npm install
 ```
 
-### 启动应用
-
-**方式 1：一键启动前后端（推荐开发）**
+### Run in dev mode
 
 ```bash
-# 在项目根目录
-npm run dev
-# 等价于并发运行 backend (tsx watch) 和 frontend (vite)
-```
-
-**方式 2：分别启动前后端（手动调试）**
-
-```bash
-# 终端 1：启动后端（Fastify + tsx watch）
-cd backend
+# Concurrently runs backend (Fastify, tsx watch) + frontend (Vite)
 npm run dev
 
-# 终端 2：启动前端（Vite）
-cd frontend
-npm run dev
-```
-
-**方式 3：连同 Electron 一起启动**
-
-```bash
+# Or, with the Electron shell on top
 npm run electron:dev
-# 自动构建依赖、释放占用端口、启动前后端、再拉起 Electron
 ```
 
-- 前端开发地址：http://localhost:5173
-- 后端 API：http://127.0.0.1:8000
-- 健康检查：http://127.0.0.1:8000/api/health
+- Frontend: <http://localhost:5173>
+- Backend API: <http://127.0.0.1:8000>
+- Health check: <http://127.0.0.1:8000/api/health>
+
+### Build installers
+
+```bash
+npm run electron:build          # current platform
+npm run electron:build:win      # Windows only
+npm run electron:build:mac      # macOS only
+npm run electron:build:linux    # Linux only
+```
+
+Installers are emitted to `dist-electron/`.
 
 ---
 
-## 📥 批量导入格式
+## 📥 Bulk Card Import
 
-准备一个 `UTF-8` 编码的 `.txt` 文件，格式如下：
+Prepare a UTF-8 `.txt` file in this format:
 
 ```text
-模型场景或问题 A === 核心扳机或答案 A
+Question or scenario A === Trigger or answer A
 
-模型场景或问题 B === 核心扳机或答案 B
+Question or scenario B === Trigger or answer B
 ```
 
-*提示：每组卡片通过 `===` 分隔，组与组之间建议空一行以保持清晰。*
+> Cards within a group are separated by `===`. Leave a blank line between groups for readability.
 
 ---
 
-## 🤖 AI 功能配置
+## 🤖 AI Configuration
 
-### 1. 配置 API
+### 1. Configure a provider
 
-点击侧边栏的 "⚙️ 设置" 按钮，输入你的 API Key：
+Open the in-app **⚙️ Settings** sidebar and add an API key:
 
-- **OpenAI**: 在 https://platform.openai.com/api-keys 获取
-- **Anthropic**: 在 https://console.anthropic.com/ 获取
-- **Ollama**: 本地运行，无需 API Key
+- **OpenAI** — get a key at <https://platform.openai.com/api-keys>
+- **Anthropic** — get a key at <https://console.anthropic.com/>
+- **Ollama** — runs locally, no API key needed
   ```bash
-  # 安装 Ollama
-  # 下载: https://ollama.ai
-  
-  # 拉取模型
+  # Install: https://ollama.ai
   ollama pull llama2
   ```
 
-### 2. 模式配置
+API keys are persisted **encrypted at rest** (AES-GCM with a per-install master key).
 
-#### Agent 模式
-AI 将使用工具调用进行卡片的添加、编辑、删除等操作
+### 2. Pick a mode
 
-#### Chat 模式
-仅保留聊天功能
+- **Agent mode** — the model can invoke tools (add / edit / delete cards, search notes, …) under a tool-call approval flow.
+- **Chat mode** — pure conversation, no side effects.
 
-### 3. 参数调整
+### 3. Tune
 
-在设置中可以调整：
-- **Temperature**: 控制创造性（0-2，越高越随机）
-- **Max Tokens**: 最大回复长度
-
----
-
-## ♿ 无障碍功能
-
-Papyrus 致力于让所有用户都能轻松使用：
-
-- **键盘导航**：完整的 Tab 键导航支持
-- **屏幕阅读器**：优化的 ARIA 标签和朗读体验
-- **高对比度**：AAA 级颜色对比度标准
-- **减少动画**：为敏感用户提供舒适体验
-
-访问 **设置 → 无障碍** 启用相关功能。
+- **Temperature** — 0 to 2, higher is more random.
+- **Max tokens** — cap on response length.
+- **Tool approval** — `manual` (queue and review) or `auto` (allow-list driven).
 
 ---
 
-## 🛠️ 技术架构
+## ♿ Accessibility
+
+Papyrus aims to be usable by everyone:
+
+- **Keyboard navigation** — full Tab traversal across every page.
+- **Screen readers** — semantic ARIA labels, live regions for state changes.
+- **Contrast** — AAA-grade palettes available under **Settings → Accessibility**.
+- **Motion** — reduced-motion mode honors OS preference.
+
+---
+
+## 🛠️ Architecture
 
 ```
 Papyrus/
-├── backend/               # Node.js TypeScript 后端
-│   ├── src/
-│   │   ├── api/           # Fastify 路由与服务器入口 (server.ts)
-│   │   ├── core/          # 卡片与复习核心逻辑 (SM-2)
-│   │   ├── db/            # 数据持久化
-│   │   ├── ai/            # AI 提供商适配 (OpenAI / Anthropic / Ollama)
-│   │   ├── mcp/           # MCP (Model Context Protocol) 服务
-│   │   ├── integrations/  # 第三方集成 (Obsidian、文件监听)
-│   │   └── utils/         # 通用工具
-│   ├── tests/             # 单元测试 + 集成测试 (Jest)
-│   └── package.json
-├── frontend/              # React + TypeScript 前端
+├── backend/                  # Node.js + TypeScript (Fastify)
 │   └── src/
-│       ├── StartPage/     # 开始页面
-│       ├── ScrollPage/    # 卷轴复习页面
-│       ├── NotesPage/     # 笔记页面
-│       └── SettingsPage/  # 设置页面
-├── electron/              # Electron 主进程 + preload
-├── scripts/               # 构建脚本 (build-electron.js, extract-changelog.js)
-├── data/                  # 用户数据（不进 Git）
-├── backup/                # 自动备份
-└── docs/                  # 项目文档
+│       ├── api/              # Fastify routes & server entry (server.ts)
+│       ├── core/             # Cards, notes, SM-2, versioning, crypto
+│       ├── db/               # JSON persistence + migrations
+│       ├── ai/               # Provider abstraction, tool manager, LLM cache
+│       ├── mcp/              # MCP REST endpoints (notes / vault CRUD)
+│       ├── integrations/     # Obsidian import, file watcher (chokidar)
+│       └── utils/            # Shared utilities
+├── frontend/                 # React 19 + TypeScript (Vite)
+│   └── src/
+│       ├── StartPage/        # Home (recent notes, review queue, solar terms)
+│       ├── ScrollPage/       # Flashcard study (the "scroll")
+│       ├── NotesPage/        # Notes management & graph view
+│       ├── SettingsPage/     # Settings, AI config, accessibility
+│       └── ChartsPage/       # Stats & progress charts
+├── electron/                 # Main process + preload (Electron 41)
+├── scripts/                  # build-electron.js, extract-changelog.js
+├── e2e/                      # Playwright E2E tests
+└── docs/                     # Project documentation
 ```
 
-### 技术栈
+### Stack
 
-- **后端**: Node.js 24, TypeScript 5, Fastify 5, Jest
-- **前端**: React 19, TypeScript, Arco Design, Tailwind CSS, Vite
-- **桌面**: Electron 41 + electron-builder
-- **算法**: SM-2 间隔重复
-- **存储**: 本地 JSON 文件
+- **Backend** — Node.js 24, TypeScript 5, Fastify 5, Jest
+- **Frontend** — React 19, TypeScript 5, Vite, Arco Design, Tailwind CSS
+- **Desktop** — Electron 41 + electron-builder
+- **Algorithm** — SM-2 spaced repetition
+- **Storage** — local JSON files, content-hashed versions
+- **CI/CD** — GitHub Actions matrix (Windows x64, macOS arm64, Linux x64)
 
 ---
 
-## 🔧 开发说明
+## 🔧 Development
 
-### 后端开发
+### Backend
 
 ```bash
 cd backend
-npm run dev        # tsx watch，热重载启动 Fastify 服务
-npm run build      # 编译 TypeScript 到 dist/
-npm run typecheck  # 仅做类型检查（tsc --noEmit）
-npm start          # 运行已编译的 dist/api/server.js
+npm run dev         # tsx watch — hot-reload Fastify
+npm run build       # compile TypeScript to dist/
+npm run typecheck   # tsc --noEmit
+npm test            # Jest unit + integration
+npm start           # run compiled dist/api/server.js
 ```
 
-后端默认监听 `127.0.0.1:8000`，可通过环境变量 `PAPYRUS_PORT` 覆盖。
+The backend listens on `127.0.0.1:8000` by default; override with `PAPYRUS_PORT`.
 
-### 前端开发
+### Frontend
 
 ```bash
 cd frontend
-npm run dev        # 开发服务器 (Vite, http://localhost:5173)
-npm run build      # 生产构建到 dist/
-npm run typecheck  # 类型检查
+npm run dev         # Vite dev server (http://localhost:5173)
+npm run build       # production build to dist/
+npm run typecheck   # TypeScript type-checking
 ```
 
-### 运行测试
+### Release flow
 
 ```bash
-# 后端单元 + 集成测试 (Jest)
-cd backend
-npm test
-npm run test:watch
-```
+# 1. Move [Unreleased] entries in CHANGELOG.md under the new version
 
-### 发布流程
-
-```bash
-# 1. 更新 CHANGELOG.md，将 [Unreleased] 的内容移动到新的版本号下
-
-# 2. 本地预览 changelog
+# 2. (optional) preview the section that will land in the GitHub Release
 node scripts/extract-changelog.js v2.0.0
 
-# 3. 提交更改
+# 3. Commit
 git add CHANGELOG.md
 git commit -m "chore: release v2.0.0"
 
-# 4. 打标签并推送（自动触发 Release）
+# 4. Tag & push — GitHub Actions builds all three platforms,
+#    extracts the matching CHANGELOG section, and uploads installers.
 git tag v2.0.0
 git push origin main --tags
-
-# GitHub Actions 会自动：
-# - 构建所有平台的安装包
-# - 从 CHANGELOG.md 提取对应版本的发布说明
-# - 创建 GitHub Release 并上传安装包
 ```
 
 ---
 
-## 📁 配置文件
+## 📁 Data Files
 
-- **AI 配置**: `data/ai_config.json` - API 密钥和模型设置
-- **学习数据**: `data/Papyrusdata.json` - 卡片和复习记录
-- **笔记数据**: `data/notes.json` - 笔记内容
+By default, user data lives under `paths.dataDir` (defaults to `$HOME/PapyrusData`, override with `PAPYRUS_DATA_DIR`):
 
----
-
-## ⚠️ 注意事项
-
-1. **API 费用**: OpenAI 和 Anthropic 按使用量收费，建议设置预算
-2. **本地模型**: Ollama 完全免费，但需要较好的硬件
-3. **网络**: 云端 API 需要稳定的网络连接
-4. **隐私**: 本地模型数据不会上传，云端 API 会发送问题内容
-5. **并发**: 当前使用文件存储，不建议多进程同时写入
+- `ai_config.json` — provider, model, encrypted API keys
+- `Papyrusdata.json` — cards & SM-2 review state
+- `notes.json` — notes
+- `~/.papyrus/auth.token` — token required for write APIs (generated on first run)
 
 ---
 
-## 📚 文档导航
+## ⚠️ Notes
 
-### 用户指南
-- [快速启动指南](docs/guides/QUICKSTART.md) - 5分钟上手
-- [无障碍设置](docs/guides/A11Y_SETTINGS.md) - 辅助功能说明
-- [版本信息](docs/guides/VERSION.md) - 当前版本和更新内容
-- [更新日志](CHANGELOG.md) - 完整的版本历史（自动同步到 Release）
-
-### 开发指南
-- [项目结构](docs/PROJECT_STRUCTURE.md) - 代码组织说明
-- [环境要求](docs/guides/ENVIRONMENT_REQUIREMENTS.md) - 开发环境配置
-- [无障碍开发指南](docs/guides/ACCESSIBILITY_GUIDE.md) - a11y 开发规范
-- [UI 设计变量](docs/guides/UI_TOKENS.md) - 前端样式规范
-- [API 文档](docs/API.md) - REST API 参考
-- [扩展开发指南](docs/EXTENSIONS.md) - 开发浏览器扩展和第三方工具
-- [扩展示例](examples/extension-template/) - 完整的扩展模板项目
-
-### AI 功能
-- [AI 功能说明](docs/AI_README.md) - AI 助手使用指南
-- [AI 工具演示](docs/AI_TOOLS_DEMO.md) - 实际使用案例
+1. **API costs** — OpenAI and Anthropic bill per use; set provider-side budgets.
+2. **Local models** — Ollama is free but needs decent hardware.
+3. **Network** — cloud providers need a stable connection.
+4. **Privacy** — local models stay local; cloud providers see the prompts you send.
+5. **Concurrency** — JSON-file storage is single-writer; don't run multiple instances against the same data dir.
 
 ---
 
-## 💡 开发者说
+## 📚 Documentation
 
-其实这个作品的诞生过程没有那么理想和伟大。
+### User guides
+- [Quick Start](docs/guides/QUICKSTART.md) — 5-minute onboarding
+- [Accessibility settings](docs/guides/A11Y_SETTINGS.md)
+- [Version info](docs/guides/VERSION.md)
+- [Changelog](CHANGELOG.md) — synced into GitHub Releases
 
-为什么要做这个呢？有一天我在搞 AI 学习，下了个 Anki 准备背记知识点，下完发现这玩意要检查更新，更新要连服务器，我死活连不上。
+### Developer guides
+- [Project structure](docs/PROJECT_STRUCTURE.md)
+- [Environment requirements](docs/guides/ENVIRONMENT_REQUIREMENTS.md)
+- [Accessibility development](docs/guides/ACCESSIBILITY_GUIDE.md)
+- [UI design tokens](docs/guides/UI_TOKENS.md)
+- [REST API reference](docs/API.md)
+- [Extension development](docs/EXTENSIONS.md) and [extension template](examples/extension-template/)
+- [Electron packaging](ELECTRON.md)
+- [Dev environment](README-DEV.md)
 
-这时候发现 Gemini 在旁边呢，让它给我写一个吧，然后写了写调了调，就拿去用了。
-
-其实我本来没想发这个东西的，为啥还是发了呢？
-
-昨天我用上好久没上的号给女朋友点 star，github 把我识别成机器人，把我的活动下了。我火大啊，我自己用 AI，我自己又不是 AI，为了证明我不是 AI，刚好手里有这个，就改了改放上来了。
-
-小故事讲完了，今天都初六了，过会都天亮了。苦逼学生，哎，只能在这发发牢骚。
-
-我很喜欢一句话：知识使人自由(Veritas vos liberabit)，与各位大佬共勉，这是我的第一个开源项目，望大佬们多多海涵。
-
-就当是拜个晚年吧。
-**祝你在新的一年，手持知识之利刃，刺破黑夜之墟，直捣黎明之境。**
-
----
-
-## 📄 开源协议
-
-MIT License
+### AI features
+- [AI overview](docs/AI_README.md)
+- [AI tools demo](docs/AI_TOOLS_DEMO.md)
+- [Tool-call approval design](docs/tool_call_approval.md)
 
 ---
 
-**Papyrus** - 让学习更智能，让记忆更科学。
+## 💡 A Word from the Author
+
+Honestly, the birth of this project wasn't all that grand or visionary.
+
+Why did I make it? One day I was drilling some AI material and downloaded Anki to memorize the key points. Right after install, the thing wanted to check for updates, the updates wanted to talk to a server, and I just could not get a connection through.
+
+Gemini was sitting right there. So I told it to write me one. We tinkered, I patched, and I started using it.
+
+I never planned to publish it. So why did I?
+
+Yesterday I logged into a long-dormant account to give my girlfriend a star, and GitHub flagged me as a bot and wiped my activity. I was furious. I'm using AI; I'm not AI. To prove I'm not a bot, I cleaned up what I had on hand and put it up here.
+
+End of small story. It's already the sixth day of the lunar new year, and dawn is creeping up. A grumbling student, sighing at three in the morning. Such is life.
+
+There's a phrase I love: **Veritas vos liberabit** — "the truth shall set you free." May we all share in it. This is my first open-source project; please be kind.
+
+Consider this my belated lunar new-year greeting.
+**May the new year find you wielding the blade of knowledge — slicing through the void of night, charging straight into the dawn.**
+
+---
+
+## 📄 License
+
+[MIT](LICENSE)
+
+---
+
+**Papyrus** — make learning smarter, make memory scientific.
