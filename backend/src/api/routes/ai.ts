@@ -23,7 +23,7 @@ interface AIConfigPayload {
   current_model: string;
   providers: Record<string, { api_key: string; base_url: string; models: string[] }>;
   parameters: { temperature: number; top_p: number; max_tokens: number; presence_penalty: number; frequency_penalty: number };
-  features: { auto_hint: boolean; auto_explain: boolean; context_length: number; agent_enabled: boolean };
+  features: { auto_hint: boolean; auto_explain: boolean; context_length: number; agent_enabled: boolean; cache_enabled: boolean };
 }
 
 interface CompletionPayload {
@@ -103,6 +103,7 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
         auto_explain: payload.features.auto_explain,
         context_length: payload.features.context_length,
         agent_enabled: payload.features.agent_enabled,
+        cache_enabled: payload.features.cache_enabled ?? aiConfig.config.features.cache_enabled,
       };
 
       aiConfig.saveConfig();

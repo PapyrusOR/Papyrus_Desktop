@@ -5,6 +5,7 @@ import { Mutex } from 'async-mutex';
 import OpenAI from 'openai';
 import type { AIConfig } from './config.js';
 import { isPrivateUrl } from './config.js';
+import { LLMCache } from './llm-cache.js';
 
 export type StreamEventType = 'content' | 'reasoning' | 'tool_start' | 'tool_result' | 'done' | 'error';
 
@@ -66,6 +67,7 @@ export class AIManager {
   sessions: Record<string, SessionData> = {};
   activeSessionId: string | null = null;
   private saveMutex = new Mutex();
+  llmCache: LLMCache;
 
   constructor(config: AIConfig) {
     this.config = config;
@@ -73,6 +75,9 @@ export class AIManager {
     this.conversationsDir = path.join(this.dataDir, 'conversations');
     this.uploadsDir = path.join(this.dataDir, 'uploads');
     this.sessionsFile = path.join(this.conversationsDir, 'sessions.json');
+    this.llmCache = new LLMCache(path.join(this.dataDir, 'llm_cache'), {
+      enabled: config.config.features.cache_enabled,
+    });
 
     fs.mkdirSync(this.conversationsDir, { recursive: true });
     fs.mkdirSync(this.uploadsDir, { recursive: true });
@@ -429,11 +434,37 @@ export class AIManager {
     const params = this.config.config.parameters;
     const model = this.config.config.current_model;
 
+    const cacheKey = this.llmCache.buildCacheKey(providerName, model, messages, params, systemPrompt);
+    const cached = this.llmCache.get(cacheKey);
+    if (cached) {
+      try {
+        for (const chunk of cached) {
+          yield chunk;
+        }
+        const activeSession = this.getActiveSession();
+        activeSession.messages.push({
+          role: 'user',
+          content: userMessage,
+          attachments: attachmentsMeta,
+        });
+        activeSession.updated_at = Date.now() / 1000;
+        this.saveSessions();
+        yield { type: 'done', data: '' };
+      } catch (e) {
+        yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+      }
+      return;
+    }
+
+    const collectedChunks: StreamChunk[] = [];
     try {
-      if (providerName === 'ollama') {
-        yield* this.chatStreamOllama(messages, model, params, providerConfig);
-      } else {
-        yield* this.chatStreamOpenAI(messages, model, params, providerConfig, providerName);
+      const stream = providerName === 'ollama'
+        ? this.chatStreamOllama(messages, model, params, providerConfig)
+        : this.chatStreamOpenAI(messages, model, params, providerConfig, providerName);
+
+      for await (const chunk of stream) {
+        collectedChunks.push(chunk);
+        yield chunk;
       }
 
       const activeSession = this.getActiveSession();
@@ -445,6 +476,7 @@ export class AIManager {
       activeSession.updated_at = Date.now() / 1000;
       this.saveSessions();
 
+      this.llmCache.set(cacheKey, collectedChunks);
       yield { type: 'done', data: '' };
     } catch (e) {
       yield { type: 'error', data: e instanceof Error ? e.message : String(e) };

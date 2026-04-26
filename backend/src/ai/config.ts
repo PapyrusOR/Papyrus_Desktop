@@ -22,6 +22,7 @@ export interface FeaturesConfig {
   auto_explain: boolean;
   context_length: number;
   agent_enabled: boolean;
+  cache_enabled: boolean;
 }
 
 export interface LogConfig {
@@ -163,6 +164,7 @@ export class AIConfig {
         auto_explain: false,
         context_length: 10,
         agent_enabled: false,
+        cache_enabled: false,
       },
       log: {
         log_dir: defaultLogDir,
@@ -207,6 +209,7 @@ export class AIConfig {
       auto_explain: Boolean(dict.auto_explain ?? fallback.auto_explain),
       context_length: toInt(dict.context_length ?? fallback.context_length, fallback.context_length),
       agent_enabled: Boolean(dict.agent_enabled ?? fallback.agent_enabled),
+      cache_enabled: Boolean(dict.cache_enabled ?? fallback.cache_enabled),
     };
   }
 

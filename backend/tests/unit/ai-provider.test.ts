@@ -78,11 +78,12 @@ describe('AIManager', () => {
     }
   });
 
-  function createManager(): ManagerLike {
+  function createManager(cacheEnabled = false): ManagerLike {
     const config = new AIConfig(testDir);
     config.config.current_provider = 'ollama';
     config.config.current_model = 'llama2';
     config.config.providers.ollama = { api_key: '', base_url: 'http://localhost:11434', models: ['llama2'] };
+    (config.config.features as Record<string, unknown>).cache_enabled = cacheEnabled;
     return new AIManager(config);
   }
 
@@ -928,6 +929,149 @@ describe('AIManager', () => {
       const result = await manager.generateRelated('Q', 'A');
       expect(result).toBe('related');
       manager.chatStream = originalChatStream;
+    });
+  });
+
+  describe('llm cache integration', () => {
+    it('should cache successful responses', async () => {
+      const manager = createManager(true);
+      manager.conversationHistory = [];
+      ((manager.config as Record<string, unknown>).config as Record<string, unknown>).features = { context_length: 0 };
+      const originalFetch = global.fetch;
+
+      global.fetch = () => {
+        const readable = new ReadableStream({
+          pull(controller) {
+            controller.enqueue(new TextEncoder().encode('{"message":{"content":"cached response"}}\n'));
+            controller.close();
+          },
+        });
+        return Promise.resolve({ ok: true, body: readable } as unknown as Response);
+      };
+
+      const stream1 = manager.chatStream('test message') as AsyncGenerator<Record<string, unknown>>;
+      const chunks1: Array<Record<string, unknown>> = [];
+      for await (const chunk of stream1) {
+        chunks1.push(chunk);
+      }
+
+      global.fetch = originalFetch;
+
+      expect(chunks1.some(c => c.type === 'content')).toBe(true);
+      expect(chunks1.some(c => c.type === 'done')).toBe(true);
+
+      const stream2 = manager.chatStream('test message') as AsyncGenerator<Record<string, unknown>>;
+      const chunks2: Array<Record<string, unknown>> = [];
+      for await (const chunk of stream2) {
+        chunks2.push(chunk);
+      }
+
+      expect(chunks2.some(c => c.type === 'content' && c.data === 'cached response')).toBe(true);
+      expect(chunks2.some(c => c.type === 'done')).toBe(true);
+    });
+
+    it('should not cache error responses', async () => {
+      const manager = createManager(true);
+      const originalFetch = global.fetch;
+
+      global.fetch = () => Promise.resolve({ ok: false, status: 500, statusText: 'Error' } as Response);
+
+      const stream = manager.chatStream('fail message') as AsyncGenerator<Record<string, unknown>>;
+      const chunks: Array<Record<string, unknown>> = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      global.fetch = originalFetch;
+
+      expect(chunks.some(c => c.type === 'error')).toBe(true);
+
+      global.fetch = () => {
+        const readable = new ReadableStream({
+          pull(controller) {
+            controller.enqueue(new TextEncoder().encode('{"message":{"content":"fallback"}}\n'));
+            controller.close();
+          },
+        });
+        return Promise.resolve({ ok: true, body: readable } as unknown as Response);
+      };
+
+      const stream2 = manager.chatStream('fail message') as AsyncGenerator<Record<string, unknown>>;
+      const chunks2: Array<Record<string, unknown>> = [];
+      for await (const chunk of stream2) {
+        chunks2.push(chunk);
+      }
+
+      global.fetch = originalFetch;
+
+      expect(chunks2.some(c => c.type === 'content' && c.data === 'fallback')).toBe(true);
+    });
+
+    it('should not cache when disabled', async () => {
+      const manager = createManager(false);
+      manager.conversationHistory = [];
+      ((manager.config as Record<string, unknown>).config as Record<string, unknown>).features = { context_length: 0 };
+      const originalFetch = global.fetch;
+      let fetchCallCount = 0;
+
+      global.fetch = () => {
+        fetchCallCount++;
+        const readable = new ReadableStream({
+          pull(controller) {
+            controller.enqueue(new TextEncoder().encode('{"message":{"content":"no cache"}}\n'));
+            controller.close();
+          },
+        });
+        return Promise.resolve({ ok: true, body: readable } as unknown as Response);
+      };
+
+      const stream1 = manager.chatStream('no cache message') as AsyncGenerator<Record<string, unknown>>;
+      for await (const chunk of stream1) {
+        void chunk;
+      }
+
+      const stream2 = manager.chatStream('no cache message') as AsyncGenerator<Record<string, unknown>>;
+      for await (const chunk of stream2) {
+        void chunk;
+      }
+
+      global.fetch = originalFetch;
+      expect(fetchCallCount).toBe(2);
+    });
+
+    it('should save user message to session on cache hit', async () => {
+      const manager = createManager(true);
+      const originalFetch = global.fetch;
+
+      global.fetch = () => {
+        const readable = new ReadableStream({
+          pull(controller) {
+            controller.enqueue(new TextEncoder().encode('{"message":{"content":"hello"}}\n'));
+            controller.close();
+          },
+        });
+        return Promise.resolve({ ok: true, body: readable } as unknown as Response);
+      };
+
+      const stream1 = manager.chatStream('persist me') as AsyncGenerator<Record<string, unknown>>;
+      for await (const chunk of stream1) {
+        void chunk;
+      }
+
+      global.fetch = originalFetch;
+
+      const history1 = manager.conversationHistory as Array<{ role: string; content: string }>;
+      expect(history1.some(m => m.role === 'user' && m.content === 'persist me')).toBe(true);
+
+      manager.conversationHistory = [];
+
+      const stream2 = manager.chatStream('persist me') as AsyncGenerator<Record<string, unknown>>;
+      for await (const chunk of stream2) {
+        void chunk;
+      }
+
+      const history2 = manager.conversationHistory as Array<{ role: string; content: string }>;
+      expect(history2.some(m => m.role === 'user' && m.content === 'persist me')).toBe(true);
     });
   });
 });
