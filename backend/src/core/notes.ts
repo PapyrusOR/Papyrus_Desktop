@@ -169,6 +169,7 @@ export function importObsidianVault(vaultPath: string, logger?: PapyrusLogger): 
   const isUnderHomeDir =
     resolvedVaultPath.toLowerCase() === homeDir.toLowerCase() ||
     resolvedVaultPath.toLowerCase().startsWith(homeDir.toLowerCase() + path.sep);
+  console.log(`[importObsidianVault] vaultPath=${vaultPath} resolved=${resolvedVaultPath} home=${homeDir} isUnderHome=${isUnderHomeDir}`);
   if (!isUnderHomeDir) {
     logger?.error(`Obsidian 导入被拒绝: 路径必须在用户主目录内 (${vaultPath})`);
     return { imported: 0, errors: 1 };
@@ -176,6 +177,7 @@ export function importObsidianVault(vaultPath: string, logger?: PapyrusLogger): 
 
   function scanDir(dir: string, relPath = ''): void {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
+    console.log(`[scanDir] dir=${dir} entries=${entries.map(e => e.name).join(',')}`);
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
