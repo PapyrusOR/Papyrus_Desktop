@@ -156,6 +156,29 @@ export function getStats(): { total: number } {
   return { total: getNoteCount() };
 }
 
+function statOrNull(target: string): fs.Stats | null {
+  try {
+    return fs.statSync(target);
+  } catch {
+    return null;
+  }
+}
+
+function isPathUnderRoot(targetPath: string, rootPath: string): boolean {
+  const rootStat = statOrNull(rootPath);
+  if (rootStat === null) return false;
+
+  let current = path.resolve(targetPath);
+  for (;;) {
+    const currentStat = statOrNull(current);
+    if (currentStat === null) return false;
+    if (currentStat.dev === rootStat.dev && currentStat.ino === rootStat.ino) return true;
+    const parent = path.dirname(current);
+    if (parent === current) return false;
+    current = parent;
+  }
+}
+
 export function importObsidianVault(vaultPath: string, logger?: PapyrusLogger): { imported: number; errors: number } {
   let imported = 0;
   let errors = 0;
@@ -164,14 +187,10 @@ export function importObsidianVault(vaultPath: string, logger?: PapyrusLogger): 
     return { imported: 0, errors: 0 };
   }
 
-  const realpath = process.platform === 'win32' ? fs.realpathSync.native : fs.realpathSync;
-  const resolvedVaultPath = realpath(path.resolve(vaultPath));
-  const homeDir = realpath(path.resolve(os.homedir()));
-  const isUnderHomeDir =
-    resolvedVaultPath.toLowerCase() === homeDir.toLowerCase() ||
-    resolvedVaultPath.toLowerCase().startsWith(homeDir.toLowerCase() + path.sep);
-  if (!isUnderHomeDir) {
-    logger?.error(`Obsidian 导入被拒绝: 路径必须在用户主目录内 (${vaultPath})`);
+  const isAllowedRoot =
+    isPathUnderRoot(vaultPath, os.homedir()) || isPathUnderRoot(vaultPath, os.tmpdir());
+  if (!isAllowedRoot) {
+    logger?.error(`Obsidian 导入被拒绝: 路径必须在用户主目录或系统临时目录内 (${vaultPath})`);
     return { imported: 0, errors: 1 };
   }
 
