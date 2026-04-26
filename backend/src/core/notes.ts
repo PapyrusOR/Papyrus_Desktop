@@ -166,7 +166,9 @@ export function importObsidianVault(vaultPath: string, logger?: PapyrusLogger): 
 
   const resolvedVaultPath = fs.realpathSync(path.resolve(vaultPath));
   const homeDir = fs.realpathSync(path.resolve(os.homedir()));
-  const isUnderHomeDir = resolvedVaultPath === homeDir || resolvedVaultPath.startsWith(homeDir + path.sep);
+  const isUnderHomeDir =
+    resolvedVaultPath.toLowerCase() === homeDir.toLowerCase() ||
+    resolvedVaultPath.toLowerCase().startsWith(homeDir.toLowerCase() + path.sep);
   if (!isUnderHomeDir) {
     logger?.error(`Obsidian 导入被拒绝: 路径必须在用户主目录内 (${vaultPath})`);
     return { imported: 0, errors: 1 };
