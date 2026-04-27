@@ -197,9 +197,9 @@ export const api = {
     method: 'POST', 
     body: JSON.stringify({ grade }) 
   }),
-  importTxt: (content: string) => request<{ success: boolean; count: number }>('/import/txt', { 
-    method: 'POST', 
-    body: JSON.stringify({ content }) 
+  importTxt: (content: string) => request<{ success: boolean; count: number }>('/cards/import/txt', {
+    method: 'POST',
+    body: JSON.stringify({ content })
   }),
 
   // Notes

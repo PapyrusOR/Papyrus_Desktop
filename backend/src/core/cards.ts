@@ -98,12 +98,22 @@ export function importCardsFromTxt(content: string, logger?: PapyrusLogger): Car
   const cards: CardRecord[] = [];
 
   for (const line of lines) {
-    const parts = line.split('\t');
+    let parts: string[];
+    if (line.includes('===')) {
+      parts = line.split('===');
+    } else if (line.includes('\t')) {
+      parts = line.split('\t');
+    } else {
+      continue;
+    }
+
     if (parts.length >= 2) {
       const q = parts[0]?.trim() ?? '';
       const a = parts[1]?.trim() ?? '';
       const tags = parts.length > 2 ? parts[2]?.split(',').map(t => t.trim()).filter(Boolean) ?? [] : [];
-      cards.push(createCard(q, a, tags, logger));
+      if (q && a) {
+        cards.push(createCard(q, a, tags, logger));
+      }
     }
   }
 

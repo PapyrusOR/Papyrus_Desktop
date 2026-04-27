@@ -67,20 +67,21 @@ function getIconName() {
 
 // Get Node backend executable info
 function getBackendExecutableInfo() {
-  const isDev = isDevMode;
-  if (isDev) {
+  if (isDevMode) {
     return {
       command: process.platform === 'win32' ? 'npx.cmd' : 'npx',
       args: ['tsx', 'watch', 'src/api/server.ts'],
       cwd: path.join(__dirname, '..', 'backend'),
     };
   }
+
+  const prodAppRoot = path.join(process.resourcesPath, 'app.asar.unpacked');
   return {
     // In production, process.execPath is the Electron executable itself.
     // We set ELECTRON_RUN_AS_NODE=1 so it runs in Node.js mode.
     command: process.execPath,
-    args: [path.join(__dirname, '..', 'backend', 'dist', 'api', 'server.js')],
-    cwd: path.join(__dirname, '..', 'backend'),
+    args: [path.join(prodAppRoot, 'backend', 'dist', 'api', 'server.js')],
+    cwd: path.join(prodAppRoot, 'backend'),
   };
 }
 

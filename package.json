@@ -55,7 +55,9 @@
       }
     ],
     "asar": true,
-    "asarUnpack": [],
+    "asarUnpack": [
+      "backend/**/*"
+    ],
     "win": {
       "target": [
         {

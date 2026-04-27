@@ -184,10 +184,33 @@ describe('Cards', () => {
       expect(cards[1].a).toBe('A2');
     });
 
-    it('should skip invalid lines', () => {
-      const content = 'Q1\tA1\ninvalid-line\nQ2\tA2';
+    it('should import cards from ===-separated text', () => {
+      const content = 'Q1 === A1\nQ2 === A2 === tag1,tag2';
+      const cards = importCardsFromTxt(content);
+
+      expect(cards.length).toBe(2);
+      if (cards[0] === undefined || cards[1] === undefined) throw new Error('expected cards');
+      expect(cards[0].q).toBe('Q1');
+      expect(cards[0].a).toBe('A1');
+      expect(cards[0].tags).toEqual([]);
+      expect(cards[1].q).toBe('Q2');
+      expect(cards[1].a).toBe('A2');
+      expect(cards[1].tags).toEqual(['tag1', 'tag2']);
+    });
+
+    it('should skip lines without recognized separator', () => {
+      const content = 'Q1\tA1\nno-separator-line\nQ2 === A2';
       const cards = importCardsFromTxt(content);
       expect(cards.length).toBe(2);
+    });
+
+    it('should skip cards with empty question or answer', () => {
+      const content = '  === A1\nQ2 ===  \nQ3 === A3';
+      const cards = importCardsFromTxt(content);
+      expect(cards.length).toBe(1);
+      if (cards[0] === undefined) throw new Error('expected card');
+      expect(cards[0].q).toBe('Q3');
+      expect(cards[0].a).toBe('A3');
     });
 
     it('should return empty array for empty content', () => {
