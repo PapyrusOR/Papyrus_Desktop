@@ -243,6 +243,13 @@ export class AIManager {
       if (!fs.existsSync(itemPath)) {
         throw new Error(`文件不存在: ${itemPath}`);
       }
+      if (this.config.config.current_provider === 'liyuan-deepseek') {
+        const resolved = path.resolve(itemPath);
+        const dataDir = path.resolve(this.dataDir);
+        if (!resolved.startsWith(dataDir + path.sep) && resolved !== dataDir) {
+          throw new Error('LiYuan 免费额度仅支持处理 Papyrus 工作区内的文件');
+        }
+      }
       const ext = path.extname(itemPath).toLowerCase();
       if (!IMAGE_EXTENSIONS.has(ext) && !DOCUMENT_EXTENSIONS.has(ext)) {
         throw new Error(`不支持的文件类型: ${path.basename(itemPath)}`);

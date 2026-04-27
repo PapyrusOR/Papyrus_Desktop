@@ -147,6 +147,7 @@ function seedDefaults(database: DatabaseSync): void {
     ['p-gemini', 'gemini', 'Gemini', 'https://generativelanguage.googleapis.com/v1beta', 1, 0, now, now],
     ['p-deepseek', 'deepseek', 'DeepSeek', 'https://api.deepseek.com', 1, 0, now, now],
     ['p-moonshot', 'moonshot', '月之暗面', 'https://api.moonshot.cn', 1, 0, now, now],
+    ['p-liyuan-deepseek', 'liyuan-deepseek', 'LiYuan For DeepSeek', 'https://papyrus.liyuanstudio.com/v1', 1, 0, now, now],
     ['p-siliconflow', 'siliconflow', '硅基流动', 'https://api.siliconflow.cn', 1, 0, now, now],
     ['p-ollama', 'ollama', 'Ollama', 'http://localhost:11434', 1, 0, now, now],
   ];
@@ -164,6 +165,7 @@ function seedDefaults(database: DatabaseSync): void {
     ['k-gemini', 'p-gemini', 'default', encryptedEmpty, now],
     ['k-deepseek', 'p-deepseek', 'default', encryptedEmpty, now],
     ['k-moonshot', 'p-moonshot', 'default', encryptedEmpty, now],
+    ['k-liyuan-deepseek', 'p-liyuan-deepseek', 'default', encryptedEmpty, now],
     ['k-siliconflow', 'p-siliconflow', 'default', encryptedEmpty, now],
     ['k-ollama', 'p-ollama', 'default', encryptedEmpty, now],
   ];
@@ -186,6 +188,8 @@ function seedDefaults(database: DatabaseSync): void {
     ['m-gemini-2', 'p-gemini', 'Gemini 3.0 Flash', 'gemini-3-flash-preview', 'gemini', allCaps, 'k-gemini', 1],
     ['m-deepseek-1', 'p-deepseek', 'DeepSeek V4 Pro', 'deepseek-v4-pro', 'openai', dsCaps, 'k-deepseek', 1],
     ['m-moonshot-1', 'p-moonshot', 'Kimi K2.6', 'kimi-k2.6', 'openai', allCaps, 'k-moonshot', 1],
+    ['m-liyuan-ds-flash', 'p-liyuan-deepseek', 'DeepSeek V4 Flash', 'deepseek-v4-flash', 'openai', allCaps, 'k-liyuan-deepseek', 1],
+    ['m-liyuan-ds-pro', 'p-liyuan-deepseek', 'DeepSeek V4 Pro', 'deepseek-v4-pro', 'openai', dsCaps, 'k-liyuan-deepseek', 0],
   ];
 
   const insertModel = database.prepare(

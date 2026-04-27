@@ -134,7 +134,7 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
       }
 
       const apiKey = providerConfig.api_key;
-      if (!apiKey) {
+      if (!apiKey && providerName !== 'liyuan-deepseek') {
         reply.send({ success: false, message: 'API Key 未设置' });
         return;
       }
@@ -188,7 +188,7 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
     const providerName = aiConfig.config.current_provider;
     const providerConfig = aiConfig.getProviderConfig();
 
-    if (providerName !== 'ollama' && !providerConfig.api_key) {
+    if (providerName !== 'ollama' && providerName !== 'liyuan-deepseek' && !providerConfig.api_key) {
       reply.status(400).send({ success: false, error: 'AI API Key 未设置' });
       return;
     }

@@ -49,6 +49,7 @@ const PORT_OPTIONS = [
   { label: 'OpenAI-Response', value: 'openai-response' },
   { label: 'Anthropic', value: 'anthropic' },
   { label: 'Gemini', value: 'gemini' },
+  { label: 'LiYuan For DeepSeek', value: 'liyuan-deepseek' },
 ];
 
 const CAPABILITIES = [
@@ -62,6 +63,7 @@ const PROVIDER_PRESETS: Record<string, { name: string; baseUrl: string }> = {
   'openai-response': { name: 'OpenAI-Response', baseUrl: 'https://api.openai.com/v1' },
   anthropic: { name: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1' },
   gemini: { name: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
+  'liyuan-deepseek': { name: 'LiYuan For DeepSeek', baseUrl: 'https://papyrus.liyuanstudio.com/v1' },
 };
 
 const PROVIDER_PORT_OPTIONS = [
@@ -69,6 +71,7 @@ const PROVIDER_PORT_OPTIONS = [
   { label: 'OpenAI-Response', value: 'openai-response' },
   { label: 'Anthropic', value: 'anthropic' },
   { label: 'Gemini', value: 'gemini' },
+  { label: 'LiYuan For DeepSeek', value: 'liyuan-deepseek' },
 ];
 
 const NAV_ITEMS = [

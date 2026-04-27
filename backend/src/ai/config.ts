@@ -144,6 +144,11 @@ export class AIConfig {
           base_url: 'https://api.moonshot.cn/v1',
           models: ['kimi-k2.5'],
         },
+        'liyuan-deepseek': {
+          api_key: '',
+          base_url: 'https://papyrus.liyuanstudio.com/v1',
+          models: ['deepseek-v4-flash'],
+        },
         custom: {
           api_key: '',
           base_url: '',

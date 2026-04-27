@@ -15,6 +15,7 @@ const providerMap: Record<string, keyof typeof ProviderIcons> = {
   gemini: 'Gemini',
   ollama: 'Ollama',
   deepseek: 'Deepseek',
+  'liyuan-deepseek': 'Deepseek',
   siliconflow: 'Siliconcloud',
   moonshot: 'Moonshot',
   custom: 'Openai',
