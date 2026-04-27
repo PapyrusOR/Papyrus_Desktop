@@ -157,7 +157,7 @@ export class PapyrusLogger {
     this._writeToFile(this.errorLogFile, line);
     }
 
-    if (level !== 'DEBUG') {
+    if (level !== 'DEBUG' && process.env.NODE_ENV !== 'test') {
       console.log(line.trimEnd());
     }
   }
