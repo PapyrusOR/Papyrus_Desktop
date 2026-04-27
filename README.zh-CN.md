@@ -43,7 +43,7 @@
 | macOS | arm64 | DMG(`.dmg`)、ZIP(`.zip`) |
 | Linux | x64 | AppImage、DEB(`.deb`)、TAR.GZ |
 
-> ⚠️ `v2.0.0-beta.3` 是 beta 版本。数据结构已稳定,但 UI 与 API 在 `v2.0.0` 正式版前仍可能调整。
+> ⚠️ `v2.0.0-beta.4` 是 beta 版本。数据结构已稳定,但 UI 与 API 在 `v2.0.0` 正式版前仍可能调整。
 
 ---
 

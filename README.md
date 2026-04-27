@@ -43,7 +43,7 @@ Pre-built installers are published on the [Releases](https://github.com/PapyrusO
 | macOS | arm64 | DMG (`.dmg`), ZIP (`.zip`) |
 | Linux | x64 | AppImage, DEB (`.deb`), TAR.GZ |
 
-> ⚠️ `v2.0.0-beta.3` is a beta. The data schema is stable, but the UI and APIs may still evolve before `v2.0.0`.
+> ⚠️ `v2.0.0-beta.4` is a beta. The data schema is stable, but the UI and APIs may still evolve before `v2.0.0`.
 
 ---
 
