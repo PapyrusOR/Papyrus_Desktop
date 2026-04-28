@@ -84,10 +84,16 @@ jobs:
           (cd frontend && npm audit --omit=dev --audit-level=high)
           echo "=== Backend production audit ==="
           (cd backend && npm audit --omit=dev --audit-level=high)
+          echo "=== Root production audit ==="
+          npm audit --omit=dev --audit-level=high
           echo "Production dependency audit passed."
 
       - name: Typecheck Backend
         working-directory: backend
+        run: npm run typecheck
+
+      - name: Typecheck Frontend
+        working-directory: frontend
         run: npm run typecheck
 
       - name: Test Backend

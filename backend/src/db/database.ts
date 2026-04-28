@@ -316,7 +316,7 @@ export function deleteCardsByIds(cardIds: string[], logger?: PapyrusLogger): num
   const stmt = database.prepare(`DELETE FROM cards WHERE id IN (${placeholders})`);
   const result = stmt.run(...cardIds);
   logger?.info(`批量删除 ${result.changes} 张卡片`);
-  return result.changes;
+  return Number(result.changes);
 }
 
 export function getCardById(cardId: string): CardRecord | null {
@@ -498,7 +498,7 @@ export function deleteNotesByIds(noteIds: string[], logger?: PapyrusLogger): num
   const stmt = database.prepare(`DELETE FROM notes WHERE id IN (${placeholders})`);
   const result = stmt.run(...noteIds);
   logger?.info(`批量删除 ${result.changes} 条笔记`);
-  return result.changes;
+  return Number(result.changes);
 }
 
 export function getNoteById(noteId: string): Note | null {
