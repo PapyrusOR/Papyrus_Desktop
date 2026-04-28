@@ -32,10 +32,6 @@
   "win": {
     "target": [
       {
-        "target": "portable",
-        "arch": ["x64"]
-      },
-      {
         "target": "nsis",
         "arch": ["x64"]
       }
@@ -59,10 +55,6 @@
     "target": [
       {
         "target": "dmg",
-        "arch": ["arm64"]
-      },
-      {
-        "target": "zip",
         "arch": ["arm64"]
       }
     ],
@@ -101,10 +93,6 @@
       },
       {
         "target": "deb",
-        "arch": ["x64"]
-      },
-      {
-        "target": "tar.gz",
         "arch": ["x64"]
       }
     ],

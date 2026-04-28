@@ -43,15 +43,24 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
 
   // 从 localStorage 加载用户设置
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as UserProfile;
-        setUserProfile(parsed);
+    const loadProfile = () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as UserProfile;
+          setUserProfile(parsed);
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
       }
-    } catch (error) {
-      console.error('Failed to load user profile:', error);
-    }
+    };
+    loadProfile();
+    window.addEventListener('papyrus_user_profile_changed', loadProfile);
+    window.addEventListener('storage', loadProfile);
+    return () => {
+      window.removeEventListener('papyrus_user_profile_changed', loadProfile);
+      window.removeEventListener('storage', loadProfile);
+    };
   }, []);
 
   // 保存用户设置到 localStorage
@@ -59,6 +68,7 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
       setUserProfile(profile);
+      window.dispatchEvent(new CustomEvent('papyrus_user_profile_changed'));
     } catch (error) {
       console.error('Failed to save user profile:', error);
       Message.error('保存用户设置失败');

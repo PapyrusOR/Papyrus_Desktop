@@ -505,7 +505,17 @@ export class AIManager {
       throw new Error('SSRF: 禁止通过非本地 provider 访问私有地址');
     }
 
-    const client = new OpenAI({ apiKey, baseURL: baseUrl });
+    const client = new OpenAI({
+      apiKey: apiKey || 'dummy',
+      baseURL: baseUrl,
+      fetch: (url, init) => {
+        const headers = new Headers(init?.headers);
+        if (providerName === 'liyuan-deepseek' && !apiKey) {
+          headers.delete('Authorization');
+        }
+        return fetch(url, { ...init, headers });
+      },
+    });
 
     const requestParams: OpenAI.Chat.ChatCompletionCreateParams = {
       model,

@@ -40,6 +40,12 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
     const { providerId } = request.params as { providerId: string };
     const body = request.body as Partial<Provider>;
     saveProvider({ ...body, id: providerId });
+
+    if (body.apiKeys) {
+      for (const key of body.apiKeys) {
+        saveApiKey(providerId, key);
+      }
+    }
     reply.send({ success: true, message: 'Provider updated' });
   });
 

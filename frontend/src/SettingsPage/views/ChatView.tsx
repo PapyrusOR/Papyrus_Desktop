@@ -50,6 +50,7 @@ const PORT_OPTIONS = [
   { label: 'Anthropic', value: 'anthropic' },
   { label: 'Gemini', value: 'gemini' },
   { label: 'LiYuan For DeepSeek', value: 'liyuan-deepseek' },
+  { label: 'Ollama', value: 'ollama' },
 ];
 
 const CAPABILITIES = [
@@ -64,6 +65,7 @@ const PROVIDER_PRESETS: Record<string, { name: string; baseUrl: string }> = {
   anthropic: { name: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1' },
   gemini: { name: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
   'liyuan-deepseek': { name: 'LiYuan For DeepSeek', baseUrl: 'https://papyrus.liyuanstudio.com/v1' },
+  ollama: { name: 'Ollama', baseUrl: 'http://localhost:11434' },
 };
 
 const PROVIDER_PORT_OPTIONS = [
@@ -72,6 +74,7 @@ const PROVIDER_PORT_OPTIONS = [
   { label: 'Anthropic', value: 'anthropic' },
   { label: 'Gemini', value: 'gemini' },
   { label: 'LiYuan For DeepSeek', value: 'liyuan-deepseek' },
+  { label: 'Ollama', value: 'ollama' },
 ];
 
 const NAV_ITEMS = [
@@ -309,6 +312,10 @@ const ChatView = ({ onBack }: ChatViewProps) => {
           if (data.success) {
             Message.success('供应商添加成功');
             loadProviders();
+            const firstKey = validApiKeys.find(k => k.key.trim() !== '');
+            if (firstKey) {
+              syncKeyToAIConfig(newProviderType, firstKey.key);
+            }
           } else {
             Message.error(data.message || '添加失败');
           }
@@ -540,6 +547,37 @@ const ChatView = ({ onBack }: ChatViewProps) => {
         }
       })
       .catch(console.error);
+  };
+
+  const syncKeyToAIConfig = (providerType: string, apiKey: string) => {
+    fetch('/api/config/ai')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.config) {
+          const updatedProviders = { ...data.config.providers };
+          if (updatedProviders[providerType]) {
+            updatedProviders[providerType] = {
+              ...updatedProviders[providerType],
+              api_key: apiKey,
+            };
+          }
+          return fetch('/api/config/ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...data.config,
+              providers: updatedProviders,
+            }),
+          }).then(res => res.json()).then(data => {
+            if (!data.success) {
+              Message.warning('AI 配置同步失败，请刷新页面后重试');
+            }
+          });
+        }
+      })
+      .catch(() => {
+        Message.warning('AI 配置同步失败，请检查网络连接');
+      });
   };
 
   return (
@@ -778,7 +816,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
             padding: '16px 20px',
             marginBottom: 24,
           }}>
-            <ProvidersSection providers={providers} loadProviders={loadProviders} deleteProvider={deleteProvider} setDefault={setDefault} />
+            <ProvidersSection providers={providers} loadProviders={loadProviders} deleteProvider={deleteProvider} setDefault={setDefault} syncKeyToAIConfig={syncKeyToAIConfig} />
           </div>
         </div>
 
@@ -1129,11 +1167,12 @@ const ChatView = ({ onBack }: ChatViewProps) => {
   );
 };
 
-const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault }: { 
-  providers: Provider[]; 
-  loadProviders: () => void; 
+const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault, syncKeyToAIConfig }: {
+  providers: Provider[];
+  loadProviders: () => void;
   deleteProvider: (id: string) => void;
   setDefault: (id: string) => void;
+  syncKeyToAIConfig: (providerType: string, apiKey: string) => void;
 }) => {
   const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
   const [editingProviders, setEditingProviders] = useState<Provider[]>(providers);
@@ -1188,7 +1227,7 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
   const saveProviderChanges = (providerId: string) => {
     const provider = editingProviders.find(p => p.id === providerId);
     if (!provider) return;
-    
+
     fetch(`/api/providers/${providerId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1204,6 +1243,10 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
         if (data.success) {
           Message.success('供应商配置已保存');
           loadProviders();
+          const firstKey = provider.apiKeys.find(k => k.key.trim() !== '');
+          if (firstKey) {
+            syncKeyToAIConfig(provider.type, firstKey.key);
+          }
         } else {
           Message.error(data.message || '保存失败');
         }

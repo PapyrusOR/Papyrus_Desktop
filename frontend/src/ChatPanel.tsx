@@ -133,6 +133,13 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
 
 
 
+  // 挂载时检查：如果 agent 已禁用但当前在 agent 模式，自动切到 chat
+  useEffect(() => {
+    if (!agentModeEnabled && mode === 'agent') {
+      setMode('chat');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only check
+
   // 监听 Agent 模式设置变化
   useEffect(() => {
     const handleAgentModeChange = (e?: CustomEvent) => {

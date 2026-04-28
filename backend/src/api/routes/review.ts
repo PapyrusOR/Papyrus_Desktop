@@ -42,12 +42,18 @@ export default async function reviewRoutes(fastify: FastifyInstance): Promise<vo
     recordCardReviewed();
 
     const next = getNextDueCard();
+    const stats = getCardStats();
     reply.send({
       success: true,
       card: result.card,
       interval_days: result.intervalDays,
       ef: result.ef,
-      next: next ?? null,
+      next: next ? {
+        success: true,
+        card: next,
+        due_count: stats.due,
+        total_count: stats.total,
+      } : null,
     });
   });
 }

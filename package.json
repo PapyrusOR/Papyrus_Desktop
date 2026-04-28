@@ -19,9 +19,8 @@
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
     "postinstall": "cd frontend && npm install && cd ../backend && npm install",
-    "build:portable": "npm run build:backend && npm run build:frontend && electron-builder --win portable --x64 --publish=never",
     "build:installer": "npm run build:backend && npm run build:frontend && electron-builder --win nsis --x64 --publish=never",
-    "build:all": "npm run build:backend && npm run build:frontend && electron-builder --win portable --win nsis --x64 --publish=never"
+    "build:all": "npm run build:backend && npm run build:frontend && electron-builder --win nsis --x64 --publish=never"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
@@ -65,12 +64,6 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "icon": "assets/icon.ico",
@@ -87,19 +80,10 @@
       "deleteAppDataOnUninstall": false,
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
-    "portable": {
-      "artifactName": "${productName}-Portable-${version}.${ext}"
-    },
     "mac": {
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
           "arch": [
             "arm64"
           ]
@@ -123,12 +107,6 @@
         },
         {
           "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "tar.gz",
           "arch": [
             "x64"
           ]

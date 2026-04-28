@@ -168,19 +168,19 @@ jobs:
           # Verify the expected installer/package exists
           case "${{ matrix.platform }}" in
             windows)
-              if [ -z "$(ls dist-electron/*-Setup-*.exe 2>/dev/null)" ] && [ -z "$(ls dist-electron/*-Portable-*.exe 2>/dev/null)" ]; then
-                echo "Error: No Windows installer or portable executable found"
+              if [ -z "$(ls dist-electron/*-Setup-*.exe 2>/dev/null)" ]; then
+                echo "Error: No Windows installer found"
                 exit 1
               fi
               ;;
             macos)
-              if [ -z "$(ls dist-electron/*.dmg 2>/dev/null)" ] && [ -z "$(ls dist-electron/*-mac.zip 2>/dev/null)" ]; then
-                echo "Error: No macOS dmg or zip found"
+              if [ -z "$(ls dist-electron/*.dmg 2>/dev/null)" ]; then
+                echo "Error: No macOS dmg found"
                 exit 1
               fi
               ;;
             linux)
-              if [ -z "$(ls dist-electron/*.AppImage 2>/dev/null)" ] && [ -z "$(ls dist-electron/*.deb 2>/dev/null)" ] && [ -z "$(ls dist-electron/*.tar.gz 2>/dev/null)" ]; then
+              if [ -z "$(ls dist-electron/*.AppImage 2>/dev/null)" ] && [ -z "$(ls dist-electron/*.deb 2>/dev/null)" ]; then
                 echo "Error: No Linux package found"
                 exit 1
               fi
@@ -193,12 +193,10 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: |
-            dist-electron/*.exe
+            dist-electron/*-Setup-*.exe
             dist-electron/*.dmg
-            dist-electron/*-mac.zip
             dist-electron/*.AppImage
             dist-electron/*.deb
-            dist-electron/*.tar.gz
           if-no-files-found: warn
           retention-days: 7
 
@@ -300,12 +298,9 @@ jobs:
         with:
           files: |
             artifacts/Papyrus-Win-x64/**/*-Setup-*.exe
-            artifacts/Papyrus-Win-x64/**/*-Portable-*.exe
             artifacts/Papyrus-Apple-Silicon-arm64/**/*.dmg
-            artifacts/Papyrus-Apple-Silicon-arm64/**/*-mac.zip
             artifacts/Papyrus-Linux-x64/**/*.AppImage
             artifacts/Papyrus-Linux-x64/**/*.deb
-            artifacts/Papyrus-Linux-x64/**/*.tar.gz
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.tag }}
           body_path: CHANGELOG_SECTION.md

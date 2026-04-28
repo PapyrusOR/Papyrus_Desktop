@@ -1,5 +1,5 @@
-import { Typography, Button, Tag, Radio, Empty, Tooltip } from '@arco-design/web-react';
-import { useState, useEffect } from 'react';
+import { Typography, Button, Tag, Radio, Empty, Tooltip, Message, Modal, Input } from '@arco-design/web-react';
+import { useState, useEffect, useRef } from 'react';
 import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete } from '@arco-design/web-react/icon';
 import { usePageScenery } from '../hooks/useScenery';
 import { useSceneryColor } from '../hooks/useSceneryColor';
@@ -83,7 +83,7 @@ const GridFileCard = ({ file }: { file: FileItem }) => {
 };
 
 // 列表文件行
-const ListFileRow = ({ file }: { file: FileItem }) => {
+const ListFileRow = ({ file, onDownload, onDelete }: { file: FileItem; onDownload?: (f: FileItem) => void; onDelete?: (id: string) => void }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -115,8 +115,8 @@ const ListFileRow = ({ file }: { file: FileItem }) => {
         {file.updatedAt}
       </Typography.Text>
       <div style={{ display: 'flex', gap: '8px', opacity: hovered ? 1 : 0, transition: 'opacity 0.2s' }}>
-        <IconDownload style={{ fontSize: '16px', color: 'var(--color-text-3)', cursor: 'pointer' }} />
-        <IconDelete style={{ fontSize: '16px', color: 'var(--color-text-3)', cursor: 'pointer' }} />
+        <IconDownload style={{ fontSize: '16px', color: 'var(--color-text-3)', cursor: 'pointer' }} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDownload?.(file); }} />
+        <IconDelete style={{ fontSize: '16px', color: 'var(--color-text-3)', cursor: 'pointer' }} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete?.(file.id); }} />
       </div>
     </div>
   );
@@ -238,6 +238,9 @@ const FilesPage = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [folderModalVisible, setFolderModalVisible] = useState(false);
+  const [folderName, setFolderName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // 模拟加载文件列表
@@ -245,6 +248,80 @@ const FilesPage = () => {
       setLoading(false);
     }, 500);
   }, []);
+
+  const handleNewFolder = () => {
+    setFolderName('');
+    setFolderModalVisible(true);
+  };
+
+  const handleCreateFolder = () => {
+    const trimmed = folderName.trim();
+    if (!trimmed) {
+      Message.warning('请输入文件夹名称');
+      return;
+    }
+    const newFolder: FileItem = {
+      id: crypto.randomUUID(),
+      name: trimmed,
+      type: 'folder',
+      updatedAt: new Date().toLocaleDateString('zh-CN'),
+      itemCount: 0,
+    };
+    setFiles(prev => [newFolder, ...prev]);
+    Message.success(`已创建文件夹 "${trimmed}"`);
+    setFolderModalVisible(false);
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    const newFiles: FileItem[] = [];
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const f = selectedFiles[i];
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      const type: FileItem['type'] = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext) ? 'image'
+        : ['mp4', 'webm', 'mov'].includes(ext) ? 'video'
+        : ['mp3', 'wav', 'ogg'].includes(ext) ? 'audio'
+        : ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext) ? 'archive'
+        : 'document';
+      const size = f.size < 1024 * 1024 ? `${(f.size / 1024).toFixed(1)} KB` : `${(f.size / (1024 * 1024)).toFixed(1)} MB`;
+      newFiles.push({
+        id: crypto.randomUUID(),
+        name: f.name,
+        type,
+        size,
+        updatedAt: new Date().toLocaleDateString('zh-CN'),
+      });
+    }
+    setFiles(prev => [...newFiles, ...prev]);
+    Message.success(`已上传 ${selectedFiles.length} 个文件`);
+    e.target.value = '';
+  };
+
+  const handleDeleteFile = (fileId: string) => {
+    const file = files.find(f => f.id === fileId);
+    if (!file) return;
+    Modal.confirm({
+      title: '删除确认',
+      content: `确定要删除 "${file.name}" 吗？`,
+      onOk: () => {
+        setFiles(prev => prev.filter(f => f.id !== fileId));
+        Message.success('文件已删除');
+      },
+    });
+  };
+
+  const handleDownloadFile = (file: FileItem) => {
+    if (file.type === 'folder') {
+      Message.info('文件夹下载功能即将推出');
+      return;
+    }
+    Message.info('文件下载功能即将推出');
+  };
 
   const stats = {
     totalFiles: files.filter(f => f.type !== 'folder').length,
@@ -264,24 +341,33 @@ const FilesPage = () => {
           </Typography.Text>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <Button 
+          <Button
             shape='round'
             size='large'
-            type='secondary' 
+            type='secondary'
             icon={<IconFolderAdd />}
             style={{ height: '40px', padding: '0 20px', fontSize: '14px' }}
+            onClick={handleNewFolder}
           >
             新建文件夹
           </Button>
-          <Button 
+          <Button
             shape='round'
             size='large'
-            type='primary' 
-            icon={<IconUpload />} 
+            type='primary'
+            icon={<IconUpload />}
             style={{ height: '40px', padding: '0 20px', fontSize: '14px', backgroundColor: PRIMARY_COLOR }}
+            onClick={handleUploadClick}
           >
             上传文件
           </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
         </div>
       </div>
 
@@ -310,11 +396,27 @@ const FilesPage = () => {
             <div style={{ width: '80px' }}>修改时间</div>
             <div style={{ width: '60px' }} />
           </div>
-          {files.map(file => <ListFileRow key={file.id} file={file} />)}
+          {files.map(file => <ListFileRow key={file.id} file={file} onDownload={handleDownloadFile} onDelete={handleDeleteFile} />)}
         </div>
       )}
 
       <div style={{ height: '32px' }} />
+
+      <Modal
+        title="新建文件夹"
+        visible={folderModalVisible}
+        onOk={handleCreateFolder}
+        onCancel={() => setFolderModalVisible(false)}
+        autoFocus={false}
+        focusLock
+      >
+        <Input
+          placeholder="请输入文件夹名称"
+          value={folderName}
+          onChange={setFolderName}
+          onPressEnter={handleCreateFolder}
+        />
+      </Modal>
     </div>
   );
 };
