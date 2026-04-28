@@ -29,6 +29,7 @@ module.exports = {
     'frontend/dist/**/*',
     'backend/dist/**/*',
     'backend/package.json',
+    'backend/node_modules/**/*',
     '!frontend/node_modules/**/*',
     '!**/*.map',
     '!**/.*',
