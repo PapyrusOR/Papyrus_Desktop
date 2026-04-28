@@ -157,7 +157,7 @@ jobs:
       # macOS signing: uncomment the env block below and set the secrets when an Apple Developer ID is available.
       #   CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
       - name: Build Electron App
-        run: npx electron-builder --${{ matrix.target }} --publish=never
+        run: npx electron-builder --${{ matrix.target }} --publish=never --config .electron-builder.config.js
 
       - name: Verify Electron Build
         shell: bash
