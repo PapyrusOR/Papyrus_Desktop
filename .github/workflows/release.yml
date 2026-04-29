@@ -249,7 +249,7 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: |
-            dist-electron/*-Setup-*.exe
+            dist-electron/*-Setup.exe
             dist-electron/*.dmg
             dist-electron/*.AppImage
             dist-electron/*.deb

@@ -154,7 +154,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
         />
         <Title heading={3} style={{ margin: '0 0 8px 0' }}>Papyrus</Title>
         <Text type="secondary" style={{ fontSize: 14 }}>
-          版本 {versionInfo?.current_version || 'v2.0.0-beta.4'}
+          版本 {versionInfo?.current_version || 'v2.0.0-beta.5'}
         </Text>
         <Paragraph type="secondary" style={{ marginTop: 16, maxWidth: 400, margin: '16px auto 0' }}>
           SRS 复习引擎 - 基于间隔重复算法的智能记忆卡片应用
