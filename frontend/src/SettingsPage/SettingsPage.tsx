@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Typography,
 } from '@arco-design/web-react';
@@ -27,69 +28,71 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 
-const SETTING_CATEGORIES = [
+const getSettingCategories = (t: (key: string) => string) => [
   {
     key: 'appearance',
-    title: '外观与窗景',
-    desc: '主题、颜色、字体大小、窗景',
+    title: t('settings.appearance'),
+    desc: t('settings.appearanceDesc'),
     icon: IconFileImage,
     color: 'var(--color-primary)',
   },
   {
     key: 'general',
-    title: '通用',
-    desc: '语言、启动、通知',
+    title: t('settings.general'),
+    desc: t('settings.generalDesc'),
     icon: IconSettings,
     color: 'var(--color-success)',
   },
   {
     key: 'chat',
-    title: '聊天',
-    desc: 'AI 助手、消息显示',
+    title: t('settings.chat'),
+    desc: t('settings.chatDesc'),
     icon: IconRobot,
     color: 'var(--color-purple-6, #722ED1)',
   },
   {
     key: 'mcp',
-    title: 'MCP 服务',
-    desc: '模型上下文协议配置',
+    title: t('settings.mcp'),
+    desc: t('settings.mcpDesc'),
     icon: IconTool,
     color: 'var(--color-danger)',
   },
   {
     key: 'shortcuts',
-    title: '快捷键',
-    desc: '键盘快捷键设置',
+    title: t('settings.shortcuts'),
+    desc: t('settings.shortcutsDesc'),
     icon: IconEdit,
     color: 'var(--color-warning)',
   },
   {
     key: 'accessibility',
-    title: '无障碍',
-    desc: '视觉辅助、动画、对比度',
+    title: t('settings.accessibility'),
+    desc: t('settings.accessibilityDesc'),
     icon: IconAccessibility,
     color: 'var(--color-gold-6, #c5b507)',
   },
   {
     key: 'data',
-    title: '数据设置',
-    desc: '备份、导出、重置',
+    title: t('settings.data'),
+    desc: t('settings.dataDesc'),
     icon: IconStorage,
     color: 'var(--color-cyan-6, #14C9C9)',
   },
   {
     key: 'about',
-    title: '关于',
-    desc: '版本信息、检查更新',
+    title: t('settings.about'),
+    desc: t('settings.aboutDesc'),
     icon: IconInfoCircle,
     color: 'var(--color-primary)',
   },
 ];
 
 const SettingsPage = () => {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<'in' | 'out'>('in');
+  const SETTING_CATEGORIES = getSettingCategories(t);
 
   const handleCategoryClick = (key: string) => {
     setDirection('in');
@@ -143,11 +146,11 @@ const SettingsPage = () => {
   };
 
   const MainView = () => (
-    <div 
+    <div
       className="settings-main"
       style={{ height: '100%', overflowY: 'auto' }}
     >
-      <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>设置</Title>
+      <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>{t('settings.title')}</Title>
       <div className="settings-categories-grid">
         {SETTING_CATEGORIES.map(category => (
           <CategoryCard key={category.key} category={category} />
@@ -174,11 +177,11 @@ const SettingsPage = () => {
     <div className="settings-page">
       {activeCategory === null && !animating && <MainView />}
       {activeCategory === null && animating && direction === 'out' && (
-        <div 
-          className="settings-main settings-page-exit" 
+        <div
+          className="settings-main settings-page-exit"
           style={{ height: '100%', overflowY: 'auto' }}
         >
-          <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>设置</Title>
+          <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px', marginBottom: 32 }}>{t('settings.title')}</Title>
           <div className="settings-categories-grid">
             {SETTING_CATEGORIES.map(category => (
               <CategoryCard key={category.key} category={category} />

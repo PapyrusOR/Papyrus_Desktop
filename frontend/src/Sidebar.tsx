@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
 import { IconNav, IconPlayArrow, IconCommon, IconFolder, IconMindMapping, IconSettings, IconLock, IconUnlock, IconMoon, IconSun, IconRobot } from '@arco-design/web-react/icon';
 import IconCharts from './icons/IconCharts';
 import IconScroll from './icons/IconScroll';
 import './Sidebar.css';
-
-const items = [
-  { key: 'start', icon: IconPlayArrow, label: '开始' },
-  { key: 'scroll', icon: IconScroll, label: '卷轴' },
-  { key: 'notes', icon: IconMindMapping, label: '结构笔记' },
-  { key: 'charts', icon: IconCharts, label: '数据' },
-  { key: 'files', icon: IconFolder, label: '文件库' },
-  { key: 'extensions', icon: IconCommon, label: '扩展管理' },
-];
 
 interface SidebarProps {
   collapsed: boolean;
@@ -24,6 +16,17 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPageChange }: SidebarProps) => {
+  const { t } = useTranslation();
+
+  const items = [
+    { key: 'start', icon: IconPlayArrow, label: t('sidebar.start') },
+    { key: 'scroll', icon: IconScroll, label: t('sidebar.scroll') },
+    { key: 'notes', icon: IconMindMapping, label: t('sidebar.notes') },
+    { key: 'charts', icon: IconCharts, label: t('sidebar.charts') },
+    { key: 'files', icon: IconFolder, label: t('sidebar.files') },
+    { key: 'extensions', icon: IconCommon, label: t('sidebar.extensions') },
+  ];
+
   const [locked, setLocked] = useState(false);
   const [dark, setDark] = useState(() => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -64,12 +67,12 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
       <button
         className={`sidebar-item sidebar-toggle${!collapsed ? ' sidebar-item-active' : ''}`}
         onClick={onToggle}
-        aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+        aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
         aria-expanded={!collapsed}
         type="button"
       >
         <span className="sidebar-icon"><IconNav /></span>
-        <span className="sidebar-label">侧边栏</span>
+        <span className="sidebar-label">{t('sidebar.sidebar')}</span>
       </button>
       {items.map((item) => {
         const IconComponent = item.icon;
@@ -89,52 +92,52 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
         );
       })}
       <div className="tw-flex-1" />
-      <Tooltip content="聊天" position="right" mini disabled={!collapsed}>
+      <Tooltip content={t('sidebar.chat')} position="right" mini disabled={!collapsed}>
         <button 
           className={`sidebar-item${chatOpen ? ' sidebar-item-active' : ''}`} 
           onClick={onChatToggle}
-          aria-label={chatOpen ? '关闭聊天' : '打开聊天'}
+          aria-label={chatOpen ? t('sidebar.closeChat') : t('sidebar.openChat')}
           aria-pressed={chatOpen}
           type="button"
         >
           <span className="sidebar-icon"><IconRobot /></span>
-          <span className="sidebar-label">聊天</span>
+          <span className="sidebar-label">{t('sidebar.chat')}</span>
         </button>
       </Tooltip>
-      <Tooltip content={dark ? '切换到日间模式' : '切换到夜间模式'} position="right" mini disabled={!collapsed}>
+      <Tooltip content={dark ? t('sidebar.switchToLight') : t('sidebar.switchToDark')} position="right" mini disabled={!collapsed}>
         <button 
           className="sidebar-item" 
           onClick={toggleDark}
-          aria-label={dark ? '切换到日间模式' : '切换到夜间模式'}
+          aria-label={dark ? t('sidebar.switchToLight') : t('sidebar.switchToDark')}
           aria-pressed={dark}
           type="button"
         >
           <span className="sidebar-icon">{dark ? <IconMoon /> : <IconSun />}</span>
-          <span className="sidebar-label">{dark ? '夜间模式' : '日间模式'}</span>
+          <span className="sidebar-label">{dark ? t('sidebar.darkMode') : t('sidebar.lightMode')}</span>
         </button>
       </Tooltip>
-      <Tooltip content={locked ? '解锁文本编辑' : '锁定文本编辑'} position="right" mini disabled={!collapsed}>
-        <button 
-          className="sidebar-item" 
+      <Tooltip content={locked ? t('sidebar.unlockEdit') : t('sidebar.lockEdit')} position="right" mini disabled={!collapsed}>
+        <button
+          className="sidebar-item"
           onClick={() => setLocked(!locked)}
-          aria-label={locked ? '解锁文本编辑' : '锁定文本编辑'}
+          aria-label={locked ? t('sidebar.unlockEdit') : t('sidebar.lockEdit')}
           aria-pressed={locked}
           type="button"
         >
           <span className="sidebar-icon">{locked ? <IconLock /> : <IconUnlock />}</span>
-          <span className="sidebar-label">{locked ? '锁定编辑' : '解锁编辑'}</span>
+          <span className="sidebar-label">{locked ? t('sidebar.lockEdit') : t('sidebar.unlockEdit')}</span>
         </button>
       </Tooltip>
-      <Tooltip content="设置" position="right" mini disabled={!collapsed}>
-        <button 
+      <Tooltip content={t('sidebar.settings')} position="right" mini disabled={!collapsed}>
+        <button
           className={`sidebar-item${activePage === 'settings' ? ' sidebar-item-active' : ''}`}
           onClick={() => onPageChange('settings')}
           aria-current={activePage === 'settings' ? 'page' : undefined}
-          aria-label="设置"
+          aria-label={t('sidebar.settings')}
           type="button"
         >
           <span className="sidebar-icon"><IconSettings /></span>
-          <span className="sidebar-label">设置</span>
+          <span className="sidebar-label">{t('sidebar.settings')}</span>
         </button>
       </Tooltip>
     </nav>

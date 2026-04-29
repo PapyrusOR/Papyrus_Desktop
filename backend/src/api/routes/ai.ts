@@ -7,7 +7,7 @@ import type { ToolCallRecord } from '../../ai/tool-manager.js';
 import { isPrivateUrl } from '../../ai/config.js';
 import { paths } from '../../utils/paths.js';
 
-const aiConfig = new AIConfig(paths.dataDir);
+export const aiConfig = new AIConfig(paths.dataDir);
 const aiManager = new AIManager(aiConfig);
 const cardTools = new CardTools();
 

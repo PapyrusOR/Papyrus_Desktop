@@ -3,6 +3,7 @@ import { IconMinus, IconExpand, IconClose, IconUser, IconUpload, IconRefresh } f
 import './TitleBar.css';
 import { api, type SearchResult } from './api';
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import SearchBox from './SearchBox';
 import { useShortcuts } from './hooks/useShortcuts';
 
@@ -32,6 +33,7 @@ const DEFAULT_PROFILE: UserProfile = {
 const STORAGE_KEY = 'papyrus_user_profile';
 
 const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) => {
+  const { t } = useTranslation();
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importContent, setImportContent] = useState('');
   const [profileModalVisible, setProfileModalVisible] = useState(false);
@@ -209,23 +211,23 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
     try {
       const result = await api.importTxt(importContent);
       if (result.success) {
-        Message.success(`成功导入 ${result.count} 张卡片`);
+        Message.success(t('titleBar.importSuccess', { count: result.count }));
         setImportModalVisible(false);
         setImportContent('');
         window.dispatchEvent(new CustomEvent('papyrus_cards_changed'));
       }
     } catch (error) {
-      Message.error('导入失败: ' + (error as Error).message);
+      Message.error(t('titleBar.importFailed') + ': ' + (error as Error).message);
     }
   };
 
   // 保存功能
   const handleSave = () => {
-    Message.success(`保存成功 (${getShortcutDisplay('save')})`);
+    Message.success(`${t('titleBar.saveSuccess')} (${getShortcutDisplay('save')})`);
   };
 
   const handleSaveAll = () => {
-    Message.success(`全部保存成功 (${getShortcutDisplay('saveAll')})`);
+    Message.success(`${t('titleBar.saveAllSuccess')} (${getShortcutDisplay('saveAll')})`);
   };
 
   // 关闭功能
@@ -235,8 +237,8 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
 
   const handleExit = () => {
     Modal.confirm({
-      title: '确认退出',
-      content: '确定要退出 Papyrus 吗？未保存的更改将会丢失。',
+      title: t('titleBar.confirmExit'),
+      content: t('titleBar.exitConfirmMessage'),
       onOk: () => {
         window.electronAPI?.quitApp?.();
       },
@@ -252,51 +254,51 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
   const fileMenu = (
     <Menu style={{ width: 280, maxHeight: 'none', overflow: 'visible' }}>
       {/* 新建组 */}
-      <Menu.SubMenu key="new" title="新建" style={{ width: 260 }}>
+      <Menu.SubMenu key="new" title={t('titleBar.new')} style={{ width: 260 }}>
         <Menu.Item key="new-note" onClick={handleNewNote} style={{ width: 260 }}>
           <span className="tw-flex tw-items-center tw-w-full">
-            新建笔记
+            {t('titleBar.newNote')}
             <Shortcut keys={getShortcutDisplay('newNote')} />
           </span>
         </Menu.Item>
         <Menu.Item key="new-card" onClick={handleNewCard} style={{ width: 260 }}>
           <span className="tw-flex tw-items-center tw-w-full">
-            新建卡片
+            {t('titleBar.newCard')}
             <Shortcut keys={getShortcutDisplay('newCard')} />
           </span>
         </Menu.Item>
         <Menu.Item key="new-window" onClick={handleNewWindow} style={{ width: 260 }}>
           <span className="tw-flex tw-items-center tw-w-full">
-            新建窗口
+            {t('titleBar.newWindow')}
             <Shortcut keys={getShortcutDisplay('newWindow')} />
           </span>
         </Menu.Item>
       </Menu.SubMenu>
-      
+
       <Divider style={{ margin: '4px 0' }} />
-      
+
       {/* 打开组 */}
-      <Menu.SubMenu key="open" title="打开" style={{ width: 260 }}>
+      <Menu.SubMenu key="open" title={t('titleBar.open')} style={{ width: 260 }}>
         <Menu.Item key="open-notes" onClick={handleOpenNotes} style={{ width: 260 }}>
           <span className="tw-flex tw-items-center tw-w-full">
-            打开笔记页
+            {t('titleBar.openNotes')}
             <Shortcut keys={getShortcutDisplay('openNotes')} />
           </span>
         </Menu.Item>
         <Menu.Item key="open-files" onClick={handleOpenFiles} style={{ width: 260 }}>
           <span className="tw-flex tw-items-center tw-w-full">
-            打开文件库
+            {t('titleBar.openFiles')}
             <Shortcut keys={getShortcutDisplay('openFiles')} />
           </span>
         </Menu.Item>
         <Menu.Item key="open-review" onClick={handleOpenReview} style={{ width: 260 }}>
           <span className="tw-flex tw-items-center tw-w-full">
-            开始复习
+            {t('titleBar.openReview')}
             <Shortcut keys={getShortcutDisplay('openReview')} />
           </span>
         </Menu.Item>
-        <Menu.SubMenu key="recent" title="打开最近的文件" style={{ width: 260 }}>
-          <Menu.Item key="recent-empty" disabled style={{ width: 260 }}>暂无最近文件</Menu.Item>
+        <Menu.SubMenu key="recent" title={t('titleBar.recentFiles')} style={{ width: 260 }}>
+          <Menu.Item key="recent-empty" disabled style={{ width: 260 }}>{t('titleBar.noRecentFiles')}</Menu.Item>
         </Menu.SubMenu>
       </Menu.SubMenu>
       
@@ -437,10 +439,10 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
 
         <Space className="titlebar-menus no-drag" size={0}>
           <Dropdown trigger="click" droplist={fileMenu}>
-            <Button type="text" size="small" className="titlebar-menu-item">文件</Button>
+            <Button type="text" size="small" className="titlebar-menu-item">{t('titleBar.file')}</Button>
           </Dropdown>
           <Dropdown trigger="click" droplist={editMenu}>
-            <Button type="text" size="small" className="titlebar-menu-item">编辑</Button>
+            <Button type="text" size="small" className="titlebar-menu-item">{t('titleBar.edit')}</Button>
           </Dropdown>
         </Space>
 

@@ -3,10 +3,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete, IconLeft } from '@arco-design/web-react/icon';
 import { usePageScenery } from '../hooks/useScenery';
 import { useSceneryColor } from '../hooks/useSceneryColor';
-import { api } from '../api';
+import { api, BACKEND_URL } from '../api';
 import type { FileItemData } from '../api';
 
 import ZipIcon from './ZipIcon';
+import FilePreviewModal from './FilePreviewModal';
 
 const PRIMARY_COLOR = '#206CCF';
 const SECONDARY_COLOR = '#9FD4FD';
@@ -283,6 +284,9 @@ const FilesPage = () => {
   // 筛选状态
   const [activeFilter, setActiveFilter] = useState<FilterTag>('全部');
 
+  // 预览弹窗状态
+  const [previewFile, setPreviewFile] = useState<FileItemData | null>(null);
+
   useEffect(() => {
     api.listFiles()
       .then(res => setAllFiles(res.files))
@@ -374,18 +378,28 @@ const FilesPage = () => {
       setActiveFilter('全部');
       return;
     }
-    const backendUrl = 'http://127.0.0.1:8000';
-    window.open(`${backendUrl}/api/files/${file.id}/download`, '_blank');
+    window.open(`${BACKEND_URL}/api/files/${file.id}/download`, '_blank');
   };
+
+  function isPreviewableFile(file: FileItemData): boolean {
+    if (file.is_folder) return false;
+    if (['image', 'video', 'audio'].includes(file.type)) return true;
+    if (file.type === 'document') {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      return ['txt', 'md', 'json', 'pdf'].includes(ext);
+    }
+    return false;
+  }
 
   const handleFileClick = useCallback((file: FileItemData) => {
     if (file.is_folder) {
       setCurrentFolder(file.id);
       setFolderStack(prev => [...prev, { id: file.id, name: file.name }]);
       setActiveFilter('全部');
+    } else if (isPreviewableFile(file)) {
+      setPreviewFile(file);
     } else {
-      const backendUrl = 'http://127.0.0.1:8000';
-      window.open(`${backendUrl}/api/files/${file.id}/download`, '_blank');
+      window.open(`${BACKEND_URL}/api/files/${file.id}/download`, '_blank');
     }
   }, []);
 
@@ -522,6 +536,8 @@ const FilesPage = () => {
           onPressEnter={handleCreateFolder}
         />
       </Modal>
+
+      <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
     </div>
   );
 };

@@ -64,6 +64,23 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     reply.send({ success: true, files: saved, count: saved.length });
   });
 
+  // Preview file (inline, not attachment)
+  fastify.get('/:id/preview', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = getFileStream(id);
+
+    if (!result) {
+      reply.status(404).send({ success: false, error: '文件不存在或已被删除' });
+      return;
+    }
+
+    const { stream, file } = result;
+    reply.type(file.mime_type || 'application/octet-stream');
+    reply.header('Content-Disposition', 'inline');
+    reply.header('Content-Length', file.size);
+    reply.send(stream);
+  });
+
   // Download file
   fastify.get('/:id/download', async (request, reply) => {
     const { id } = request.params as { id: string };

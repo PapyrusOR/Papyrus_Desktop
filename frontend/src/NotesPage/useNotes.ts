@@ -138,12 +138,14 @@ export const useNotes = (): UseNotesReturn => {
       });
     }
     await refreshNotes();
+    window.dispatchEvent(new CustomEvent('papyrus_notes_changed'));
   }, [refreshNotes]);
 
   // 删除笔记
   const deleteNote = useCallback(async (id: string) => {
     await api.deleteNote(id);
     await refreshNotes();
+    window.dispatchEvent(new CustomEvent('papyrus_notes_changed'));
   }, [refreshNotes]);
 
   // 从 Obsidian 导入

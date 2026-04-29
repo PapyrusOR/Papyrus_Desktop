@@ -1,4 +1,4 @@
-const BACKEND_URL = 'http://127.0.0.1:8000';
+export const BACKEND_URL = 'http://127.0.0.1:8000';
 const BASE = window.location.protocol === 'file:'
   ? `${BACKEND_URL}/api`
   : '/api';
@@ -232,6 +232,23 @@ export type DeleteChatSessionRes = {
   success: boolean;
 };
 
+// ========== Provider Types ==========
+export type ProviderItem = {
+  id: string;
+  type: string;
+  name: string;
+  baseUrl: string;
+  enabled: boolean;
+  isDefault: boolean;
+  apiKeys: { id: string; name: string; key: string }[];
+  models: { id: string; name: string; modelId: string; port: string; capabilities: string[]; apiKeyId?: string; enabled: boolean }[];
+};
+
+export type ListProvidersRes = { success: boolean; providers: ProviderItem[] };
+export type CreateProviderRes = { success: boolean; provider: ProviderItem; message: string; error?: string };
+export type UpdateProviderRes = { success: boolean; message: string; error?: string };
+export type AddModelRes = { success: boolean; modelId: string; message: string; error?: string };
+
 // ========== Card API ==========
 export const api = {
   health: () => request<{ status: string }>('/health'),
@@ -357,10 +374,60 @@ export const api = {
   switchChatSession: (id: string) =>
     request<SwitchChatSessionRes>(`/ai/sessions/${id}/switch`, { method: 'POST' }),
   renameChatSession: (id: string, title: string) =>
-    request<RenameChatSessionRes>(`/ai/sessions/${id}`, { 
-      method: 'PUT', 
-      body: JSON.stringify({ title }) 
+    request<RenameChatSessionRes>(`/ai/sessions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ title })
     }),
   deleteChatSession: (id: string) =>
     request<DeleteChatSessionRes>(`/ai/sessions/${id}`, { method: 'DELETE' }),
+
+  // Providers
+  listProviders: () => request<ListProvidersRes>('/providers'),
+  createProvider: (data: ProviderItem) =>
+    request<CreateProviderRes>('/providers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateProvider: (id: string, data: Partial<ProviderItem>) =>
+    request<UpdateProviderRes>(`/providers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteProvider: (id: string) =>
+    request<{ success: boolean; message: string }>(`/providers/${id}`, { method: 'DELETE' }),
+  setDefaultProvider: (id: string) =>
+    request<{ success: boolean; message: string }>(`/providers/${id}/default`, { method: 'POST' }),
+  updateProviderEnabled: (id: string, enabled: boolean) =>
+    request<{ success: boolean; message: string }>(`/providers/${id}/enabled`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    }),
+  addModel: (
+    providerId: string,
+    data: {
+      name: string;
+      modelId: string;
+      port?: string;
+      capabilities?: string[];
+      apiKeyId?: string;
+      enabled?: boolean;
+    }
+  ) =>
+    request<AddModelRes>(`/providers/${providerId}/models`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateModel: (
+    providerId: string,
+    modelId: string,
+    data: Partial<ProviderItem['models'][0]>
+  ) =>
+    request<{ success: boolean; message: string; error?: string }>(`/providers/${providerId}/models/${modelId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteModel: (providerId: string, modelId: string) =>
+    request<{ success: boolean; message: string; error?: string }>(`/providers/${providerId}/models/${modelId}`, {
+      method: 'DELETE',
+    }),
 };

@@ -4,6 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { paths } from '../../utils/paths.js';
 import { PapyrusLogger } from '../../utils/logger.js';
+import { aiConfig } from './ai.js';
 
 let globalLogger: PapyrusLogger | null = null;
 
@@ -55,6 +56,12 @@ export default async function logsRoutes(fastify: FastifyInstance): Promise<void
     }
     if (body.log_rotation !== undefined) {
       globalLogger?.setLogRotation(body.log_rotation);
+    }
+
+    // Persist to ai_config.json
+    const currentConfig = globalLogger?.getConfig();
+    if (currentConfig) {
+      aiConfig.setLogConfig(currentConfig);
     }
 
     reply.send({ success: true, message: 'Log configuration updated' });

@@ -1,5 +1,6 @@
 import { Typography, Button, Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import RecentScrolls from './RecentScrolls';
 import RecentNotes from './RecentNotes';
 import ReviewQueue from './ReviewQueue';
@@ -234,6 +235,7 @@ const shelfContainerStyle = {
 };
 
 const ShelfSections = ({ onStudyTag, onNavigate }: { onStudyTag?: (tag: string) => void; onNavigate?: (page: string) => void }) => {
+  const { t } = useTranslation();
   const { ref, height } = useCardHeight();
 
   return (
@@ -249,39 +251,39 @@ const ShelfSections = ({ onStudyTag, onNavigate }: { onStudyTag?: (tag: string) 
       />
 
       {onNavigate && (
-        <ShelfSection label='快捷方式'>
+        <ShelfSection label={t('startPage.shortcuts')}>
           <div style={shelfContainerStyle}>
             <ShortcutCard
               icon={<span style={{ fontSize: '28px' }}>📝</span>}
-              label='笔记'
+              label={t('sidebar.notes')}
               onClick={() => onNavigate('notes')}
             />
             <ShortcutCard
               icon={<span style={{ fontSize: '28px' }}>📁</span>}
-              label='文件'
+              label={t('sidebar.files')}
               onClick={() => onNavigate('files')}
             />
             <ShortcutCard
               icon={<span style={{ fontSize: '28px' }}>📊</span>}
-              label='统计'
+              label={t('sidebar.charts')}
               onClick={() => onNavigate('charts')}
             />
             <ShortcutCard
               icon={<span style={{ fontSize: '28px' }}>⚙️</span>}
-              label='设置'
+              label={t('sidebar.settings')}
               onClick={() => onNavigate('settings')}
             />
           </div>
         </ShelfSection>
       )}
 
-      <ShelfSection label='待复习'>
+      <ShelfSection label={t('startPage.review')}>
         <ReviewQueue height={height} />
       </ShelfSection>
-      <ShelfSection label='最近使用的卷帙'>
+      <ShelfSection label={t('startPage.recentScrolls')}>
         <RecentScrolls height={height} onStudyTag={onStudyTag} />
       </ShelfSection>
-      <ShelfSection label='最近使用的笔记'>
+      <ShelfSection label={t('startPage.recentNotes')}>
         <RecentNotes height={height} />
       </ShelfSection>
     </>
@@ -315,6 +317,7 @@ const LatticeBackground = () => {
 };
 
 const PendingCard = ({ stats, greeting, dateLabel, solarTerm, loading, onStartStudy }: PendingCardProps) => {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
   const [rippleKey, setRippleKey] = useState(0);
@@ -344,10 +347,10 @@ const PendingCard = ({ stats, greeting, dateLabel, solarTerm, loading, onStartSt
           style={{ margin: 0, fontSize: '48px', fontWeight: 600 }}
         >
           {loading ? (
-            '加载中...'
+            t('startPage.fetchCardsFailed')
           ) : (
             <>
-              你有 <Typography.Text bold>{stats.cardsDue}</Typography.Text> 张卡片待复习
+              {t('startPage.cardsDue', { count: stats.cardsDue })}
             </>
           )}
         </Typography.Paragraph>
@@ -368,7 +371,7 @@ const PendingCard = ({ stats, greeting, dateLabel, solarTerm, loading, onStartSt
         }}
       >
         <Typography.Text className='scenery-sub-text' style={{ fontSize: '24px', fontWeight: 600 }}>
-          {greeting}，学习者。今天是 {dateLabel}{solarTerm ? `，${solarTerm}` : ''}。
+          {greeting} | {dateLabel}{solarTerm ? ` | ${solarTerm}` : ''}
         </Typography.Text>
 
         <Button
@@ -415,7 +418,7 @@ const PendingCard = ({ stats, greeting, dateLabel, solarTerm, loading, onStartSt
               }}
             />
           ) : null}
-          <span style={{ position: 'relative', zIndex: 1 }}>开始</span>
+          <span style={{ position: 'relative', zIndex: 1 }}>{t('startPage.start')}</span>
         </Button>
       </div>
     </div>

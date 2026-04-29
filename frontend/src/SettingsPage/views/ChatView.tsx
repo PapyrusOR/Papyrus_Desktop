@@ -38,6 +38,7 @@ import { SettingItem } from '../components';
 import { useScrollNavigation } from '../../hooks/useScrollNavigation';
 import { ProviderLogo } from '../../icons/ProviderLogo';
 import { ModelLogo } from '../../icons/ModelLogo';
+import { api } from '../../api';
 
 const FormItem = Form.Item;
 const { Title, Text, Paragraph } = Typography;
@@ -262,8 +263,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
 
   const loadProviders = () => {
     setProvidersLoading(true);
-    fetch('/api/providers')
-      .then(res => res.json())
+    api.listProviders()
       .then(data => {
         if (data.success && data.providers) {
           setProviders(data.providers);
@@ -302,12 +302,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
         isDefault: false,
       };
 
-      fetch('/api/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProvider),
-      })
-        .then(res => res.json())
+      api.createProvider(newProvider)
         .then(data => {
           if (data.success) {
             Message.success('供应商添加成功');
@@ -332,8 +327,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
   };
 
   const deleteProvider = (id: string) => {
-    fetch(`/api/providers/${id}`, { method: 'DELETE' })
-      .then(res => res.json())
+    api.deleteProvider(id)
       .then(data => {
         if (data.success) {
           Message.success('供应商已删除');
@@ -349,8 +343,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
   };
 
   const setDefault = (id: string) => {
-    fetch(`/api/providers/${id}/default`, { method: 'POST' })
-      .then(res => res.json())
+    api.setDefaultProvider(id)
       .then(data => {
         if (data.success) {
           Message.success('默认供应商已设置');
@@ -366,8 +359,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
   };
 
   const deleteModel = (providerId: string, modelId: string) => {
-    fetch(`/api/providers/${providerId}/models/${modelId}`, { method: 'DELETE' })
-      .then(res => res.json())
+    api.deleteModel(providerId, modelId)
       .then(data => {
         if (data.success) {
           Message.success('模型已删除');
@@ -440,12 +432,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       };
       
       if (editingModel) {
-        fetch(`/api/providers/${targetProviderId}/models/${editingModel.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(modelData),
-        })
-          .then(res => res.json())
+        api.updateModel(targetProviderId, editingModel.id, modelData)
           .then(data => {
             if (data.success) {
               Message.success('模型已更新');
@@ -459,12 +446,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
             Message.error('更新模型失败');
           });
       } else {
-        fetch(`/api/providers/${targetProviderId}/models`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(modelData),
-        })
-          .then(res => res.json())
+        api.addModel(targetProviderId, modelData)
           .then(data => {
             if (data.success) {
               Message.success('模型已添加');
@@ -1234,17 +1216,12 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
     const provider = editingProviders.find(p => p.id === providerId);
     if (!provider) return;
 
-    fetch(`/api/providers/${providerId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: provider.name,
-        baseUrl: provider.baseUrl,
-        enabled: provider.enabled,
-        apiKeys: provider.apiKeys,
-      }),
+    api.updateProvider(providerId, {
+      name: provider.name,
+      baseUrl: provider.baseUrl,
+      enabled: provider.enabled,
+      apiKeys: provider.apiKeys,
     })
-      .then(res => res.json())
       .then(data => {
         if (data.success) {
           Message.success('供应商配置已保存');
@@ -1293,12 +1270,7 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
                 />
                 <Switch size="small" checked={provider.enabled} onChange={(checked) => {
                   updateEditingProvider(provider.id, { enabled: checked });
-                  fetch(`/api/providers/${provider.id}/enabled`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: checked }),
-                  })
-                    .then(res => res.json())
+                  api.updateProviderEnabled(provider.id, checked)
                     .then(data => {
                       if (data.success) {
                         loadProviders();

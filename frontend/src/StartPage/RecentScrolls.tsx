@@ -1,5 +1,6 @@
 import { Typography, Spin, Message } from '@arco-design/web-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api, type Card } from '../api';
 
 interface Collection {
@@ -52,7 +53,7 @@ const CollectionCard = ({ collection, onClick }: { collection: Collection; onCli
             fontWeight: 600,
             lineHeight: '20px',
           }}>
-            {collection.dueCount} 待复习
+            {t('startPage.dueCount', { count: collection.dueCount })}
           </div>
         )}
         {collection.dueCount === 0 && (
@@ -67,7 +68,7 @@ const CollectionCard = ({ collection, onClick }: { collection: Collection; onCli
             fontWeight: 600,
             lineHeight: '20px',
           }}>
-            已完成
+            {t('startPage.completed')}
           </div>
         )}
         <Typography.Text bold style={{ fontSize: '18px', lineHeight: 1.3 }}>
@@ -78,10 +79,10 @@ const CollectionCard = ({ collection, onClick }: { collection: Collection; onCli
       {/* 底部：卡片数 + 最近使用 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <Typography.Text type='secondary' style={{ fontSize: '13px' }}>
-          {collection.scrollCount} 张卡片
+          {t('startPage.cardCount', { count: collection.scrollCount })}
         </Typography.Text>
         <Typography.Text type='secondary' style={{ fontSize: '13px' }}>
-          {collection.lastUsed}
+          {t('startPage.lastUsed')}
         </Typography.Text>
       </div>
     </div>
@@ -140,27 +141,35 @@ function categorizeCards(cards: Card[]): Collection[] {
 }
 
 const RecentScrolls = ({ height, onStudyTag }: RecentScrollsProps) => {
+  const { t } = useTranslation();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCards = async () => {
       try {
+        setLoading(true);
         const response = await api.listCards();
         if (response.success) {
           const cats = categorizeCards(response.cards);
           setCollections(cats);
         } else {
-          Message.error('获取卡片列表失败');
+          Message.error(t('startPage.fetchCardsFailed'));
         }
       } catch (err) {
-        console.error('获取卡片列表失败:', err);
+        console.error(t('startPage.fetchCardsFailed'), err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCards();
+
+    const handleCardsChanged = () => {
+      fetchCards();
+    };
+    window.addEventListener('papyrus_cards_changed', handleCardsChanged);
+    return () => window.removeEventListener('papyrus_cards_changed', handleCardsChanged);
   }, []);
 
   if (loading) {
@@ -188,7 +197,7 @@ const RecentScrolls = ({ height, onStudyTag }: RecentScrollsProps) => {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Typography.Text type="secondary">暂无卡片</Typography.Text>
+        <Typography.Text type="secondary">{t('startPage.noCards')}</Typography.Text>
       </div>
     );
   }

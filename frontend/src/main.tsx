@@ -22,6 +22,7 @@ import './tailwind.css';  // Tailwind CSS
 import App from './App';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { ScreenReaderAnnouncerProvider } from './components/ScreenReaderAnnouncer';
+import './i18n';
 
 const el = document.getElementById('root');
 if (!el) throw new Error('Missing #root');

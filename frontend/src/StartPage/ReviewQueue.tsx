@@ -1,5 +1,6 @@
 import { Typography, Spin, Empty } from '@arco-design/web-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api, type Card } from '../api';
 
 interface ReviewItem {
@@ -13,6 +14,9 @@ const SECONDARY_COLOR = '#9FD4FD';
 
 const ReviewCard = ({ item }: { item: ReviewItem }) => {
   const [hovered, setHovered] = useState(false);
+  const { t } = useTranslation();
+
+  const title = item.id === 'new' ? t('startPage.newCards') : t('startPage.reviewCards');
 
   return (
     <div
@@ -46,15 +50,15 @@ const ReviewCard = ({ item }: { item: ReviewItem }) => {
           fontWeight: 600,
           lineHeight: '20px',
         }}>
-          {item.scrollCount} 待复习
+          {t('startPage.dueCount', { count: item.scrollCount })}
         </div>
         <Typography.Text bold style={{ fontSize: '18px', lineHeight: 1.3 }}>
-          {item.collectionTitle}
+          {title}
         </Typography.Text>
       </div>
 
       <Typography.Text type='secondary' style={{ fontSize: '13px' }}>
-        约 {item.estimatedMinutes} 分钟
+        {t('startPage.minutes', { count: item.estimatedMinutes })}
       </Typography.Text>
     </div>
   );
@@ -82,7 +86,7 @@ function calculateReviewQueue(cards: Card[]): ReviewItem[] {
   if (newCards.length > 0) {
     queue.push({
       id: 'new',
-      collectionTitle: '新卡片',
+      collectionTitle: '', // translated in render
       scrollCount: newCards.length,
       estimatedMinutes: Math.ceil(newCards.length * 0.5),
     });
@@ -91,7 +95,7 @@ function calculateReviewQueue(cards: Card[]): ReviewItem[] {
   if (reviewCards.length > 0) {
     queue.push({
       id: 'review',
-      collectionTitle: '复习卡片',
+      collectionTitle: '', // translated in render
       scrollCount: reviewCards.length,
       estimatedMinutes: Math.ceil(reviewCards.length * 0.3),
     });
@@ -101,25 +105,33 @@ function calculateReviewQueue(cards: Card[]): ReviewItem[] {
 }
 
 const ReviewQueue = ({ height }: ReviewQueueProps) => {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCards = async () => {
       try {
+        setLoading(true);
         const response = await api.listCards();
         if (response.success) {
           const queue = calculateReviewQueue(response.cards);
           setItems(queue);
         }
       } catch (err) {
-        console.error('获取待复习卡片失败:', err);
+        console.error(t('startPage.fetchDueCardsFailed'), err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCards();
+
+    const handleCardsChanged = () => {
+      fetchCards();
+    };
+    window.addEventListener('papyrus_cards_changed', handleCardsChanged);
+    return () => window.removeEventListener('papyrus_cards_changed', handleCardsChanged);
   }, []);
 
   if (loading) {
@@ -147,7 +159,7 @@ const ReviewQueue = ({ height }: ReviewQueueProps) => {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Empty description="暂无待复习卡片" />
+        <Empty description={t('startPage.noDueCards')} />
       </div>
     );
   }

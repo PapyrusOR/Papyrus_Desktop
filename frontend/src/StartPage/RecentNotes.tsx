@@ -1,5 +1,6 @@
 import { Typography, Spin } from '@arco-design/web-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api, type Note } from '../api';
 
 const SECONDARY_COLOR = '#9FD4FD';
@@ -63,20 +64,22 @@ function formatTimestamp(timestamp: number): string {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return '今天';
-  if (diffDays === 1) return '昨天';
-  if (diffDays < 7) return `${diffDays}天前`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
-  return `${Math.floor(diffDays / 30)}月前`;
+  if (diffDays === 0) return t('startPage.today');
+  if (diffDays === 1) return t('startPage.yesterday');
+  if (diffDays < 7) return t('startPage.daysAgo', { count: diffDays });
+  if (diffDays < 30) return t('startPage.weeksAgo', { count: Math.floor(diffDays / 7) });
+  return t('startPage.monthsAgo', { count: Math.floor(diffDays / 30) });
 }
 
 const RecentNotes = ({ height }: RecentNotesProps) => {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchNotes = async () => {
       try {
+        setLoading(true);
         const response = await api.listNotes();
         if (response.success) {
           // 取最近4条笔记，按更新时间排序
@@ -86,13 +89,23 @@ const RecentNotes = ({ height }: RecentNotesProps) => {
           setNotes(sortedNotes);
         }
       } catch (err) {
-        console.error('获取最近笔记失败:', err);
+        console.error(t('startPage.fetchNotesFailed'), err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchNotes();
+
+    const handleNotesChanged = () => {
+      fetchNotes();
+    };
+    window.addEventListener('papyrus_notes_changed', handleNotesChanged);
+    window.addEventListener('papyrus_new_note', handleNotesChanged);
+    return () => {
+      window.removeEventListener('papyrus_notes_changed', handleNotesChanged);
+      window.removeEventListener('papyrus_new_note', handleNotesChanged);
+    };
   }, []);
 
   if (loading) {
@@ -120,7 +133,7 @@ const RecentNotes = ({ height }: RecentNotesProps) => {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Typography.Text type="secondary">暂无笔记</Typography.Text>
+        <Typography.Text type="secondary">{t('startPage.noNotes')}</Typography.Text>
       </div>
     );
   }

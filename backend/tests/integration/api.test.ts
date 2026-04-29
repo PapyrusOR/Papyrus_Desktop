@@ -2685,6 +2685,34 @@ describe('API Integration Tests', () => {
       expect(response.statusCode).toBe(404);
     });
 
+    it('GET /api/files/:id/preview should return file with inline disposition', async () => {
+      const content = Buffer.from('preview content').toString('base64');
+      const upload = await app.inject({
+        method: 'POST',
+        url: '/api/files/upload',
+        payload: { files: [{ name: 'preview.txt', content, mimeType: 'text/plain' }] },
+      });
+      const fileId = JSON.parse(upload.body).files[0].id;
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/files/${fileId}/preview`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toBe('text/plain');
+      expect(response.headers['content-disposition']).toBe('inline');
+    });
+
+    it('GET /api/files/:id/preview should 404 for non-existent file', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/files/non-existent/preview',
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
     it('DELETE /api/files/:id should delete a file', async () => {
       const content = Buffer.from('delete me').toString('base64');
       const upload = await app.inject({

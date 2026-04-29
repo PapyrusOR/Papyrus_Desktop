@@ -15,6 +15,7 @@ import {
   IconFile,
 } from '@arco-design/web-react/icon';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SettingItem } from '../components';
 import { useScrollNavigation } from '../../hooks/useScrollNavigation';
 import { api } from '../../api';
@@ -34,12 +35,13 @@ interface LogsConfig {
 }
 
 const NAV_ITEMS = [
-  { key: 'startup-section', label: '启动与通知', icon: IconClockCircle },
-  { key: 'language-section', label: '语言与地区', icon: IconNotification },
-  { key: 'logs-section', label: '日志', icon: IconFile },
+  { key: 'startup-section', label: 'generalView.startup', icon: IconClockCircle },
+  { key: 'language-section', label: 'generalView.language', icon: IconNotification },
+  { key: 'logs-section', label: 'generalView.logs', icon: IconFile },
 ];
 
 const GeneralView = ({ onBack }: GeneralViewProps) => {
+  const { t, i18n } = useTranslation();
   const { contentRef, activeSection, scrollToSection } = useScrollNavigation(NAV_ITEMS);
   const [autoStart, setAutoStart] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(() => {
@@ -50,7 +52,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   const [language, setLanguage] = useState(() => {
     return localStorage.getItem('papyrus_language') ?? 'zh-CN';
   });
-  
+
   const [logsConfig, setLogsConfig] = useState<LogsConfig>({
     log_dir: '',
     log_level: 'INFO',
@@ -77,7 +79,8 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
 
   useEffect(() => {
     localStorage.setItem('papyrus_language', language);
-  }, [language]);
+    i18n.changeLanguage(language);
+  }, [language, i18n]);
 
   const saveLogsConfig = async (updates: Partial<LogsConfig>) => {
     const newConfig = { ...logsConfig, ...updates };
@@ -86,12 +89,12 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
     try {
       const data = await api.saveLogsConfig(newConfig);
       if (data.success) {
-        Message.success('设置已保存');
+        Message.success(t('generalView.settingsSaved'));
       } else {
-        Message.error('保存失败');
+        Message.error(t('generalView.saveFailed'));
       }
     } catch (err) {
-      Message.error(err instanceof Error ? err.message : '保存失败');
+      Message.error(err instanceof Error ? err.message : t('generalView.saveFailed'));
     }
   };
 
@@ -102,10 +105,10 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
       if (data.success && data.path) {
         await window.electronAPI?.openFolder?.(data.path);
       } else {
-        Message.error('获取日志路径失败');
+        Message.error(t('generalView.saveFailed'));
       }
     } catch (err) {
-      Message.error(err instanceof Error ? err.message : '打开文件夹失败');
+      Message.error(err instanceof Error ? err.message : t('generalView.saveFailed'));
     } finally {
       setLogsLoading(false);
     }
@@ -120,13 +123,13 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
           await saveLogsConfig({ log_dir: selectedPath });
         }
       } else {
-        const newPath = prompt('请输入日志文件夹路径:', logsConfig.log_dir);
+        const newPath = prompt(t('generalView.logDir') + ':', logsConfig.log_dir);
         if (newPath !== null) {
           await saveLogsConfig({ log_dir: newPath });
         }
       }
     } catch (err) {
-      Message.error('选择文件夹失败');
+      Message.error(t('generalView.saveFailed'));
     }
   };
 
@@ -162,11 +165,12 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             style={{ padding: 0, fontSize: 14 }}
             aria-label="返回设置主页"
           />
-          <Text style={{ fontSize: '14px', fontWeight: 500 }}>通用</Text>
+          <Text style={{ fontSize: '14px', fontWeight: 500 }}>{t('settings.general')}</Text>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
-          {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+          {NAV_ITEMS.map(({ key, label: labelKey, icon: Icon }) => {
+            const label = t(labelKey);
             const isActive = activeSection === key;
             return (
               <button 
@@ -213,14 +217,14 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <IconSettings style={{ fontSize: 32, color: 'var(--color-success)' }} />
             <Title heading={2} style={{ margin: 0, fontWeight: 400, fontSize: '28px' }}>
-              通用设置
+              {t('generalView.title')}
             </Title>
           </div>
         </div>
 
         <section id="startup-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>启动与通知</Title>
+            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>{t('generalView.startup')}</Title>
           </div>
 
           <div className="settings-section" style={{ 
@@ -229,15 +233,15 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             padding: '16px 20px',
             marginBottom: 24,
           }}>
-            <SettingItem title="开机自动启动" desc="系统启动时自动运行应用">
+            <SettingItem title={t('generalView.autoStart')} desc={t('generalView.autoStartDesc')}>
               <Switch checked={autoStart} onChange={setAutoStart} />
             </SettingItem>
 
-            <SettingItem title="关闭时最小化到托盘" desc="点击关闭按钮时最小化到系统托盘">
+            <SettingItem title={t('generalView.minimizeToTray')} desc={t('generalView.minimizeToTrayDesc')}>
               <Switch checked={minimizeToTray} onChange={setMinimizeToTray} />
             </SettingItem>
 
-            <SettingItem title="复习提醒通知" desc="有卡片需要复习时显示桌面通知" divider={false}>
+            <SettingItem title={t('generalView.reviewReminder')} desc={t('generalView.reviewReminderDesc')} divider={false}>
               <Switch checked={reviewReminder} onChange={setReviewReminder} />
             </SettingItem>
           </div>
@@ -245,7 +249,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
 
         <section id="language-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>语言与地区</Title>
+            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>{t('generalView.language')}</Title>
           </div>
 
           <div className="settings-section" style={{ 
@@ -254,7 +258,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             padding: '16px 20px',
             marginBottom: 24,
           }}>
-            <SettingItem title="界面语言" desc="选择应用界面的显示语言">
+            <SettingItem title={t('generalView.languageLabel')} desc={t('generalView.languageDesc')}>
               <Select value={language} onChange={setLanguage} style={{ width: 160 }}>
                 <Option value="zh-CN">简体中文</Option>
                 <Option value="zh-TW">繁体中文</Option>
@@ -263,7 +267,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
               </Select>
             </SettingItem>
 
-            <SettingItem title="日期格式" desc="选择日期显示格式" divider={false}>
+            <SettingItem title={t('generalView.dateFormat')} desc={t('generalView.dateFormatDesc')} divider={false}>
               <Select value="yyyy-MM-dd" style={{ width: 160 }}>
                 <Option value="yyyy-MM-dd">2024-01-01</Option>
                 <Option value="yyyy/MM/dd">2024/01/01</Option>
@@ -276,7 +280,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
 
         <section id="logs-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>日志</Title>
+            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>{t('generalView.logs')}</Title>
           </div>
 
           <div className="settings-section" style={{ 
@@ -285,12 +289,12 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             padding: '16px 20px',
             marginBottom: 24,
           }}>
-            <SettingItem title="日志文件夹路径" desc="设置日志文件的存储位置">
+            <SettingItem title={t('generalView.logDir')} desc={t('generalView.logDirDesc')}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <Input
                   value={logsConfig.log_dir}
                   readOnly
-                  placeholder="默认日志路径"
+                  placeholder={t('generalView.logDir')}
                   style={{ width: 280 }}
                 />
                 <Button
@@ -298,7 +302,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
                   size="small"
                   onClick={selectLogsDir}
                 >
-                  选择文件夹
+                  {t('generalView.selectFolder')}
                 </Button>
                 <Button
                   type="secondary"
@@ -306,12 +310,12 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
                   onClick={openLogsDir}
                   loading={logsLoading}
                 >
-                  打开
+                  {t('generalView.open')}
                 </Button>
               </div>
             </SettingItem>
 
-            <SettingItem title="日志级别" desc="选择记录的日志详细程度">
+            <SettingItem title={t('generalView.logLevel')} desc={t('generalView.logLevelDesc')}>
               <Select
                 value={logsConfig.log_level}
                 onChange={(value) => saveLogsConfig({ log_level: value })}
@@ -324,14 +328,14 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
               </Select>
             </SettingItem>
 
-            <SettingItem title="日志轮转" desc="启用后自动按日期分割日志文件">
+            <SettingItem title={t('generalView.logRotation')} desc={t('generalView.logRotationDesc')}>
               <Switch
                 checked={logsConfig.log_rotation}
                 onChange={(checked) => saveLogsConfig({ log_rotation: checked })}
               />
             </SettingItem>
 
-            <SettingItem title="保留日志文件数" desc="设置保留的历史日志文件数量（0表示不限制）" divider={false}>
+            <SettingItem title={t('generalView.maxLogFiles')} desc={t('generalView.maxLogFilesDesc')} divider={false}>
               <InputNumber
                 min={0}
                 max={365}
