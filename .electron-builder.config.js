@@ -76,7 +76,7 @@ module.exports = {
     shortcutName: 'Papyrus',
     include: 'build/installer.nsh',
     deleteAppDataOnUninstall: false,
-    artifactName: '${productName}-Setup-${version}.${ext}',
+    artifactName: '${productName}-Setup.${ext}',
   },
   
   // macOS configuration

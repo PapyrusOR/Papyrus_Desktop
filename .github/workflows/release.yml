@@ -203,7 +203,7 @@ jobs:
           MIN_SIZE=52428800  # 50 MB sanity check
           case "${{ matrix.platform }}" in
             windows)
-              INSTALLER=$(ls dist-electron/*-Setup-*.exe 2>/dev/null | head -1)
+              INSTALLER=$(ls dist-electron/*-Setup.exe 2>/dev/null | head -1)
               if [ -z "$INSTALLER" ]; then
                 echo "Error: No Windows installer found"
                 exit 1
@@ -345,7 +345,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Papyrus-Win-x64/**/*-Setup-*.exe
+            artifacts/Papyrus-Win-x64/**/*-Setup.exe
             artifacts/Papyrus-Apple-Silicon-arm64/**/*.dmg
             artifacts/Papyrus-Linux-x64/**/*.AppImage
             artifacts/Papyrus-Linux-x64/**/*.deb
