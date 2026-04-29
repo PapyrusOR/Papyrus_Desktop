@@ -355,6 +355,6 @@ jobs:
           draft: true
           prerelease: ${{ steps.release_type.outputs.is_prerelease == 'true' }}
           # 决定release notes的生成方式，默认为true，自动根据提交记录生成release notes，设置为false则使用body_path指定的文件内容作为release notes
-          generate_release_notes: false
+          generate_release_notes: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
