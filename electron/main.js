@@ -29,7 +29,7 @@ const CONFIG = {
   frontendDevUrl: 'http://localhost:5173',
   backendPort: 8000,
   backendHost: '127.0.0.1',
-  healthCheckInterval: 2000,
+  healthCheckInterval: 500,
   backendStartupTimeout: 60000,
 };
 
@@ -349,13 +349,18 @@ function createWindow() {
 
   mainWindow.on('close', (event) => {
     if (!isQuitting && process.platform !== 'darwin' && tray) {
-      event.preventDefault();
-      mainWindow.hide();
-      tray.displayBalloon({
-        iconType: 'info',
-        title: 'Papyrus',
-        content: 'Papyrus is running in the background. Click the tray icon to restore.',
-      });
+      try {
+        event.preventDefault();
+        mainWindow.hide();
+        tray.displayBalloon({
+          iconType: 'info',
+          title: 'Papyrus',
+          content: 'Papyrus is running in the background. Click the tray icon to restore.',
+        });
+      } catch (trayErr) {
+        log(`Tray operation failed, allowing normal close: ${trayErr.message}`, 'error');
+        tray = null;
+      }
     }
     // If tray is not available, let the window close normally so user isn't locked out
   });
@@ -482,7 +487,23 @@ function setupIPC() {
     const dataPath = app.getPath('userData');
     shell.openPath(dataPath);
   });
-  
+
+  // Open any folder (with path validation)
+  ipcMain.handle('shell:openFolder', async (event, folderPath) => {
+    if (!folderPath || typeof folderPath !== 'string') {
+      throw new Error('Invalid folder path');
+    }
+    const resolved = path.resolve(folderPath);
+    const dataDir = app.getPath('userData');
+    const homeDir = os.homedir();
+    const isUnderDataDir = resolved === dataDir || resolved.startsWith(dataDir + path.sep);
+    const isUnderHomeDir = resolved === homeDir || resolved.startsWith(homeDir + path.sep);
+    if (!isUnderDataDir && !isUnderHomeDir) {
+      throw new Error('Path outside allowed directories');
+    }
+    await shell.openPath(resolved);
+  });
+
   // Minimize to tray
   ipcMain.handle('window:minimizeToTray', () => {
     if (mainWindow) {

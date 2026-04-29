@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { NoteListView } from './views/NoteListView';
 import { NoteDetailView } from './views/NoteDetailView';
 import { FileTree } from './components/FileTree';
@@ -73,17 +73,32 @@ const NotesPage = () => {
     setIsCreateMode(false);
   }, []);
 
-  // 保存后返回列表
-  const handleSave = useCallback((...args: Parameters<typeof saveNote>) => {
-    saveNote(...args);
-    setViewMode('list');
-  }, [saveNote]);
-
   // 删除后返回列表
   const handleDelete = useCallback((id: string) => {
     deleteNote(id);
     setViewMode('list');
   }, [deleteNote]);
+
+  // 监听全局新建笔记事件（来自 TitleBar）
+  useEffect(() => {
+    const handleGlobalNewNote = () => {
+      handleCreateClick();
+    };
+    window.addEventListener('papyrus_new_note', handleGlobalNewNote);
+    return () => window.removeEventListener('papyrus_new_note', handleGlobalNewNote);
+  }, [handleCreateClick]);
+
+  // 保存笔记（可选是否返回列表）
+  const handleSave = useCallback((
+    params: Parameters<typeof saveNote>[0],
+    isCreate: Parameters<typeof saveNote>[1],
+    shouldReturnToList = true
+  ) => {
+    saveNote(params, isCreate);
+    if (shouldReturnToList) {
+      setViewMode('list');
+    }
+  }, [saveNote]);
 
   // 侧边栏拖拽调整
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

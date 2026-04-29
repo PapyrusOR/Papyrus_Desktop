@@ -108,6 +108,10 @@
   gap: 8px;
 }
 
+.chat-message-assistant .chat-message-with-avatar {
+  align-items: flex-start;
+}
+
 .chat-message-actions {
   display: flex;
   align-items: center;

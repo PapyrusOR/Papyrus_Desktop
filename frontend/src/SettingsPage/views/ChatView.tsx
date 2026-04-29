@@ -543,10 +543,14 @@ const ChatView = ({ onBack }: ChatViewProps) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedConfig),
-          });
+          }).then(() => notifyAIConfigChanged());
         }
       })
       .catch(console.error);
+  };
+
+  const notifyAIConfigChanged = () => {
+    window.dispatchEvent(new CustomEvent('papyrus_ai_config_changed'));
   };
 
   const syncKeyToAIConfig = (providerType: string, apiKey: string) => {
@@ -571,6 +575,8 @@ const ChatView = ({ onBack }: ChatViewProps) => {
           }).then(res => res.json()).then(data => {
             if (!data.success) {
               Message.warning('AI 配置同步失败，请刷新页面后重试');
+            } else {
+              notifyAIConfigChanged();
             }
           });
         }
@@ -965,7 +971,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
                     {p.models.filter(m => m.enabled).map(m => (
                       <Option key={m.id} value={m.id}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <ModelLogo model={m.name} size={14} />
+                          <ModelLogo model={m.name} modelId={m.modelId || m.id} size={14} />
                           <span>{m.name}</span>
                         </div>
                       </Option>
@@ -1422,7 +1428,7 @@ const ModelsSection = ({ providers, currentModelId, setCurrentModelId, deleteMod
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <ModelLogo model={model.name} size={18} />
+                      <ModelLogo model={model.name} modelId={model.modelId || model.id} size={18} />
                       <Text bold style={{ fontSize: 14 }}>{model.name}</Text>
                       {renderCapabilityIcons(model.capabilities)}
                     </div>

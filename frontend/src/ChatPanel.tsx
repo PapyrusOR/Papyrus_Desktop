@@ -227,6 +227,16 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
     }
   }, [open, loadAIConfig, loadProviders]);
 
+  // 监听设置页 AI 配置变化，实时刷新
+  useEffect(() => {
+    const handleConfigChange = () => {
+      loadAIConfig();
+      loadProviders();
+    };
+    window.addEventListener('papyrus_ai_config_changed', handleConfigChange);
+    return () => window.removeEventListener('papyrus_ai_config_changed', handleConfigChange);
+  }, [loadAIConfig, loadProviders]);
+
   // 检查 AI 配置是否有效
   const checkAIConfig = useCallback((): { valid: boolean; message?: string } => {
     if (!aiConfig) {
@@ -435,59 +445,90 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
               const event: SSEEvent = JSON.parse(jsonStr);
               
               setMessages((prev) => {
-                const newMessages = [...prev];
-                const lastMsg = newMessages.find((m) => m.id === messageId);
-                if (!lastMsg) return prev;
+                const msgIndex = prev.findIndex((m) => m.id === messageId);
+                if (msgIndex === -1) return prev;
 
-                if (!lastMsg.blocks) {
-                  lastMsg.blocks = [];
-                }
+                const lastMsg = prev[msgIndex]!;
+                let newBlocks = lastMsg.blocks ? [...lastMsg.blocks] : [];
+                let newContent = lastMsg.content;
 
                 switch (event.type) {
                   case 'text':
-                    lastMsg.content += event.data;
+                    newContent += event.data;
                     break;
 
-                  case 'reasoning':
-                    // 查找或创建 reasoning 块
-                    const reasoningBlock = lastMsg.blocks.find(
+                  case 'reasoning': {
+                    const reasoningIndex = newBlocks.findIndex(
                       (b) => b.type === 'reasoning'
                     );
-                    if (reasoningBlock) {
-                      reasoningBlock.content = (reasoningBlock.content || '') + event.data;
+                    if (reasoningIndex !== -1) {
+                      newBlocks = newBlocks.map((b, idx) =>
+                        idx === reasoningIndex
+                          ? { ...b, content: (b.content || '') + event.data }
+                          : b
+                      );
                     } else {
-                      lastMsg.blocks.push({
-                        type: 'reasoning',
-                        content: event.data,
-                      });
+                      newBlocks = [
+                        ...newBlocks,
+                        { type: 'reasoning' as const, content: event.data },
+                      ];
                     }
                     break;
+                  }
 
                   case 'tool_call':
-                    lastMsg.blocks.push({
-                      type: 'tool_call',
-                      toolName: event.data.name,
-                      toolStatus: 'pending',
-                      toolParams: event.data.params,
-                    });
+                    newBlocks = [
+                      ...newBlocks,
+                      {
+                        type: 'tool_call' as const,
+                        toolName: event.data.name,
+                        toolStatus: 'pending' as const,
+                        toolParams: event.data.params,
+                      },
+                    ];
                     break;
 
-                  case 'tool_result':
-                    const toolBlock = lastMsg.blocks.find(
-                      (b) => b.type === 'tool_call' && b.toolName === event.data.name && b.toolStatus === 'pending'
+                  case 'tool_result': {
+                    const toolIndex = newBlocks.findIndex(
+                      (b) =>
+                        b.type === 'tool_call' &&
+                        b.toolName === event.data.name &&
+                        b.toolStatus === 'pending'
                     );
-                    if (toolBlock) {
-                      toolBlock.toolStatus = event.data.success ? 'success' : 'failed';
-                      toolBlock.toolResult = event.data.result;
-                      toolBlock.toolError = event.data.error;
+                    if (toolIndex !== -1) {
+                      newBlocks = newBlocks.map((b, idx) =>
+                        idx === toolIndex
+                          ? {
+                              ...b,
+                              toolStatus: event.data.success
+                                ? ('success' as const)
+                                : ('failed' as const),
+                              toolResult: event.data.result,
+                              toolError: event.data.error,
+                            }
+                          : b
+                      );
                     }
                     break;
+                  }
 
-                  case 'error':
-                    ArcoMessage.error(event.data.message || '发生错误');
+                  case 'error': {
+                    const errorData = event.data;
+                    const errorMsg =
+                      typeof errorData === 'string'
+                        ? errorData
+                        : errorData?.message || '发生错误';
+                    ArcoMessage.error(errorMsg);
                     break;
+                  }
                 }
 
+                const newMessages = [...prev];
+                newMessages[msgIndex] = {
+                  ...lastMsg,
+                  content: newContent,
+                  blocks: newBlocks,
+                };
                 return newMessages;
               });
             } catch (e) {
@@ -551,6 +592,9 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
         },
         body: JSON.stringify({
           message: messageText,
+          model,
+          mode,
+          reasoning,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -567,18 +611,22 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
         // 普通 JSON 响应
         const data = await response.json();
         setMessages((prev) => {
-          const newMessages = [...prev];
-          const lastMsg = newMessages.find((m) => m.id === assistantMessage.id);
-          if (lastMsg) {
-            lastMsg.content = data.content;
-            if (data.reasoning) {
-              lastMsg.blocks = [
-                ...(lastMsg.blocks || []),
-                { type: 'reasoning', content: data.reasoning },
-              ];
-            }
-          }
-          return newMessages;
+          const msgIndex = prev.findIndex((m) => m.id === assistantMessage.id);
+          if (msgIndex === -1) return prev;
+          return prev.map((msg, idx) =>
+            idx === msgIndex
+              ? {
+                  ...msg,
+                  content: data.content,
+                  blocks: data.reasoning
+                    ? [
+                        ...(msg.blocks || []),
+                        { type: 'reasoning' as const, content: data.reasoning },
+                      ]
+                    : msg.blocks,
+                }
+              : msg
+          );
         });
       }
     } catch (error) {
@@ -605,19 +653,23 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
         
         // 更新最后一条助手消息显示错误
         setMessages((prev) => {
-          const newMessages = [...prev];
-          const lastMsg = newMessages[newMessages.length - 1];
+          const lastIndex = prev.length - 1;
+          const lastMsg = prev[lastIndex];
           if (lastMsg && lastMsg.role === 'assistant') {
-            lastMsg.content = '❌ ' + errorMessage;
+            return prev.map((msg, idx) =>
+              idx === lastIndex
+                ? { ...msg, content: '❌ ' + errorMessage }
+                : msg
+            );
           }
-          return newMessages;
+          return prev;
         });
       }
     } finally {
       setIsGenerating(false);
       abortControllerRef.current = null;
     }
-  }, [text, isGenerating, messages, model, mode, reasoning, selectedFiles, handleSSEStream, checkAIConfig]);
+  }, [text, isGenerating, model, mode, reasoning, selectedFiles, handleSSEStream, checkAIConfig]);
 
   // 停止生成
   const stopGeneration = useCallback(() => {
@@ -636,16 +688,19 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
 
     // 更新本地状态
     setMessages((prev) => {
+      const msgIndex = prev.findIndex((m) => m.id === messageId);
+      if (msgIndex === -1) return prev;
+      const msg = prev[msgIndex]!;
+      if (!msg.blocks) return prev;
+      const blockIndex = msg.blocks.findIndex(
+        (b) => b.type === 'tool_call' && b.toolName === toolName && b.toolStatus === 'pending'
+      );
+      if (blockIndex === -1) return prev;
+      const newBlocks = msg.blocks.map((b, idx) =>
+        idx === blockIndex ? { ...b, toolStatus: 'executing' as const } : b
+      );
       const newMessages = [...prev];
-      const msg = newMessages.find((m) => m.id === messageId);
-      if (msg?.blocks) {
-        const block = msg.blocks.find(
-          (b) => b.type === 'tool_call' && b.toolName === toolName && b.toolStatus === 'pending'
-        );
-        if (block) {
-          block.toolStatus = 'executing';
-        }
-      }
+      newMessages[msgIndex] = { ...msg, blocks: newBlocks };
       return newMessages;
     });
   }, []);
@@ -661,17 +716,21 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
 
     // 更新本地状态
     setMessages((prev) => {
+      const msgIndex = prev.findIndex((m) => m.id === messageId);
+      if (msgIndex === -1) return prev;
+      const msg = prev[msgIndex]!;
+      if (!msg.blocks) return prev;
+      const blockIndex = msg.blocks.findIndex(
+        (b) => b.type === 'tool_call' && b.toolName === toolName && b.toolStatus === 'pending'
+      );
+      if (blockIndex === -1) return prev;
+      const newBlocks = msg.blocks.map((b, idx) =>
+        idx === blockIndex
+          ? { ...b, toolStatus: 'failed' as const, toolError: '用户拒绝了工具调用' }
+          : b
+      );
       const newMessages = [...prev];
-      const msg = newMessages.find((m) => m.id === messageId);
-      if (msg?.blocks) {
-        const block = msg.blocks.find(
-          (b) => b.type === 'tool_call' && b.toolName === toolName && b.toolStatus === 'pending'
-        );
-        if (block) {
-          block.toolStatus = 'failed';
-          block.toolError = '用户拒绝了工具调用';
-        }
-      }
+      newMessages[msgIndex] = { ...msg, blocks: newBlocks };
       return newMessages;
     });
   }, []);

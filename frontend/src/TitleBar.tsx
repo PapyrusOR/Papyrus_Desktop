@@ -156,11 +156,11 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
 
   // 新建菜单项
   const handleNewNote = () => {
-    if (onNewNote) {
-      onNewNote();
-    } else if (onPageChange) {
+    if (onPageChange) {
       onPageChange('notes');
     }
+    // 分派全局事件，让 NotesPage 进入创建模式
+    window.dispatchEvent(new CustomEvent('papyrus_new_note'));
     Message.success('创建新笔记');
   };
 
@@ -168,6 +168,8 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
     if (onPageChange) {
       onPageChange('scroll');
     }
+    // 分派全局事件，让 ScrollPage 进入创建模式
+    window.dispatchEvent(new CustomEvent('papyrus_new_card'));
     Message.success('创建新卡片');
   };
 
@@ -355,13 +357,13 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
   // 编辑菜单下拉内容
   const editMenu = (
     <Menu style={{ width: 240, maxHeight: 'none', overflow: 'visible' }}>
-      <Menu.Item key="undo">
+      <Menu.Item key="undo" onClick={() => { try { document.execCommand('undo'); } catch { /* ignore */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           撤销
           <Shortcut keys={getShortcutDisplay('undo')} />
         </span>
       </Menu.Item>
-      <Menu.Item key="redo">
+      <Menu.Item key="redo" onClick={() => { try { document.execCommand('redo'); } catch { /* ignore */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           重做
           <Shortcut keys={getShortcutDisplay('redo')} />
@@ -466,7 +468,7 @@ const TitleBar = ({ onPageChange, onNewNote, onSearchResult }: TitleBarProps) =>
             <IconExpand />
           </button>
           <button className="titlebar-btn titlebar-btn-close no-drag" aria-label="关闭" onClick={() => {
-            const minimize = localStorage.getItem('papyrus_minimize_to_tray') !== 'false';
+            const minimize = localStorage.getItem('papyrus_minimize_to_tray') === 'true';
             if (minimize) {
               window.electronAPI?.closeWindow?.();
             } else {

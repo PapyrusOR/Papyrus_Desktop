@@ -7,10 +7,11 @@
  * - 无障碍支持（WCAG 2.1 AA/AAA）
  * - 深色模式检测
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider } from '@arco-design/web-react';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
+import enUS from '@arco-design/web-react/es/locale/en-US';
 
 import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -61,19 +62,43 @@ if (import.meta.hot) {
  * 应用根组件
  * 包装所有必要的 Provider
  */
-const Root = () => (
-  <React.StrictMode>
-    <ConfigProvider locale={zhCN}>
-      {/* 无障碍设置管理 */}
-      <AccessibilityProvider>
-        {/* 屏幕阅读器通知系统 */}
-        <ScreenReaderAnnouncerProvider timeout={2000}>
-          <App />
-        </ScreenReaderAnnouncerProvider>
-      </AccessibilityProvider>
-    </ConfigProvider>
-  </React.StrictMode>
-);
+const LOCALE_MAP: Record<string, typeof zhCN> = {
+  'zh-CN': zhCN,
+  'en-US': enUS,
+};
+
+const Root = () => {
+  const [localeKey, setLocaleKey] = useState(() => {
+    try { return localStorage.getItem('papyrus_language') ?? 'zh-CN'; }
+    catch { return 'zh-CN'; }
+  });
+
+  const locale = LOCALE_MAP[localeKey] ?? zhCN;
+
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'papyrus_language') {
+        setLocaleKey(e.newValue ?? 'zh-CN');
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+
+  return (
+    <React.StrictMode>
+      <ConfigProvider locale={locale}>
+        {/* 无障碍设置管理 */}
+        <AccessibilityProvider>
+          {/* 屏幕阅读器通知系统 */}
+          <ScreenReaderAnnouncerProvider timeout={2000}>
+            <App />
+          </ScreenReaderAnnouncerProvider>
+        </AccessibilityProvider>
+      </ConfigProvider>
+    </React.StrictMode>
+  );
+};
 
 // 使用并发渲染
 createRoot(el).render(<Root />);

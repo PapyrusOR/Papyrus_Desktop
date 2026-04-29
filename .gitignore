@@ -27,6 +27,8 @@ build/*.pfx
 build/*.p12
 build/*.pem
 build/*.key
+build/*.cert
+build/*.cer
 
 # Frontend build
 dist/

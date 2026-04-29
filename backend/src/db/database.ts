@@ -11,12 +11,18 @@ let db: DatabaseSync | null = null;
 function getDb(): DatabaseSync {
   if (db === null) {
     const dbPath = paths.dbFile;
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-    db = new DatabaseSync(dbPath);
-    db.exec('PRAGMA journal_mode = WAL;');
-    db.exec('PRAGMA foreign_keys = ON;');
-    db.exec('PRAGMA busy_timeout = 5000;');
-    initSchema(db);
+    try {
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      db = new DatabaseSync(dbPath);
+      db.exec('PRAGMA journal_mode = WAL;');
+      db.exec('PRAGMA foreign_keys = ON;');
+      db.exec('PRAGMA busy_timeout = 5000;');
+      initSchema(db);
+    } catch (err) {
+      const message = `Failed to open database at "${dbPath}": ${err instanceof Error ? err.message : String(err)}`;
+      console.error(message);
+      throw new Error(message);
+    }
   }
   return db;
 }
@@ -146,6 +152,20 @@ function initSchema(database: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_files_updated ON files(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_note_versions_note ON note_versions(note_id, version DESC);
     CREATE INDEX IF NOT EXISTS idx_card_versions_card ON card_versions(card_id, version DESC);
+
+    CREATE TABLE IF NOT EXISTS relations (
+      id TEXT PRIMARY KEY,
+      source_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+      target_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+      relation_type TEXT NOT NULL DEFAULT 'reference',
+      description TEXT DEFAULT '',
+      created_at REAL DEFAULT 0.0,
+      updated_at REAL DEFAULT 0.0,
+      UNIQUE(source_id, target_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_relations_source ON relations(source_id);
+    CREATE INDEX IF NOT EXISTS idx_relations_target ON relations(target_id);
   `);
 
   if (isNewDb) {
@@ -1061,6 +1081,202 @@ export function migrateFromJson(cardsFile?: string, notesFile?: string, logger?:
       logger?.error(`迁移笔记失败: ${e}`);
     }
   }
+}
+
+// ==================== Relations ====================
+
+export interface RelationRecord {
+  id: string;
+  source_id: string;
+  target_id: string;
+  relation_type: string;
+  description: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export function loadRelationsForNote(noteId: string): { outgoing: RelationRecord[]; incoming: RelationRecord[] } {
+  const database = getDb();
+
+  const outgoingStmt = database.prepare(`
+    SELECT r.id, r.source_id, r.target_id, r.relation_type, r.description, r.created_at, r.updated_at,
+           n.title as target_title, n.folder as target_folder
+    FROM relations r
+    JOIN notes n ON r.target_id = n.id
+    WHERE r.source_id = ?
+    ORDER BY r.created_at DESC
+  `);
+  const outgoingRows = outgoingStmt.all(noteId) as Array<{
+    id: string; source_id: string; target_id: string; relation_type: string;
+    description: string; created_at: number; updated_at: number;
+    target_title: string; target_folder: string;
+  }>;
+
+  const incomingStmt = database.prepare(`
+    SELECT r.id, r.source_id, r.target_id, r.relation_type, r.description, r.created_at, r.updated_at,
+           n.title as source_title, n.folder as source_folder
+    FROM relations r
+    JOIN notes n ON r.source_id = n.id
+    WHERE r.target_id = ?
+    ORDER BY r.created_at DESC
+  `);
+  const incomingRows = incomingStmt.all(noteId) as Array<{
+    id: string; source_id: string; target_id: string; relation_type: string;
+    description: string; created_at: number; updated_at: number;
+    source_title: string; source_folder: string;
+  }>;
+
+  return {
+    outgoing: outgoingRows.map(r => ({
+      id: r.id,
+      source_id: r.source_id,
+      target_id: r.target_id,
+      relation_type: r.relation_type,
+      description: r.description,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    })),
+    incoming: incomingRows.map(r => ({
+      id: r.id,
+      source_id: r.source_id,
+      target_id: r.target_id,
+      relation_type: r.relation_type,
+      description: r.description,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    })),
+  };
+}
+
+export function insertRelation(relation: RelationRecord, logger?: PapyrusLogger): void {
+  const database = getDb();
+  const stmt = database.prepare(
+    'INSERT INTO relations (id, source_id, target_id, relation_type, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  );
+  stmt.run(relation.id, relation.source_id, relation.target_id, relation.relation_type, relation.description, relation.created_at, relation.updated_at);
+  logger?.info(`创建关联: ${relation.id}`);
+}
+
+export function updateRelation(relationId: string, updates: Partial<Pick<RelationRecord, 'relation_type' | 'description'>>, logger?: PapyrusLogger): boolean {
+  const database = getDb();
+  const sets: string[] = [];
+  const values: (string | number)[] = [];
+  if (updates.relation_type !== undefined) {
+    sets.push('relation_type = ?');
+    values.push(updates.relation_type);
+  }
+  if (updates.description !== undefined) {
+    sets.push('description = ?');
+    values.push(updates.description);
+  }
+  if (sets.length === 0) return false;
+  sets.push('updated_at = ?');
+  values.push(Date.now() / 1000);
+  values.push(relationId);
+  const stmt = database.prepare(`UPDATE relations SET ${sets.join(', ')} WHERE id = ?`);
+  const result = stmt.run(...values);
+  logger?.info(`更新关联: ${relationId}`);
+  return Number(result.changes) > 0;
+}
+
+export function deleteRelationById(relationId: string, logger?: PapyrusLogger): boolean {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM relations WHERE id = ?');
+  const result = stmt.run(relationId);
+  logger?.info(`删除关联: ${relationId}`);
+  return result.changes > 0;
+}
+
+export function searchNotesForRelation(query: string, excludeNoteId: string, limit: number): Note[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT * FROM notes
+    WHERE id != ? AND (title LIKE ? OR content LIKE ? OR preview LIKE ?)
+    ORDER BY updated_at DESC
+    LIMIT ?
+  `);
+  const likeQuery = `%${query}%`;
+  const rows = stmt.all(excludeNoteId, likeQuery, likeQuery, likeQuery, limit) as Array<{
+    id: string; title: string; folder: string; content: string; preview: string;
+    tags: string; created_at: number; updated_at: number; word_count: number;
+    hash: string; headings: string; outgoing_links: string; incoming_count: number;
+  }>;
+  return rows.map(noteFromRow);
+}
+
+export function getGraphData(noteId: string, depth: number): { nodes: Array<{ id: string; title: string; is_center: boolean }>; links: Array<{ source: string; target: string; type: string }> } {
+  const database = getDb();
+  const nodeSet = new Map<string, { id: string; title: string; is_center: boolean }>();
+  const linkSet = new Set<string>();
+  const links: Array<{ source: string; target: string; type: string }> = [];
+
+  function addNode(id: string, title: string, isCenter: boolean) {
+    if (!nodeSet.has(id)) {
+      nodeSet.set(id, { id, title, is_center: isCenter });
+    }
+  }
+
+  function addLink(source: string, target: string, type: string) {
+    const key = `${source}-${target}-${type}`;
+    if (!linkSet.has(key)) {
+      linkSet.add(key);
+      links.push({ source, target, type });
+    }
+  }
+
+  // 获取中心笔记
+  const centerStmt = database.prepare('SELECT id, title FROM notes WHERE id = ?');
+  const centerRow = centerStmt.get(noteId) as { id: string; title: string } | undefined;
+  if (centerRow) {
+    addNode(centerRow.id, centerRow.title, true);
+  }
+
+  // BFS 获取关联笔记
+  let currentDepth = 0;
+  let currentIds = [noteId];
+
+  while (currentDepth < depth && currentIds.length > 0) {
+    const nextIds: string[] = [];
+    const placeholders = currentIds.map(() => '?').join(',');
+
+    const outgoingStmt = database.prepare(`
+      SELECT r.source_id, r.target_id, r.relation_type, n.title as target_title
+      FROM relations r
+      JOIN notes n ON r.target_id = n.id
+      WHERE r.source_id IN (${placeholders})
+    `);
+    const outgoingRows = outgoingStmt.all(...currentIds) as Array<{ source_id: string; target_id: string; relation_type: string; target_title: string }>;
+    for (const row of outgoingRows) {
+      addNode(row.target_id, row.target_title, false);
+      addLink(row.source_id, row.target_id, row.relation_type);
+      if (!nodeSet.has(row.target_id) || currentDepth + 1 < depth) {
+        nextIds.push(row.target_id);
+      }
+    }
+
+    const incomingStmt = database.prepare(`
+      SELECT r.source_id, r.target_id, r.relation_type, n.title as source_title
+      FROM relations r
+      JOIN notes n ON r.source_id = n.id
+      WHERE r.target_id IN (${placeholders})
+    `);
+    const incomingRows = incomingStmt.all(...currentIds) as Array<{ source_id: string; target_id: string; relation_type: string; source_title: string }>;
+    for (const row of incomingRows) {
+      addNode(row.source_id, row.source_title, false);
+      addLink(row.source_id, row.target_id, row.relation_type);
+      if (!nodeSet.has(row.source_id) || currentDepth + 1 < depth) {
+        nextIds.push(row.source_id);
+      }
+    }
+
+    currentIds = [...new Set(nextIds)];
+    currentDepth++;
+  }
+
+  return {
+    nodes: Array.from(nodeSet.values()),
+    links,
+  };
 }
 
 export function checkpointDb(): void {

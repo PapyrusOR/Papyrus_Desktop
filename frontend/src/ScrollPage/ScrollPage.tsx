@@ -108,8 +108,8 @@ const StatsCard = ({
   }
 
   const image = scenery.image;
-  const poem = '且将新火试新茶，诗酒趁年华。';
-  const source = '[宋] 苏轼《望江南·超然台作》';
+  const poem = scenery.poem || '且将新火试新茶，诗酒趁年华。';
+  const source = scenery.source || '[宋] 苏轼《望江南·超然台作》';
   const overlayOpacity = Math.max(0.25, Math.min(0.75, opacity));
 
   return (
@@ -653,8 +653,8 @@ const ScrollPage = () => {
         scenery={sceneryConfig.enabled ? { 
           id: 'scroll-scenery', 
           image: sceneryConfig.image, 
-          poem: '且将新火试新茶，诗酒趁年华。',
-          source: '[宋] 苏轼《望江南·超然台作》'
+          poem: sceneryConfig.poem || '且将新火试新茶，诗酒趁年华。',
+          source: sceneryConfig.source || '[宋] 苏轼《望江南·超然台作》'
         } : null}
         opacity={sceneryConfig.opacity}
         loading={loading}

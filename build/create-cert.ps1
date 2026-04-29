@@ -26,7 +26,7 @@ $rootCert = New-SelfSignedCertificate `
 Write-Host "Root CA Thumbprint: $($rootCert.Thumbprint)" -ForegroundColor Green
 
 # 2. Export root certificate
-$rootCerPath = "$PSScriptRoot\root-ca.cer"
+$rootCerPath = "$env:USERPROFILE\.papyrus-certs\root-ca.cer"
 Export-Certificate -Cert $rootCert -FilePath $rootCerPath -Type CERT | Out-Null
 Write-Host "Root CA exported: $rootCerPath" -ForegroundColor Green
 
@@ -46,7 +46,11 @@ $codeCert = New-SelfSignedCertificate `
 Write-Host "Code signing cert Thumbprint: $($codeCert.Thumbprint)" -ForegroundColor Green
 
 # 4. Export code signing certificate as PFX
-$pfxPath = "$PSScriptRoot\code-signing.pfx"
+$certDir = "$env:USERPROFILE\.papyrus-certs"
+if (-not (Test-Path $certDir)) {
+    New-Item -ItemType Directory -Path $certDir -Force | Out-Null
+}
+$pfxPath = "$certDir\code-signing.pfx"
 Export-PfxCertificate -Cert $codeCert -FilePath $pfxPath -Password $password | Out-Null
 Write-Host "Code signing cert exported: $pfxPath" -ForegroundColor Green
 
@@ -56,7 +60,7 @@ Write-Host "Next Step: Install root-ca.cer to Trusted Root CA" -ForegroundColor 
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Method 1 - Manual:"
-Write-Host "  1. Double-click build\root-ca.cer"
+Write-Host "  1. Open $rootCerPath"
 Write-Host "  2. Click 'Install Certificate...'"
 Write-Host "  3. Select 'Local Machine' (or Current User)"
 Write-Host "  4. Select 'Place all certificates in the following store'"
@@ -69,6 +73,6 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host "Signing Config (for electron-builder):" -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Yellow
-Write-Host "Certificate: build\code-signing.pfx"
+Write-Host "Certificate: $pfxPath"
 Write-Host "Password: (from CERTIFICATE_PASSWORD environment variable)"
 Write-Host ""

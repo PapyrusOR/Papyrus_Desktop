@@ -116,6 +116,7 @@ export async function initApp(): Promise<void> {
   const { default: noteVersionRoutes } = await import('./routes/note-versions.js');
   const { default: cardVersionRoutes } = await import('./routes/card-versions.js');
   const { default: filesRoutes } = await import('./routes/files.js');
+  const { default: relationsRoutes } = await import('./routes/relations.js');
 
   app.register(cardsRoutes, { prefix: '/api/cards' });
   app.register(reviewRoutes, { prefix: '/api/review' });
@@ -132,6 +133,7 @@ export async function initApp(): Promise<void> {
   app.register(noteVersionRoutes, { prefix: '/api/notes/:noteId' });
   app.register(cardVersionRoutes, { prefix: '/api/cards/:cardId' });
   app.register(filesRoutes, { prefix: '/api/files' });
+  app.register(relationsRoutes, { prefix: '/api' });
 }
 
 let mcpServer: MCPServer | null = null;

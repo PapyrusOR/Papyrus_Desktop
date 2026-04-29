@@ -18,7 +18,7 @@ export interface SmartTextAreaRef {
 
 /**
  * 智能文本输入组件
- * 
+ *
  * 支持大模型自动补全，两种交互模式：
  * 1. 实时预览模式：输入时自动显示灰色补全，Tab 接受
  * 2. Tab 触发模式：按 Tab 触发显示补全，Enter 接受
@@ -27,8 +27,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
   ({ value, onChange, enableCompletion = true, style, ...rest }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<RefTextAreaType>(null);
-    const [textareaHeight, setTextareaHeight] = useState<number>(0);
-    
+
     const {
       config,
       state,
@@ -43,13 +42,13 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
       insertAtCursor: (text: string) => {
         const textarea = textareaRef.current?.dom;
         if (!textarea) return;
-        
+
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const newValue = value.slice(0, start) + text + value.slice(end);
-        
+
         onChange(newValue);
-        
+
         // 设置光标位置到插入文本之后
         setTimeout(() => {
           const newPos = start + text.length;
@@ -73,7 +72,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
     // 处理输入变化
     const handleChange = useCallback((newValue: string) => {
       onChange(newValue);
-      
+
       if (enableCompletion && config.enabled) {
         const prefix = getPrefix();
         triggerCompletion(prefix, newValue);
@@ -85,7 +84,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
       // Tab 键处理
       if (e.key === 'Tab') {
         const shouldAccept = handleTabTrigger(getPrefix(), value);
-        
+
         if (shouldAccept && state.isVisible && state.suggestion) {
           e.preventDefault();
           const suggestion = acceptCompletion();
@@ -94,7 +93,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
             const cursorPos = textarea.selectionStart;
             const newValue = value.slice(0, cursorPos) + suggestion + value.slice(textarea.selectionEnd);
             onChange(newValue);
-            
+
             // 设置光标位置到补全后
             setTimeout(() => {
               const newPos = cursorPos + suggestion.length;
@@ -104,13 +103,13 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
           }
           return;
         }
-        
+
         // 如果处于 Tab 触发模式且未显示补全，阻止默认 Tab 行为
         if (config.require_confirm && !state.isVisible) {
           e.preventDefault();
         }
       }
-      
+
       // Enter 键处理（仅在 Tab 触发模式下用于接受补全）
       if (e.key === 'Enter' && config.require_confirm && state.isVisible && state.suggestion) {
         // 在 Tab 触发模式下，Enter 接受补全
@@ -121,7 +120,7 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
           const cursorPos = textarea.selectionStart;
           const newValue = value.slice(0, cursorPos) + suggestion + value.slice(textarea.selectionEnd);
           onChange(newValue);
-          
+
           setTimeout(() => {
             const newPos = cursorPos + suggestion.length;
             textarea.setSelectionRange(newPos, newPos);
@@ -130,80 +129,25 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
         }
         return;
       }
-      
+
       // Escape 取消补全
       if (e.key === 'Escape' && state.isVisible) {
         dismissCompletion();
         return;
       }
-      
+
       // 其他按键隐藏补全
       if (state.isVisible && !['Tab', 'Enter', 'Escape'].includes(e.key)) {
         dismissCompletion();
       }
-      
+
       rest.onKeyDown?.(e);
     }, [value, onChange, config.require_confirm, state.isVisible, state.suggestion, handleTabTrigger, acceptCompletion, dismissCompletion, getPrefix, rest]);
 
-    // 更新 textarea 高度
-    useEffect(() => {
-      const textarea = textareaRef.current?.dom;
-      if (textarea) {
-        setTextareaHeight(textarea.scrollHeight);
-      }
-    }, [value]);
-
     // 计算幽灵文本的显示内容
     const ghostText = state.isVisible ? state.suggestion : '';
-    
-    // 计算光标位置
-    const getCursorOffset = () => {
-      const textarea = textareaRef.current?.dom;
-      if (!textarea) return { top: 0, left: 0 };
-      
-      // 创建临时元素计算位置
-      const computedStyle = window.getComputedStyle(textarea);
-      const span = document.createElement('span');
-      span.style.cssText = `
-        position: absolute;
-        visibility: hidden;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font: ${computedStyle.font};
-        padding: ${computedStyle.padding};
-        border: ${computedStyle.border};
-        width: ${textarea.clientWidth}px;
-        line-height: ${computedStyle.lineHeight};
-      `;
-      
-      const cursorPos = textarea.selectionStart;
-      const textBeforeCursor = value.slice(0, cursorPos);
-      span.textContent = textBeforeCursor;
-      
-      document.body.appendChild(span);
-      
-      // 计算行高
-      const lineHeight = parseFloat(computedStyle.lineHeight) || parseFloat(computedStyle.fontSize) * 1.5;
-      
-      // 计算行数
-      const lines = textBeforeCursor.split('\n');
-      const currentLineIndex = lines.length - 1;
-      const currentLineText = lines[currentLineIndex];
-      
-      // 创建临时 span 计算当前行的宽度
-      const lineSpan = document.createElement('span');
-      lineSpan.style.cssText = span.style.cssText;
-      lineSpan.textContent = currentLineText;
-      document.body.appendChild(lineSpan);
-      
-      const left = lineSpan.getBoundingClientRect().width % textarea.clientWidth;
-      const top = currentLineIndex * lineHeight;
-      
-      document.body.removeChild(span);
-      document.body.removeChild(lineSpan);
-      
-      return { top, left };
-    };
+
+    const showStatus = config.enabled && state.backendReady === false;
 
     return (
       <div
@@ -231,16 +175,17 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
             boxShadow: 'none',
           }}
         />
-        
+
         {/* 幽灵文本层 */}
         {enableCompletion && config.enabled && ghostText && !state.isLoading && (
           <GhostTextLayer
             text={ghostText}
             textarea={textareaRef.current?.dom || null}
+            container={containerRef.current}
             value={value}
           />
         )}
-        
+
         {/* 加载指示器 */}
         {state.isLoading && (
           <div
@@ -258,6 +203,25 @@ export const SmartTextArea = forwardRef<SmartTextAreaRef, SmartTextAreaProps>(
             <Spin size={16} />
           </div>
         )}
+
+        {/* 后端不可用提示 */}
+        {showStatus && (
+          <div
+            title="补全服务不可用"
+            style={{
+              position: 'absolute',
+              right: 12,
+              bottom: 12,
+              zIndex: 10,
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: 'var(--color-text-4)',
+              opacity: 0.5,
+              cursor: 'help',
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -272,76 +236,78 @@ SmartTextArea.displayName = 'SmartTextArea';
 interface GhostTextLayerProps {
   text: string;
   textarea: HTMLTextAreaElement | null;
+  container: HTMLDivElement | null;
   value: string;
 }
 
-const GhostTextLayer: React.FC<GhostTextLayerProps> = ({ text, textarea, value }) => {
+const GhostTextLayer: React.FC<GhostTextLayerProps> = ({ text, textarea, container, value }) => {
   const [position, setPosition] = useState({ top: 0, left: 0 });
-  const ghostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!textarea) return;
-    
+    if (!textarea || !container) return;
+
     const updatePosition = () => {
       const computedStyle = window.getComputedStyle(textarea);
-      const rect = textarea.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const textareaRect = textarea.getBoundingClientRect();
       const scrollTop = textarea.scrollTop;
       const scrollLeft = textarea.scrollLeft;
-      
+
       // 获取光标位置
       const cursorPos = textarea.selectionStart;
       const textBeforeCursor = value.slice(0, cursorPos);
       const lines = textBeforeCursor.split('\n');
       const currentLine = lines[lines.length - 1];
-      
-      // 创建测量元素
-      const measureDiv = document.createElement('div');
-      measureDiv.style.cssText = `
-        position: fixed;
+
+      // 创建测量元素，精确复制 textarea 的字体样式
+      const measureSpan = document.createElement('span');
+      measureSpan.style.cssText = `
+        position: absolute;
         visibility: hidden;
         white-space: pre;
         font: ${computedStyle.font};
-        padding: 0;
-        border: none;
         letter-spacing: ${computedStyle.letterSpacing};
+        line-height: ${computedStyle.lineHeight};
+        text-indent: ${computedStyle.textIndent};
       `;
-      measureDiv.textContent = currentLine;
-      document.body.appendChild(measureDiv);
-      
-      const textWidth = measureDiv.getBoundingClientRect().width;
-      document.body.removeChild(measureDiv);
-      
+      measureSpan.textContent = currentLine;
+      document.body.appendChild(measureSpan);
+
+      const textWidth = measureSpan.getBoundingClientRect().width;
+      document.body.removeChild(measureSpan);
+
       // 计算行高
       const lineHeight = parseFloat(computedStyle.lineHeight) || parseFloat(computedStyle.fontSize) * 1.5;
       const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
       const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-      
-      // 计算位置
-      const top = rect.top + paddingTop + (lines.length - 1) * lineHeight - scrollTop;
-      const left = rect.left + paddingLeft + textWidth - scrollLeft;
-      
+
+      // 计算相对于容器的位置
+      const top = (textareaRect.top - containerRect.top) + paddingTop + (lines.length - 1) * lineHeight - scrollTop;
+      const left = (textareaRect.left - containerRect.left) + paddingLeft + textWidth - scrollLeft;
+
       setPosition({ top, left });
     };
 
     updatePosition();
-    
+
     // 监听滚动和输入事件更新位置
     textarea.addEventListener('scroll', updatePosition);
     window.addEventListener('resize', updatePosition);
-    
+    container.addEventListener('scroll', updatePosition);
+
     return () => {
       textarea.removeEventListener('scroll', updatePosition);
       window.removeEventListener('resize', updatePosition);
+      container.removeEventListener('scroll', updatePosition);
     };
-  }, [textarea, value, text]);
+  }, [textarea, value, text, container]);
 
   if (!text) return null;
 
   return (
     <div
-      ref={ghostRef}
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: position.top,
         left: position.left,
         zIndex: 1000,

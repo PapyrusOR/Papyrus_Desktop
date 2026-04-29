@@ -15,7 +15,7 @@ const _completionConfig: Record<string, unknown> = {
   enabled: true,
   require_confirm: false,
   trigger_delay: 500,
-  max_tokens: 150,
+  max_tokens: 50,
 };
 
 interface AIConfigPayload {

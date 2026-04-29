@@ -17,6 +17,7 @@ import {
 import { useState, useEffect } from 'react';
 import { SettingItem } from '../components';
 import { useScrollNavigation } from '../../hooks/useScrollNavigation';
+import { api } from '../../api';
 
 const { Option } = Select;
 const { Title, Text, Paragraph } = Typography;
@@ -29,11 +30,10 @@ interface LogsConfig {
   log_dir: string;
   log_level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
   log_rotation: boolean;
-  backup_count: number;
+  max_log_files: number;
 }
 
 const NAV_ITEMS = [
-  { key: 'basic-section', label: '基础设置', icon: IconSettings },
   { key: 'startup-section', label: '启动与通知', icon: IconClockCircle },
   { key: 'language-section', label: '语言与地区', icon: IconNotification },
   { key: 'logs-section', label: '日志', icon: IconFile },
@@ -44,25 +44,26 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   const [autoStart, setAutoStart] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(() => {
     const saved = localStorage.getItem('papyrus_minimize_to_tray');
-    return saved !== null ? saved === 'true' : true;
+    return saved !== null ? saved === 'true' : false;
   });
   const [reviewReminder, setReviewReminder] = useState(true);
-  const [language, setLanguage] = useState('zh-CN');
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('papyrus_language') ?? 'zh-CN';
+  });
   
   const [logsConfig, setLogsConfig] = useState<LogsConfig>({
     log_dir: '',
     log_level: 'INFO',
     log_rotation: true,
-    backup_count: 7,
+    max_log_files: 7,
   });
   const [logsLoading, setLogsLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/config/logs')
-      .then(res => res.json())
+    api.getLogsConfig()
       .then(data => {
         if (data.success && data.config) {
-          setLogsConfig(data.config);
+          setLogsConfig(prev => ({ ...prev, ...data.config }));
         }
       })
       .catch(err => {
@@ -74,21 +75,20 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
     localStorage.setItem('papyrus_minimize_to_tray', String(minimizeToTray));
   }, [minimizeToTray]);
 
+  useEffect(() => {
+    localStorage.setItem('papyrus_language', language);
+  }, [language]);
+
   const saveLogsConfig = async (updates: Partial<LogsConfig>) => {
     const newConfig = { ...logsConfig, ...updates };
     setLogsConfig(newConfig);
-    
+
     try {
-      const res = await fetch('/api/config/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newConfig),
-      });
-      const data = await res.json();
+      const data = await api.saveLogsConfig(newConfig);
       if (data.success) {
         Message.success('设置已保存');
       } else {
-        Message.error(data.error || '保存失败');
+        Message.error('保存失败');
       }
     } catch (err) {
       Message.error(err instanceof Error ? err.message : '保存失败');
@@ -98,13 +98,14 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   const openLogsDir = async () => {
     try {
       setLogsLoading(true);
-      const res = await fetch('/api/logs/open-dir', { method: 'POST' });
-      const data = await res.json();
-      if (!data.success) {
-        Message.error('打开文件夹失败');
+      const data = await api.openLogsDir();
+      if (data.success && data.path) {
+        await window.electronAPI?.openFolder?.(data.path);
+      } else {
+        Message.error('获取日志路径失败');
       }
     } catch (err) {
-      Message.error('打开文件夹失败');
+      Message.error(err instanceof Error ? err.message : '打开文件夹失败');
     } finally {
       setLogsLoading(false);
     }
@@ -216,28 +217,6 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             </Title>
           </div>
         </div>
-
-        <section id="basic-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Title heading={4} style={{ margin: 0, fontSize: 20 }}>基础设置</Title>
-          </div>
-
-          <div className="settings-section" style={{ 
-            background: 'var(--color-bg-2)', 
-            borderRadius: 8, 
-            padding: '16px 20px',
-            marginBottom: 24,
-          }}>
-            <SettingItem title="语言" desc="选择应用显示语言">
-              <Select value={language} onChange={setLanguage} style={{ width: 160 }}>
-                <Option value="zh-CN">简体中文</Option>
-                <Option value="zh-TW">繁体中文</Option>
-                <Option value="en-US">English</Option>
-                <Option value="ja-JP">日本語</Option>
-              </Select>
-            </SettingItem>
-          </div>
-        </section>
 
         <section id="startup-section" style={{ marginBottom: 48, scrollMarginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -356,8 +335,8 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
               <InputNumber
                 min={0}
                 max={365}
-                value={logsConfig.backup_count}
-                onChange={(value) => saveLogsConfig({ backup_count: value as number })}
+                value={logsConfig.max_log_files}
+                onChange={(value) => saveLogsConfig({ max_log_files: value as number })}
                 style={{ width: 120 }}
               />
             </SettingItem>

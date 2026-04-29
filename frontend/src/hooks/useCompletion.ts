@@ -11,6 +11,7 @@ export interface CompletionState {
   suggestion: string;
   isLoading: boolean;
   isVisible: boolean;
+  backendReady: boolean | null;
 }
 
 const DEFAULT_CONFIG: CompletionConfig = {
@@ -33,6 +34,7 @@ export function useCompletion() {
     suggestion: '',
     isLoading: false,
     isVisible: false,
+    backendReady: null,
   });
   
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -40,16 +42,21 @@ export function useCompletion() {
   const currentPrefixRef = useRef<string>('');
   const accumulatedTextRef = useRef<string>('');
 
-  // 加载配置
+  // 加载配置并检测后端可用性
   useEffect(() => {
     fetch('/api/completion/config')
-      .then(res => res.json())
+      .then(res => {
+        setState(prev => ({ ...prev, backendReady: res.ok }));
+        return res.json();
+      })
       .then(data => {
         if (data.success && data.config) {
           setConfig(data.config);
         }
       })
-      .catch(console.error);
+      .catch(() => {
+        setState(prev => ({ ...prev, backendReady: false }));
+      });
   }, []);
 
   // 保存配置
@@ -142,8 +149,10 @@ export function useCompletion() {
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         console.error('Completion error:', error);
+        setState(prev => ({ ...prev, backendReady: false, isLoading: false }));
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
       }
-      setState(prev => ({ ...prev, isLoading: false }));
     }
   }, [config.enabled, config.max_tokens]);
 

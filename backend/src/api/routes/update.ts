@@ -9,9 +9,15 @@ const REPO = 'PapyrusOR/Papyrus_Desktop';
 export default async function updateRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/check', async (_request, reply) => {
     try {
-      const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`);
+      const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+        signal: AbortSignal.timeout(10000),
+      });
       if (!res.ok) {
-        reply.send({ success: false, message: 'Failed to check for updates' });
+        if (res.status === 403) {
+          reply.send({ success: false, message: 'GitHub API 访问受限，请检查网络连接' });
+          return;
+        }
+        reply.send({ success: false, message: `GitHub API 返回错误: ${res.status}` });
         return;
       }
       const data = await res.json() as { tag_name: string; html_url: string; assets: Array<{ browser_download_url: string }> };
@@ -27,8 +33,11 @@ export default async function updateRoutes(fastify: FastifyInstance): Promise<vo
         },
         message: latest !== CURRENT_VERSION ? 'Update available' : 'You are up to date',
       });
-    } catch {
-      reply.send({ success: false, message: 'Failed to check for updates' });
+    } catch (error) {
+      const message = error instanceof Error && error.name === 'TimeoutError'
+        ? '连接 GitHub 超时，请检查网络连接'
+        : '无法连接到 GitHub，请检查网络连接';
+      reply.send({ success: false, message });
     }
   });
 

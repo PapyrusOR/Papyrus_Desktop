@@ -1,5 +1,5 @@
 import { Typography, Button, Message } from '@arco-design/web-react';
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import RecentScrolls from './RecentScrolls';
 import RecentNotes from './RecentNotes';
 import ReviewQueue from './ReviewQueue';
@@ -68,7 +68,7 @@ function formatDateLabel(date: Date): string {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
-function useStartPageData(): StartPageData {
+function useStartPageData(): StartPageData & { refresh: () => void } {
   const [today] = useState(() => new Date());
   const [solarTerm, setSolarTerm] = useState<string | null>(() => getSolarTerm(today));
   const [scenery, setScenery] = useState<SceneryContent | null>(null);
@@ -80,64 +80,56 @@ function useStartPageData(): StartPageData {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [remoteSolarTerm, nextScenery, nextDueRes] = await Promise.all([
+        fetchSolarTerm(today),
+        fetchSceneryContent(),
+        api.nextDue(),
+      ]);
 
-    void (async () => {
-      try {
-        const [remoteSolarTerm, nextScenery, nextDueRes] = await Promise.all([
-          fetchSolarTerm(today),
-          fetchSceneryContent(),
-          api.nextDue(),
-        ]);
-
-        if (cancelled) return;
-
-        if (remoteSolarTerm) {
-          setSolarTerm(remoteSolarTerm);
-        }
-
-        setScenery(nextScenery);
-
-        // 获取真实统计数据 — 后端字段缺失时回落 0,避免渲染 undefined 导致空白
-        if (nextDueRes.success) {
-          const dueCount = nextDueRes.due_count ?? 0;
-          const totalCount = nextDueRes.total_count ?? 0;
-          setStats({
-            cardsDue: dueCount,
-            totalCards: totalCount,
-            streakDays: 7,
-            todayProgress: totalCount > 0
-              ? Math.round(((totalCount - dueCount) / totalCount) * 100)
-              : 100,
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setScenery(null);
-          const msg = err instanceof Error ? err.message : '获取数据失败';
-          Message.error(msg);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      if (remoteSolarTerm) {
+        setSolarTerm(remoteSolarTerm);
       }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
+      setScenery(nextScenery);
+
+      // 获取真实统计数据 — 后端字段缺失时回落 0,避免渲染 undefined 导致空白
+      if (nextDueRes.success) {
+        const dueCount = nextDueRes.due_count ?? 0;
+        const totalCount = nextDueRes.total_count ?? 0;
+        setStats({
+          cardsDue: dueCount,
+          totalCards: totalCount,
+          streakDays: 7,
+          todayProgress: totalCount > 0
+            ? Math.round(((totalCount - dueCount) / totalCount) * 100)
+            : 100,
+        });
+      }
+    } catch (err) {
+      setScenery(null);
+      const msg = err instanceof Error ? err.message : '获取数据失败';
+      Message.error(msg);
+    } finally {
+      setLoading(false);
+    }
   }, [today]);
 
-  return {
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return useMemo(() => ({
     greeting: getGreeting(today.getHours()),
     dateLabel: formatDateLabel(today),
     solarTerm,
     scenery,
     stats,
     loading,
-  };
+    refresh,
+  }), [today, solarTerm, scenery, stats, loading, refresh]);
 }
 
 function useCardHeight() {
@@ -594,6 +586,24 @@ const StartPage = ({ onDoneChange, onNavigate }: StartPageProps) => {
   useEffect(() => {
     onDoneChange?.(done);
   }, [done, onDoneChange]);
+
+  // 监听学习完成事件，刷新数据
+  useEffect(() => {
+    const handleStudyCompleted = () => {
+      data.refresh();
+    };
+    window.addEventListener('papyrus_study_completed', handleStudyCompleted);
+    return () => window.removeEventListener('papyrus_study_completed', handleStudyCompleted);
+  }, [data.refresh]);
+
+  // 退出学习模式后刷新数据（避免初始挂载时重复刷新）
+  const prevIsStudyingRef = useRef(false);
+  useEffect(() => {
+    if (prevIsStudyingRef.current && !isStudying) {
+      data.refresh();
+    }
+    prevIsStudyingRef.current = isStudying;
+  }, [isStudying, data.refresh]);
 
   // 学习模式
   if (isStudying) {

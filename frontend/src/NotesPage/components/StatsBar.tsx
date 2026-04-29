@@ -40,11 +40,14 @@ export const StatsBar = ({ noteCount, totalWords, todayNotes, tagCount }: StatsB
     );
   }
 
-  // 窗景开启时，获取图片和默认诗句
+  // 窗景开启时，获取图片和诗句
   const image = sceneryConfig.image;
-  const poem = '且将新火试新茶，诗酒趁年华。';
-  const source = '[宋] 苏轼《望江南·超然台作》';
+  const poem = sceneryConfig.poem || '且将新火试新茶，诗酒趁年华。';
+  const source = sceneryConfig.source || '[宋] 苏轼《望江南·超然台作》';
   const overlayOpacity = Math.max(0.25, Math.min(0.75, sceneryConfig.opacity));
+  const overlayColor = averageBrightness > 128
+    ? `rgba(255, 255, 255, ${overlayOpacity})`
+    : `rgba(0, 0, 0, ${overlayOpacity})`;
 
   return (
     <div style={{
@@ -72,12 +75,12 @@ export const StatsBar = ({ noteCount, totalWords, todayNotes, tagCount }: StatsB
               objectFit: 'cover',
             }}
           />
-          {/* 固定透明度遮罩层 */}
+          {/* 固定透明度遮罩层 — 根据图片亮度自适应遮罩颜色 */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background: `rgba(255, 255, 255, ${overlayOpacity})`,
+              background: overlayColor,
             }}
           />
         </>

@@ -1,6 +1,6 @@
-import { Typography, Button, Tag, Radio, Empty, Tooltip, Message, Modal, Input } from '@arco-design/web-react';
-import { useState, useEffect, useRef } from 'react';
-import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete } from '@arco-design/web-react/icon';
+import { Typography, Button, Tag, Radio, Empty, Tooltip, Message, Modal, Input, Breadcrumb } from '@arco-design/web-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete, IconLeft } from '@arco-design/web-react/icon';
 import { usePageScenery } from '../hooks/useScenery';
 import { useSceneryColor } from '../hooks/useSceneryColor';
 import { api } from '../api';
@@ -51,7 +51,7 @@ function formatDate(timestamp: number): string {
 }
 
 // 网格文件卡片
-const GridFileCard = ({ file }: { file: FileItemData }) => {
+const GridFileCard = ({ file, onClick }: { file: FileItemData; onClick?: (f: FileItemData) => void }) => {
   const [hovered, setHovered] = useState(false);
   const cardStyle = useCardStyle(hovered);
 
@@ -60,6 +60,7 @@ const GridFileCard = ({ file }: { file: FileItemData }) => {
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onClick={() => onClick?.(file)}
         style={{
           ...cardStyle,
           padding: '24px',
@@ -85,13 +86,14 @@ const GridFileCard = ({ file }: { file: FileItemData }) => {
 };
 
 // 列表文件行
-const ListFileRow = ({ file, onDownload, onDelete }: { file: FileItemData; onDownload?: (f: FileItemData) => void; onDelete?: (id: string) => void }) => {
+const ListFileRow = ({ file, onClick, onDownload, onDelete }: { file: FileItemData; onClick?: (f: FileItemData) => void; onDownload?: (f: FileItemData) => void; onDelete?: (id: string) => void }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => onClick?.(file)}
       style={{
         borderRadius: '8px',
         border: `2px solid ${hovered ? SECONDARY_COLOR : 'transparent'}`,
@@ -124,6 +126,19 @@ const ListFileRow = ({ file, onDownload, onDelete }: { file: FileItemData; onDow
   );
 };
 
+// 筛选标签映射
+const FILTER_TAGS = ['全部', '文件夹', '文档', '图片', '视频', '音频'] as const;
+type FilterTag = typeof FILTER_TAGS[number];
+
+const FILTER_MAP: Record<FilterTag, (f: FileItemData) => boolean> = {
+  '全部': () => true,
+  '文件夹': (f) => Boolean(f.is_folder),
+  '文档': (f) => !f.is_folder && (f.type === 'document' || f.type === 'unknown'),
+  '图片': (f) => !f.is_folder && f.type === 'image',
+  '视频': (f) => !f.is_folder && f.type === 'video',
+  '音频': (f) => !f.is_folder && f.type === 'audio',
+};
+
 // 统计栏组件
 interface StatsBarProps {
   stats: { totalFiles: number; totalFolders: number; totalSize: string };
@@ -134,7 +149,7 @@ interface StatsBarProps {
 
 const StatsBar = ({ stats, viewMode, setViewMode, loading }: StatsBarProps) => {
   const { config: sceneryConfig, loaded } = usePageScenery('files');
-  const { primaryTextColor, secondaryTextColor } = useSceneryColor(
+  const { primaryTextColor, secondaryTextColor, averageBrightness } = useSceneryColor(
     sceneryConfig.enabled ? sceneryConfig.image : undefined,
     sceneryConfig.enabled
   );
@@ -195,6 +210,9 @@ const StatsBar = ({ stats, viewMode, setViewMode, loading }: StatsBarProps) => {
   const poem = '且将新火试新茶，诗酒趁年华。';
   const source = '[宋] 苏轼《望江南·超然台作》';
   const overlayOpacity = Math.max(0.25, Math.min(0.75, sceneryConfig.opacity));
+  const overlayColor = averageBrightness > 128
+    ? `rgba(255, 255, 255, ${overlayOpacity})`
+    : `rgba(0, 0, 0, ${overlayOpacity})`;
 
   return (
     <div style={{
@@ -223,7 +241,7 @@ const StatsBar = ({ stats, viewMode, setViewMode, loading }: StatsBarProps) => {
         style={{
           position: 'absolute',
           inset: 0,
-          background: `rgba(255, 255, 255, ${overlayOpacity})`,
+          background: overlayColor,
         }}
       />
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -252,18 +270,34 @@ function fileToBase64(file: File): Promise<string> {
 
 const FilesPage = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [files, setFiles] = useState<FileItemData[]>([]);
+  const [allFiles, setAllFiles] = useState<FileItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [folderModalVisible, setFolderModalVisible] = useState(false);
   const [folderName, setFolderName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 文件夹导航状态
+  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
+  const [folderStack, setFolderStack] = useState<Array<{ id: string | null; name: string }>>([{ id: null, name: '文件库' }]);
+
+  // 筛选状态
+  const [activeFilter, setActiveFilter] = useState<FilterTag>('全部');
+
   useEffect(() => {
     api.listFiles()
-      .then(res => setFiles(res.files))
+      .then(res => setAllFiles(res.files))
       .catch(() => Message.error('加载文件列表失败'))
       .finally(() => setLoading(false));
   }, []);
+
+  // 当前文件夹下的文件（按 parent_id 过滤）
+  const currentFiles = useMemo(() => {
+    let filtered = allFiles.filter(f => f.parent_id === currentFolder);
+    if (activeFilter !== '全部') {
+      filtered = filtered.filter(FILTER_MAP[activeFilter]);
+    }
+    return filtered;
+  }, [allFiles, currentFolder, activeFilter]);
 
   const handleNewFolder = () => {
     setFolderName('');
@@ -277,8 +311,8 @@ const FilesPage = () => {
       return;
     }
     try {
-      const res = await api.createFolder(trimmed);
-      setFiles(prev => [res.file, ...prev]);
+      const res = await api.createFolder(trimmed, currentFolder ?? undefined);
+      setAllFiles(prev => [res.file, ...prev]);
       Message.success(`已创建文件夹 "${trimmed}"`);
       setFolderModalVisible(false);
     } catch {
@@ -303,9 +337,9 @@ const FilesPage = () => {
         uploadTasks.push({ name: f.name, content: base64, mimeType: f.type });
       }
 
-      await api.uploadFiles(uploadTasks);
+      await api.uploadFiles(uploadTasks, currentFolder ?? undefined);
       const listRes = await api.listFiles();
-      setFiles(listRes.files);
+      setAllFiles(listRes.files);
       Message.success(`已上传 ${uploadTasks.length} 个文件`);
     } catch {
       Message.error('上传文件失败');
@@ -315,7 +349,7 @@ const FilesPage = () => {
   };
 
   const handleDeleteFile = (fileId: string) => {
-    const file = files.find(f => f.id === fileId);
+    const file = allFiles.find(f => f.id === fileId);
     if (!file) return;
     Modal.confirm({
       title: '删除确认',
@@ -323,7 +357,7 @@ const FilesPage = () => {
       onOk: async () => {
         try {
           await api.deleteFile(fileId);
-          setFiles(prev => prev.filter(f => f.id !== fileId));
+          setAllFiles(prev => prev.filter(f => f.id !== fileId));
           Message.success('文件已删除');
         } catch {
           Message.error('删除失败');
@@ -334,29 +368,54 @@ const FilesPage = () => {
 
   const handleDownloadFile = (file: FileItemData) => {
     if (file.is_folder) {
-      Message.info('文件夹下载功能即将推出');
+      // 点击文件夹：进入该文件夹
+      setCurrentFolder(file.id);
+      setFolderStack(prev => [...prev, { id: file.id, name: file.name }]);
+      setActiveFilter('全部');
       return;
     }
     const backendUrl = 'http://127.0.0.1:8000';
     window.open(`${backendUrl}/api/files/${file.id}/download`, '_blank');
   };
 
-  const totalSizeBytes = files.filter(f => !f.is_folder).reduce((sum, f) => sum + f.size, 0);
-  const stats = {
-    totalFiles: files.filter(f => !f.is_folder).length,
-    totalFolders: files.filter(f => f.is_folder).length,
-    totalSize: totalSizeBytes > 0 ? formatSize(totalSizeBytes) : '-',
+  const handleFileClick = useCallback((file: FileItemData) => {
+    if (file.is_folder) {
+      setCurrentFolder(file.id);
+      setFolderStack(prev => [...prev, { id: file.id, name: file.name }]);
+      setActiveFilter('全部');
+    } else {
+      const backendUrl = 'http://127.0.0.1:8000';
+      window.open(`${backendUrl}/api/files/${file.id}/download`, '_blank');
+    }
+  }, []);
+
+  const handleBreadcrumbClick = (index: number) => {
+    const target = folderStack[index];
+    setCurrentFolder(target.id);
+    setFolderStack(prev => prev.slice(0, index + 1));
+    setActiveFilter('全部');
   };
+
+  const currentFolderStats = useMemo(() => {
+    const filesInFolder = allFiles.filter(f => f.parent_id === currentFolder);
+    const totalSizeBytes = filesInFolder.filter(f => !f.is_folder).reduce((sum, f) => sum + f.size, 0);
+    return {
+      totalFiles: filesInFolder.filter(f => !f.is_folder).length,
+      totalFolders: filesInFolder.filter(f => f.is_folder).length,
+      totalSize: totalSizeBytes > 0 ? formatSize(totalSizeBytes) : '-',
+    };
+  }, [allFiles, currentFolder]);
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '48px 64px 64px', background: 'var(--color-bg-1)' }}>
+      {/* 标题栏 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
           <Typography.Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px' }}>
             文件库
           </Typography.Title>
           <Typography.Text type='secondary' style={{ fontSize: '14px', marginTop: '8px', display: 'block' }}>
-            {stats.totalFiles} 个文件 · {stats.totalFolders} 个文件夹
+            {currentFolderStats.totalFiles} 个文件 · {currentFolderStats.totalFolders} 个文件夹
           </Typography.Text>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -390,21 +449,48 @@ const FilesPage = () => {
         </div>
       </div>
 
-      <StatsBar stats={stats} viewMode={viewMode} setViewMode={setViewMode} loading={loading} />
+      {/* 面包屑导航 */}
+      {folderStack.length > 1 && (
+        <div style={{ marginBottom: '16px' }}>
+          <Breadcrumb>
+            {folderStack.map((item, index) => (
+              <Breadcrumb.Item
+                key={item.id ?? 'root'}
+                style={{ cursor: index < folderStack.length - 1 ? 'pointer' : 'default' }}
+                onClick={() => index < folderStack.length - 1 && handleBreadcrumbClick(index)}
+              >
+                {item.name}
+              </Breadcrumb.Item>
+            ))}
+          </Breadcrumb>
+        </div>
+      )}
 
-      {files.length > 0 && (
+      <StatsBar stats={currentFolderStats} viewMode={viewMode} setViewMode={setViewMode} loading={loading} />
+
+      {/* 筛选标签 */}
+      {!loading && currentFiles.length > 0 && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-          {['全部', '文件夹', '文档', '图片', '视频', '音频'].map(tag => (
-            <Tag key={tag} color={tag === '全部' ? 'arcoblue' : undefined} style={{ cursor: 'pointer' }}>{tag}</Tag>
+          {FILTER_TAGS.map(tag => (
+            <Tag
+              key={tag}
+              color={tag === activeFilter ? 'arcoblue' : undefined}
+              style={{ cursor: 'pointer' }}
+              onClick={() => setActiveFilter(tag)}
+            >
+              {tag}
+            </Tag>
           ))}
         </div>
       )}
 
-      {files.length === 0 ? (
-        <Empty description='暂无文件' style={{ padding: '64px 0' }} />
+      {loading ? (
+        <Empty description='加载中...' style={{ padding: '64px 0' }} />
+      ) : currentFiles.length === 0 ? (
+        <Empty description={currentFolder ? '该文件夹为空' : '暂无文件'} style={{ padding: '64px 0' }} />
       ) : viewMode === 'grid' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px' }}>
-          {files.map(file => <GridFileCard key={file.id} file={file} />)}
+          {currentFiles.map(file => <GridFileCard key={file.id} file={file} onClick={handleFileClick} />)}
         </div>
       ) : (
         <div style={{ border: '1px solid var(--color-text-3)', borderRadius: '12px', overflow: 'hidden', background: 'var(--color-bg-1)' }}>
@@ -415,7 +501,7 @@ const FilesPage = () => {
             <div style={{ width: '80px' }}>修改时间</div>
             <div style={{ width: '60px' }} />
           </div>
-          {files.map(file => <ListFileRow key={file.id} file={file} onDownload={handleDownloadFile} onDelete={handleDeleteFile} />)}
+          {currentFiles.map(file => <ListFileRow key={file.id} file={file} onClick={handleFileClick} onDownload={handleDownloadFile} onDelete={handleDeleteFile} />)}
         </div>
       )}
 

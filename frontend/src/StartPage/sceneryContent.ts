@@ -30,15 +30,17 @@ export async function fetchSceneryContent(): Promise<SceneryContent | null> {
   // TODO: 替换为后端接口
   // const res = await fetch('/api/scenery/today');
   // if (res.ok) return res.json();
-  
+
   const settings = loadStartPageScenery();
   if (settings.enabled && settings.image) {
     return {
       ...defaultContent,
       image: settings.image,
+      poem: settings.poem || defaultContent.poem,
+      source: settings.source || defaultContent.source,
     };
   }
-  
+
   // 窗景未启用，返回 null
   return null;
 }

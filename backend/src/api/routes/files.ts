@@ -4,8 +4,13 @@ import { listFiles, createFolder, saveFile, deleteFileItem, getFileStream, getFi
 export default async function filesRoutes(fastify: FastifyInstance): Promise<void> {
   // List all files/folders
   fastify.get('/', async (_request, reply) => {
-    const files = listFiles();
-    reply.send({ success: true, files, count: files.length });
+    try {
+      const files = listFiles();
+      reply.send({ success: true, files, count: files.length });
+    } catch (err) {
+      _request.log.error({ err }, 'Failed to load files');
+      reply.status(500).send({ success: false, error: 'Failed to load files' });
+    }
   });
 
   // Get single file

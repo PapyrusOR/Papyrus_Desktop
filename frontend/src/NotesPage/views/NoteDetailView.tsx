@@ -27,7 +27,7 @@ interface NoteDetailViewProps {
   isCreateMode: boolean;
   allFolders: string[];
   onBack: () => void;
-  onSave: (params: UpdateNoteParams | CreateNoteParams, isCreate: boolean) => void;
+  onSave: (params: UpdateNoteParams | CreateNoteParams, isCreate: boolean, shouldReturnToList?: boolean) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -122,7 +122,7 @@ export const NoteDetailView = ({
     }
   }, [note, isCreateMode, allFolders]);
 
-  const handleSave = (showMessage = true) => {
+  const handleSave = (showMessage = true, shouldReturnToList = true) => {
     if (!title.trim()) {
       Message.warning('请输入标题');
       return false;
@@ -134,7 +134,7 @@ export const NoteDetailView = ({
         folder: folder.trim() || '默认文件夹',
         content: content.trim(),
         tags,
-      }, true);
+      }, true, shouldReturnToList);
     } else if (note) {
       onSave({
         id: note.id,
@@ -142,7 +142,7 @@ export const NoteDetailView = ({
         folder: folder.trim(),
         content: content.trim(),
         tags,
-      }, false);
+      }, false, shouldReturnToList);
     }
     if (showMessage) {
       Message.success('保存成功');
@@ -155,7 +155,7 @@ export const NoteDetailView = ({
   // 返回时自动保存
   const handleBackWithSave = () => {
     if ((isEditing || isCreateMode) && title.trim() && !isGloballyLocked) {
-      handleSave(false);
+      handleSave(false, true);
     }
     onBack();
   };
@@ -257,8 +257,8 @@ export const NoteDetailView = ({
       setIsPreviewMode(false);
       setIsEditing(true);
     } else {
-      // 切换到预览模式
-      handleSave(false);
+      // 切换到预览模式，保存但不返回列表
+      handleSave(false, false);
     }
   };
 
@@ -449,9 +449,9 @@ export const NoteDetailView = ({
           <div
             style={{
               padding: '16px',
-              background: '#FFFBE6',
+              background: 'var(--color-fill-2)',
               borderRadius: '8px',
-              border: '1px solid #FFE58F',
+              border: '1px solid var(--color-border-2)',
               marginBottom: '24px',
               display: 'flex',
               flexWrap: 'wrap',

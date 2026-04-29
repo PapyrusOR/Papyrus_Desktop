@@ -37,7 +37,18 @@ const modelMatches: ModelMatch[] = [
   { keywords: ['xiaomimimo'], icon: 'Xiaomimimo' },
 ];
 
-function resolveModelIcon(model: string): keyof typeof ModelIcons | null {
+function resolveModelIcon(model: string, modelId?: string): keyof typeof ModelIcons | null {
+  // 优先用 modelId 匹配（更稳定，不受自定义名称影响）
+  if (modelId) {
+    const idLower = modelId.toLowerCase();
+    for (const match of modelMatches) {
+      for (const kw of match.keywords) {
+        if (idLower.includes(kw.toLowerCase())) {
+          return match.icon;
+        }
+      }
+    }
+  }
   const lower = model.toLowerCase();
   for (const match of modelMatches) {
     for (const kw of match.keywords) {
@@ -51,13 +62,14 @@ function resolveModelIcon(model: string): keyof typeof ModelIcons | null {
 
 interface ModelLogoProps {
   model: string;
+  modelId?: string;
   size?: number;
   className?: string;
   style?: React.CSSProperties;
 }
 
-export const ModelLogo = ({ model, size = 20, className, style }: ModelLogoProps) => {
-  const iconName = resolveModelIcon(model);
+export const ModelLogo = ({ model, modelId, size = 20, className, style }: ModelLogoProps) => {
+  const iconName = resolveModelIcon(model, modelId);
   const IconComponent = iconName ? (ModelIcons as Record<string, SvgIconComponent>)[iconName] : null;
 
   if (IconComponent) {

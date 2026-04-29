@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { loadAllNotes, loadAllCards } from '../../db/database.js';
+import type { Note } from '../../core/types.js';
 
 export default async function searchRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/', async (request, reply) => {
@@ -13,15 +14,31 @@ export default async function searchRoutes(fastify: FastifyInstance): Promise<vo
     const limit = Math.min(parseInt(limitStr ?? '50', 10) || 50, 200);
     const offset = Math.max(parseInt(offsetStr ?? '0', 10) || 0, 0);
 
-    const notes = loadAllNotes().filter(
-      n => n.title.toLowerCase().includes(lowerQuery) ||
-           n.content.toLowerCase().includes(lowerQuery) ||
-           n.tags.some(t => t.toLowerCase().includes(lowerQuery))
-    );
+    let notes: Note[] = [];
 
-    const cards = loadAllCards().filter(
-      c => c.q.toLowerCase().includes(lowerQuery) || c.a.toLowerCase().includes(lowerQuery)
-    );
+    try {
+      notes = loadAllNotes().filter(
+        n => n.title.toLowerCase().includes(lowerQuery) ||
+             n.content.toLowerCase().includes(lowerQuery) ||
+             n.tags.some(t => t.toLowerCase().includes(lowerQuery))
+      );
+    } catch (err) {
+      request.log.error({ err }, 'Failed to load notes for search');
+      reply.status(500).send({ success: false, error: 'Failed to search notes' });
+      return;
+    }
+
+    let cards: Array<{ id: string; q: string; a: string; tags: string[] }> = [];
+
+    try {
+      cards = loadAllCards().filter(
+        c => c.q.toLowerCase().includes(lowerQuery) || c.a.toLowerCase().includes(lowerQuery)
+      );
+    } catch (err) {
+      request.log.error({ err }, 'Failed to load cards for search');
+      reply.status(500).send({ success: false, error: 'Failed to search cards' });
+      return;
+    }
 
     const allResults = [
       ...notes.map(n => ({

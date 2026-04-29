@@ -6,55 +6,61 @@ const BASE = window.location.protocol === 'file:'
 let cachedToken: string | null | undefined;
 
 async function getAuthToken(): Promise<string | null> {
-  if (cachedToken !== undefined) {
+  if (cachedToken) {
     return cachedToken;
   }
   try {
     const api = (window as unknown as { electronAPI?: { getAuthToken?: () => Promise<string | null> } }).electronAPI;
     if (api?.getAuthToken) {
-      cachedToken = await api.getAuthToken();
-    } else {
-      cachedToken = null;
+      const token = await api.getAuthToken();
+      if (token) {
+        cachedToken = token;
+        return token;
+      }
+      return null;
     }
+    return null;
   } catch {
-    // IPC might not be ready on first call; return null and retry next request
     return null;
   }
-  return cachedToken;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const token = await getAuthToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['X-Papyrus-Token'] = token;
-    }
     const res = await fetch(`${BASE}${path}`, {
-      headers,
       ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'X-Papyrus-Token': token } : {}),
+        ...(init?.headers as Record<string, string> || {}),
+      },
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       const message = body.detail ?? body.error ?? res.statusText;
-      // If we got a 401 but have no token cached, retry token fetch once
-      if (res.status === 401 && cachedToken === undefined) {
-        cachedToken = undefined; // force re-fetch
+      if (res.status === 401 && !cachedToken) {
+        console.warn('[API] Received 401, retrying token fetch...');
+        cachedToken = undefined;
         const retryToken = await getAuthToken();
         if (retryToken) {
-          headers['X-Papyrus-Token'] = retryToken;
           const retryRes = await fetch(`${BASE}${path}`, {
-            headers,
             ...init,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Papyrus-Token': retryToken,
+              ...(init?.headers as Record<string, string> || {}),
+            },
           });
           if (retryRes.ok) {
             return retryRes.json();
           }
           const retryBody = await retryRes.json().catch(() => ({}));
-          throw new Error(retryBody.detail ?? retryBody.error ?? retryRes.statusText);
+          const retryMsg = retryBody.detail ?? retryBody.error ?? retryRes.statusText;
+          console.error(`[API] Retry also failed with ${retryRes.status}: ${retryMsg}`);
+          throw new Error(retryMsg);
         }
+        console.error('[API] Token retry failed: no token available');
       }
       throw new Error(message);
     }
@@ -174,7 +180,7 @@ export type LogsConfig = {
   log_dir: string;
   log_level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
   log_rotation: boolean;
-  backup_count: number;
+  max_log_files: number;
 };
 
 // ========== File Types ==========
@@ -326,7 +332,7 @@ export const api = {
       body: JSON.stringify(config)
     }),
   openLogsDir: () =>
-    request<{ success: boolean }>('/logs/open-dir', { method: 'POST' }),
+    request<{ success: boolean; path: string }>('/config/logs/open-dir', { method: 'POST' }),
 
   // Files
   listFiles: () => request<ListFilesRes>('/files'),

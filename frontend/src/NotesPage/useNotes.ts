@@ -105,8 +105,8 @@ export const useNotes = (): UseNotesReturn => {
     return notes.filter(n => n.folder === activeFolder);
   }, [notes, activeFolder]);
 
-  const totalWords = useMemo(() => 
-    filteredNotes.reduce((sum, n) => n.wordCount, 0),
+  const totalWords = useMemo(() =>
+    filteredNotes.reduce((sum, n) => sum + (n.wordCount || 0), 0),
     [filteredNotes]
   );
 

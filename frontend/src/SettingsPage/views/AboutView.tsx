@@ -154,7 +154,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
         />
         <Title heading={3} style={{ margin: '0 0 8px 0' }}>Papyrus</Title>
         <Text type="secondary" style={{ fontSize: 14 }}>
-          版本 {versionInfo?.current_version || 'v2.0.0-beta.1'}
+          版本 {versionInfo?.current_version || 'v2.0.0-beta.4'}
         </Text>
         <Paragraph type="secondary" style={{ marginTop: 16, maxWidth: 400, margin: '16px auto 0' }}>
           SRS 复习引擎 - 基于间隔重复算法的智能记忆卡片应用
@@ -182,9 +182,9 @@ const AboutView = ({ onBack }: AboutViewProps) => {
               {isChecking ? '检查中...' : '检查更新'}
             </Button>
           )}
-          <Button 
+          <Button
             shape="round"
-            onClick={() => window.open('https://github.com/Alpaca233114514/Papyrus', '_blank')}
+            onClick={() => window.open('https://github.com/PapyrusOR/Papyrus_Desktop', '_blank')}
           >
             <IconGithub style={{ marginRight: 8 }} />
             GitHub
@@ -273,7 +273,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
           感谢使用 Papyrus！本应用使用了以下开源项目：
         </Paragraph>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-          {['React', 'Arco Design', 'FastAPI', 'Python'].map(tech => (
+          {['React', 'Arco Design', 'Electron', 'Node.js'].map(tech => (
             <Tag key={tech} color="arcoblue">{tech}</Tag>
           ))}
         </div>

@@ -320,6 +320,13 @@ export default function FlashcardStudy({ onExit, demo = false, filterTag }: Flas
     setLastResult(null);
   }, [lastResult, isDemo]);
 
+  // 学习完成后通知外部刷新
+  useEffect(() => {
+    if (studyState === 'empty' && stats.studied > 0) {
+      window.dispatchEvent(new CustomEvent('papyrus_study_completed'));
+    }
+  }, [studyState, stats.studied]);
+
   // 切换演示模式
   const toggleDemo = useCallback(() => {
     setIsDemo(prev => {

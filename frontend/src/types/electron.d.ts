@@ -20,7 +20,10 @@ export interface ElectronAPI {
   
   /** Open the application's data folder */
   openDataFolder(): Promise<void>;
-  
+
+  /** Open any folder in the system file explorer */
+  openFolder(folderPath: string): Promise<void>;
+
   /** Minimize the window to the system tray */
   minimizeToTray(): Promise<void>;
   

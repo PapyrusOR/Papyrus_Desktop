@@ -51,10 +51,10 @@ interface SceneryHook {
 }
 
 interface SinglePageScenerySettingsProps {
-  sceneryHook: SceneryHook; 
+  sceneryHook: SceneryHook;
   title: string;
   pageKey: PageType;
-  allSceneries: Array<{ id: string; image: string; name: string }>;
+  allSceneries: Array<{ id: string; image: string; name: string; poem?: string; source?: string }>;
   onAddCustomScenery: (pageKey: PageType) => void;
 }
 
@@ -191,8 +191,8 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
   const [activeSceneryPage, setActiveSceneryPage] = useState<PageType>('scroll');
 
   const handleAddCustomScenery = () => {
-    sceneryForm.validate().then((values: { name: string; imageUrl: string }) => {
-      addCustomScenery(values.name, values.imageUrl);
+    sceneryForm.validate().then((values: { name: string; imageUrl: string; poem?: string; source?: string }) => {
+      addCustomScenery(values.name, values.imageUrl, values.poem, values.source);
       setAddSceneryModalVisible(false);
       sceneryForm.resetFields();
     });
@@ -374,7 +374,7 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
                   {allSceneries.map((item) => (
                     <div
                       key={item.id}
-                      onClick={() => startPageScenery.updateConfig({ image: item.image, name: item.name })}
+                      onClick={() => startPageScenery.updateConfig({ image: item.image, name: item.name, poem: item.poem, source: item.source })}
                       style={{
                         width: 80,
                         height: 45,
@@ -387,7 +387,7 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
                       role="button"
                       tabIndex={0}
                       aria-label={`选择窗景 ${item.name}`}
-                      onKeyDown={(e) => e.key === 'Enter' && startPageScenery.updateConfig({ image: item.image, name: item.name })}
+                      onKeyDown={(e) => e.key === 'Enter' && startPageScenery.updateConfig({ image: item.image, name: item.name, poem: item.poem, source: item.source })}
                     >
                       <img
                         src={item.image}
@@ -431,6 +431,27 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
                   <Text style={{ fontSize: 13, minWidth: 40 }}>
                     {Math.round((startPageScenery.config.opacity ?? 0.35) * 100)}%
                   </Text>
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <Text style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>配套诗句</Text>
+                  <Input.TextArea
+                    placeholder="输入配套诗句"
+                    value={startPageScenery.config.poem || ''}
+                    onChange={(val) => startPageScenery.updateConfig({ poem: val })}
+                    autoSize={{ minRows: 2, maxRows: 4 }}
+                    style={{ fontSize: 13 }}
+                  />
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <Text style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>诗句出处</Text>
+                  <Input
+                    placeholder="如：[宋] 苏轼《望江南·超然台作》"
+                    value={startPageScenery.config.source || ''}
+                    onChange={(val) => startPageScenery.updateConfig({ source: val })}
+                    style={{ fontSize: 13 }}
+                  />
                 </div>
               </div>
             )}
@@ -561,19 +582,31 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
         focusLock
       >
         <Form form={sceneryForm} layout="vertical">
-          <FormItem 
-            label={<Title heading={6} style={{ margin: 0 }}>图片名称</Title>} 
-            field="name" 
+          <FormItem
+            label={<Title heading={6} style={{ margin: 0 }}>图片名称</Title>}
+            field="name"
             rules={[{ required: true, message: '请输入图片名称' }]}
           >
             <Input placeholder="如：我的家乡" />
           </FormItem>
-          <FormItem 
-            label={<Title heading={6} style={{ margin: 0 }}>图片链接</Title>} 
-            field="imageUrl" 
+          <FormItem
+            label={<Title heading={6} style={{ margin: 0 }}>图片链接</Title>}
+            field="imageUrl"
             rules={[{ required: true, message: '请输入图片链接' }]}
           >
             <Input placeholder="https://example.com/image.jpg" />
+          </FormItem>
+          <FormItem
+            label={<Title heading={6} style={{ margin: 0 }}>配套诗句（可选）</Title>}
+            field="poem"
+          >
+            <Input.TextArea placeholder="输入配套诗句" autoSize={{ minRows: 2, maxRows: 4 }} />
+          </FormItem>
+          <FormItem
+            label={<Title heading={6} style={{ margin: 0 }}>诗句出处（可选）</Title>}
+            field="source"
+          >
+            <Input placeholder="如：[宋] 苏轼《望江南·超然台作》" />
           </FormItem>
           <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
             支持网络图片链接或本地图片路径

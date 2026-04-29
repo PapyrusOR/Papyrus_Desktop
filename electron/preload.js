@@ -19,7 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Shell operations
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   openDataFolder: () => ipcRenderer.invoke('shell:openDataFolder'),
-  
+  openFolder: (folderPath) => ipcRenderer.invoke('shell:openFolder', folderPath),
+
   // Window operations
   minimizeToTray: () => ipcRenderer.invoke('window:minimizeToTray'),
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
