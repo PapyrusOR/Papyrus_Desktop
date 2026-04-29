@@ -297,7 +297,7 @@ jobs:
     name: Create Draft Release
     needs: [build, generate-notes]
     runs-on: ubuntu-latest
-    if: github.event.inputs.create_release == 'true' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event.inputs.create_release == 'true' || startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/v2.0.0beta.6'
     permissions:
       contents: write
 
