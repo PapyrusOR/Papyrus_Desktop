@@ -45,9 +45,9 @@ module.exports = {
 
   asar: true,
   asarUnpack: [
-    'backend/dist/**/*',
+    'backend/dist',
     'backend/package.json',
-    'backend/node_modules/**/*',
+    'backend/node_modules',
   ],
   
   // Windows configuration - 仅 NSIS 安装器
