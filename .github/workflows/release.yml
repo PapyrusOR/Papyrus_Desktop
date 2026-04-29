@@ -130,13 +130,30 @@ jobs:
       - name: Verify Backend Dependencies
         shell: bash
         run: |
-          FASTIFY_PKG="backend/node_modules/fastify/package.json"
-          if [ ! -f "$FASTIFY_PKG" ]; then
-            echo "Error: fastify not found after prune at $FASTIFY_PKG"
+          REQUIRED_PKGS=(
+            "backend/node_modules/fastify/package.json"
+            "backend/node_modules/@fastify/cors/package.json"
+            "backend/node_modules/@fastify/rate-limit/package.json"
+            "backend/node_modules/openai/package.json"
+            "backend/node_modules/chokidar/package.json"
+            "backend/node_modules/uuid/package.json"
+            "backend/node_modules/gray-matter/package.json"
+            "backend/node_modules/markdown-it/package.json"
+          )
+          MISSING=0
+          for pkg in "${REQUIRED_PKGS[@]}"; do
+            if [ ! -f "$pkg" ]; then
+              echo "Error: required package not found after prune: $pkg"
+              MISSING=1
+            else
+              echo "OK: $pkg"
+            fi
+          done
+          if [ $MISSING -ne 0 ]; then
+            echo "Production dependency verification failed."
             exit 1
           fi
-          echo "fastify present: $(node -p "require('./backend/node_modules/fastify/package.json').version")"
-          echo "Production dependencies verified."
+          echo "All production dependencies verified."
 
       - name: Verify Backend Build
         shell: bash
@@ -223,6 +240,31 @@ jobs:
           done
 
           echo "Build verification passed"
+
+      - name: Verify Packaged Dependencies
+        shell: bash
+        run: |
+          echo "Checking packaged backend dependencies..."
+
+          # Find fastify in the packaged app (works across all platforms)
+          FASTIFY_IN_PACKAGE=$(find dist-electron/ -path "*/backend/node_modules/fastify/package.json" 2>/dev/null | head -1)
+          if [ -z "$FASTIFY_IN_PACKAGE" ]; then
+            echo "Error: fastify not found in packaged Electron app"
+            echo "Packaged contents:"
+            find dist-electron/ -type d -name "node_modules" 2>/dev/null | head -5
+            exit 1
+          fi
+          echo "fastify found in package: $FASTIFY_IN_PACKAGE"
+
+          # Verify backend entry point is also present
+          SERVER_IN_PACKAGE=$(find dist-electron/ -path "*/backend/dist/api/server.js" 2>/dev/null | head -1)
+          if [ -z "$SERVER_IN_PACKAGE" ]; then
+            echo "Error: backend server.js not found in packaged app"
+            exit 1
+          fi
+          echo "backend server.js found in package: $SERVER_IN_PACKAGE"
+
+          echo "Packaged dependency verification passed"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
