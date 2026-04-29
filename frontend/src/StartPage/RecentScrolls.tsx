@@ -15,7 +15,7 @@ interface Collection {
 const SECONDARY_COLOR = '#9FD4FD';
 const PRIMARY_COLOR = '#206CCF';
 
-const CollectionCard = ({ collection, onClick }: { collection: Collection; onClick?: () => void }) => {
+const CollectionCard = ({ collection, onClick, t }: { collection: Collection; onClick?: () => void; t: (key: string, options?: Record<string, unknown>) => string }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -213,7 +213,7 @@ const RecentScrolls = ({ height, onStudyTag }: RecentScrollsProps) => {
       paddingBottom: '4px',
     }}>
       {collections.map(c => (
-        <CollectionCard key={c.id} collection={c} onClick={() => onStudyTag?.(c.id)} />
+        <CollectionCard key={c.id} collection={c} onClick={() => onStudyTag?.(c.id)} t={t} />
       ))}
     </div>
   );

@@ -58,7 +58,7 @@ interface RecentNotesProps {
 }
 
 // 辅助函数：时间戳转换为相对时间字符串
-function formatTimestamp(timestamp: number): string {
+function formatTimestamp(timestamp: number, t: (key: string, options?: Record<string, unknown>) => string): string {
   const now = new Date();
   const date = new Date(timestamp * 1000);
   const diffMs = now.getTime() - date.getTime();
@@ -155,7 +155,7 @@ const RecentNotes = ({ height }: RecentNotesProps) => {
             id: n.id,
             title: n.title,
             preview: n.preview,
-            lastUsed: formatTimestamp(n.updated_at),
+            lastUsed: formatTimestamp(n.updated_at, t),
           }}
         />
       ))}
