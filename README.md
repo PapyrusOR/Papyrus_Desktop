@@ -2,6 +2,8 @@
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+> ⚠️ **Preview README** — this version describes the upcoming **`v2.0.0-beta.3`** (TypeScript / Fastify backend). The code currently on `main` is still the legacy Python build. This README ships ahead of the backend rewrite via PR — feature mentions and install instructions will only apply once the backend rewrite lands on `main`.
+
 ![Version](https://img.shields.io/badge/version-v2.0.0--beta.3-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-24-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)

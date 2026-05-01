@@ -2,6 +2,8 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · **日本語**
 
+> ⚠️ **プレビュー版 README** — 本バージョンは今後リリース予定の **`v2.0.0-beta.3`**(TypeScript / Fastify バックエンド)を説明しています。`main` 上のコードは依然として旧 Python 版です。本ファイルはバックエンド書き換えに先行して PR で取り込まれます —— 記載の機能やインストール手順は、バックエンド書き換えが `main` にマージされた後にのみ有効です。
+
 ![Version](https://img.shields.io/badge/version-v2.0.0--beta.3-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-24-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
@@ -43,7 +45,7 @@
 | macOS | arm64 | DMG(`.dmg`)、ZIP(`.zip`) |
 | Linux | x64 | AppImage、DEB(`.deb`)、TAR.GZ |
 
-> ⚠️ `v2.0.0-beta.4` はベータ版です。データスキーマは安定していますが、UI と API は `v2.0.0` 正式版までに変更される可能性があります。
+> ⚠️ `v2.0.0-beta.3` はベータ版です。データスキーマは安定していますが、UI と API は `v2.0.0` 正式版までに変更される可能性があります。
 
 ---
 
