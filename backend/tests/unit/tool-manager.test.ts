@@ -10,6 +10,8 @@ describe('ToolManager', () => {
   it('should create pending call', () => {
     const callId = manager.createPendingCall('search_cards', { keyword: 'test' });
     expect(callId.startsWith('tc_')).toBe(true);
+    // After randomUUID migration, callId should be tc_ + uuid without dashes
+    expect(callId.length).toBeGreaterThan(10);
     const pending = manager.getPendingCalls();
     expect(pending.length).toBe(1);
     expect(pending[0]?.tool_name).toBe('search_cards');

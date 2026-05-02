@@ -201,7 +201,7 @@ export const useSceneryManager = () => {
 
   const addCustomScenery = useCallback((name: string, image: string, poem?: string, source?: string) => {
     const newScenery: SceneryItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: name || '自定义窗景',
       image,
       poem,

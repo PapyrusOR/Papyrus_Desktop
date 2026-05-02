@@ -145,7 +145,7 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
       const providerName = aiConfig.config.current_provider;
       const providerConfig = getProviderConfigFromDB(providerName);
       if (!providerConfig) {
-        reply.send({ success: false, message: 'Provider 未配置' });
+        reply.send({ success: false, error: 'Provider 未配置' });
         return;
       }
 
@@ -162,27 +162,27 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
           if (resp.ok) {
             reply.send({ success: true, message: 'Ollama 连接成功' });
           } else {
-            reply.send({ success: false, message: `Ollama 返回错误: ${resp.status}` });
+            reply.send({ success: false, error: `Ollama 返回错误: ${resp.status}` });
           }
         } catch (e) {
-          reply.send({ success: false, message: `Ollama 连接失败: ${e instanceof Error ? e.message : String(e)}` });
+          reply.send({ success: false, error: `Ollama 连接失败: ${e instanceof Error ? e.message : String(e)}` });
         }
         return;
       }
 
       const apiKey = providerConfig.api_key;
       if (!apiKey) {
-        reply.send({ success: false, message: 'API Key 未设置' });
+        reply.send({ success: false, error: 'API Key 未设置' });
         return;
       }
 
       const baseUrl = providerConfig.base_url;
       if (!baseUrl) {
-        reply.send({ success: false, message: 'Base URL 未设置' });
+        reply.send({ success: false, error: 'Base URL 未设置' });
         return;
       }
       if (isPrivateUrl(baseUrl)) {
-        reply.send({ success: false, message: 'SSRF: 禁止通过连接测试访问私有地址' });
+        reply.send({ success: false, error: 'SSRF: 禁止通过连接测试访问私有地址' });
         return;
       }
 
@@ -194,17 +194,17 @@ export default async function aiRoutes(fastify: FastifyInstance): Promise<void> 
         if (resp.ok) {
           reply.send({ success: true, message: `${providerName.toUpperCase()} 连接成功` });
         } else if (resp.status === 401) {
-          reply.send({ success: false, message: 'API Key 无效或已过期' });
+          reply.send({ success: false, error: 'API Key 无效或已过期' });
         } else if (resp.status === 404) {
           reply.send({ success: true, message: '配置格式正确（无法验证实际调用）' });
         } else {
-          reply.send({ success: false, message: `连接失败: HTTP ${resp.status}` });
+          reply.send({ success: false, error: `连接失败: HTTP ${resp.status}` });
         }
       } catch (e) {
-        reply.send({ success: false, message: `连接测试失败: ${e instanceof Error ? e.message : String(e)}` });
+        reply.send({ success: false, error: `连接测试失败: ${e instanceof Error ? e.message : String(e)}` });
       }
     } catch {
-      reply.send({ success: false, message: '连接测试失败，请检查网络或配置' });
+      reply.send({ success: false, error: '连接测试失败，请检查网络或配置' });
     }
   });
 

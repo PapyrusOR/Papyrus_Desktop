@@ -14,10 +14,10 @@ export default async function updateRoutes(fastify: FastifyInstance): Promise<vo
       });
       if (!res.ok) {
         if (res.status === 403) {
-          reply.send({ success: false, message: 'GitHub API 访问受限，请检查网络连接' });
+          reply.send({ success: false, error: 'GitHub API 访问受限，请检查网络连接' });
           return;
         }
-        reply.send({ success: false, message: `GitHub API 返回错误: ${res.status}` });
+        reply.send({ success: false, error: `GitHub API 返回错误: ${res.status}` });
         return;
       }
       const data = await res.json() as { tag_name: string; html_url: string; assets: Array<{ browser_download_url: string }> };
@@ -37,7 +37,7 @@ export default async function updateRoutes(fastify: FastifyInstance): Promise<vo
       const message = error instanceof Error && error.name === 'TimeoutError'
         ? '连接 GitHub 超时，请检查网络连接'
         : '无法连接到 GitHub，请检查网络连接';
-      reply.send({ success: false, message });
+      reply.send({ success: false, error: message });
     }
   });
 

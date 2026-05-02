@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AIConfig } from './config.js';
 import { loadAllProviders, saveProvider, saveApiKey, saveModel } from '../db/database.js';
 
@@ -44,7 +45,7 @@ export function syncAIConfigToDB(aiConfig: AIConfig): void {
     const dbProviders = loadAllProviders();
     for (const [providerType, providerConfig] of Object.entries(aiConfig.config.providers)) {
       const existing = dbProviders.find((p) => p.type === providerType);
-      const providerId = existing?.id ?? `p-${providerType}-${Date.now()}`;
+      const providerId = existing?.id ?? `p-${providerType}-${randomUUID()}`;
 
       saveProvider({
         id: providerId,

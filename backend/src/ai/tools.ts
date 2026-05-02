@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   loadAllCards,
   insertCard,
@@ -231,7 +232,7 @@ export class CardTools {
     }
 
     const newCard: CardRecord = {
-      id: `${Date.now()}${Math.random().toString(36).slice(2, 8)}`,
+      id: randomUUID(),
       q: question,
       a: answer,
       next_review: Date.now() / 1000,

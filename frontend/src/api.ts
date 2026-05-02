@@ -400,11 +400,11 @@ export const api = {
       body: JSON.stringify(data),
     }),
   deleteProvider: (id: string) =>
-    request<{ success: boolean; message: string }>(`/providers/${id}`, { method: 'DELETE' }),
+    request<{ success: boolean; message: string; error?: string }>(`/providers/${id}`, { method: 'DELETE' }),
   setDefaultProvider: (id: string) =>
-    request<{ success: boolean; message: string }>(`/providers/${id}/default`, { method: 'POST' }),
+    request<{ success: boolean; message: string; error?: string }>(`/providers/${id}/default`, { method: 'POST' }),
   updateProviderEnabled: (id: string, enabled: boolean) =>
-    request<{ success: boolean; message: string }>(`/providers/${id}/enabled`, {
+    request<{ success: boolean; message: string; error?: string }>(`/providers/${id}/enabled`, {
       method: 'POST',
       body: JSON.stringify({ enabled }),
     }),

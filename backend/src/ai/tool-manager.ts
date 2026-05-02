@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 export type ToolCallStatus = 'pending' | 'approved' | 'rejected' | 'executing' | 'success' | 'failed';
 
 export interface ToolCallConfig {
@@ -46,7 +48,7 @@ export class ToolManager {
   }
 
   createPendingCall(toolName: string, params: Record<string, unknown>): string {
-    const callId = `tc_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-6)}`;
+    const callId = `tc_${randomUUID().replace(/-/g, '')}`;
     const record: ToolCallRecord = {
       call_id: callId,
       tool_name: toolName,

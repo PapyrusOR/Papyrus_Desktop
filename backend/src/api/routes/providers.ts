@@ -9,6 +9,7 @@ import {
   deleteApiKey,
   saveModel,
   deleteModel,
+  runInTransaction,
 } from '../../db/database.js';
 import { getDb } from '../../db/database.js';
 import type { Provider } from '../../core/types.js';
@@ -28,18 +29,22 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
   fastify.post('/', async (request, reply) => {
     const body = request.body as Partial<Provider>;
     try {
-      const id = saveProvider(body);
+      const id = runInTransaction(() => {
+        const providerId = saveProvider(body);
 
-      if (body.apiKeys) {
-        for (const key of body.apiKeys) {
-          saveApiKey(id, key);
+        if (body.apiKeys) {
+          for (const key of body.apiKeys) {
+            saveApiKey(providerId, key);
+          }
         }
-      }
-      if (body.models) {
-        for (const model of body.models) {
-          saveModel(id, model);
+        if (body.models) {
+          for (const model of body.models) {
+            saveModel(providerId, model);
+          }
         }
-      }
+
+        return providerId;
+      });
 
       reply.send({ success: true, provider: { ...body, id }, message: 'Provider created' });
     } catch (err) {
@@ -52,13 +57,15 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
     const { providerId } = request.params as { providerId: string };
     const body = request.body as Partial<Provider>;
     try {
-      saveProvider({ ...body, id: providerId });
+      runInTransaction(() => {
+        saveProvider({ ...body, id: providerId });
 
-      if (body.apiKeys) {
-        for (const key of body.apiKeys) {
-          saveApiKey(providerId, key);
+        if (body.apiKeys) {
+          for (const key of body.apiKeys) {
+            saveApiKey(providerId, key);
+          }
         }
-      }
+      });
       reply.send({ success: true, message: 'Provider updated' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

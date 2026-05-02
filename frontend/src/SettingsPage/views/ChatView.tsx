@@ -310,15 +310,15 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       const validApiKeys = apiKeys
         .filter(k => k.key.trim() !== '')
         .map((k, index) => ({
-          id: k.id || Date.now().toString() + index,
+          id: k.id || crypto.randomUUID(),
           name: k.name.trim() || `key-${index + 1}`,
           key: k.key.trim()
         }));
       
-      const finalApiKeys = validApiKeys.length > 0 ? validApiKeys : [{id: Date.now().toString(), name: 'default', key: ''}];
+      const finalApiKeys = validApiKeys.length > 0 ? validApiKeys : [{id: crypto.randomUUID(), name: 'default', key: ''}];
       
       const newProvider: Provider = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         type: newProviderType,
         name: values.name || preset.name,
         apiKeys: finalApiKeys,
@@ -341,7 +341,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
               syncKeyToAIConfig(newProviderType, firstKey.key);
             }
           } else {
-            Message.error(data.message || data.error || '添加失败');
+            Message.error(data.error || '添加失败');
           }
         })
         .catch(err => {
@@ -359,7 +359,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
           Message.success('供应商已删除');
           loadProviders();
         } else {
-          Message.error(data.message || '删除失败');
+          Message.error(data.error || '删除失败');
         }
       })
       .catch(err => {
@@ -375,7 +375,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
           Message.success('默认供应商已设置');
           loadProviders();
         } else {
-          Message.error(data.message || '设置失败');
+          Message.error(data.error || '设置失败');
         }
       })
       .catch(err => {
@@ -391,7 +391,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
           Message.success('模型已删除');
           loadProviders();
         } else {
-          Message.error(data.message || '删除失败');
+          Message.error(data.error || '删除失败');
         }
       })
       .catch(err => {
@@ -487,7 +487,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
               loadProviders();
               closeModal();
             } else {
-              Message.error(data.error || data.message || '更新失败');
+              Message.error(data.error || '更新失败');
             }
           })
           .catch(err => {
@@ -502,7 +502,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
               loadProviders();
               closeModal();
             } else {
-              Message.error(data.error || data.message || '添加失败');
+              Message.error(data.error || '添加失败');
             }
           })
           .catch(err => {
@@ -1049,7 +1049,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
                       type="primary" 
                       icon={<IconPlus />} 
                       size="small"
-                      onClick={() => setApiKeys([...apiKeys, { id: Date.now().toString(), key: '', name: '' }])}
+                      onClick={() => setApiKeys([...apiKeys, { id: crypto.randomUUID(), key: '', name: '' }])}
                       style={{ background: 'var(--color-primary)', borderRadius: '6px', padding: '0 8px' }}
                     />
                   ) : (
@@ -1184,7 +1184,7 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
     const provider = editingProviders.find(p => p.id === providerId);
     if (!provider) return;
     const newKey: ApiKeyItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: `key-${provider.apiKeys.length + 1}`,
       key: ''
     };
@@ -1228,7 +1228,7 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
             syncKeyToAIConfig(provider.type, firstKey.key);
           }
         } else {
-          Message.error(data.message || data.error || '保存失败');
+          Message.error(data.error || '保存失败');
         }
       })
       .catch(err => {
@@ -1272,7 +1272,7 @@ const ProvidersSection = ({ providers, loadProviders, deleteProvider, setDefault
                       if (data.success) {
                         loadProviders();
                       } else {
-                        Message.error(data.message || '更新失败');
+                        Message.error(data.error || '更新失败');
                         loadProviders();
                       }
                     })

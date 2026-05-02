@@ -367,6 +367,53 @@ describe('Database', () => {
     });
   });
 
+  describe('UUID & Transaction', () => {
+    it('should generate UUID format provider id instead of numeric timestamp', () => {
+      const id = saveProvider({ type: 'openai', name: 'UUIDTest', baseUrl: '', enabled: false });
+      expect(/^\d+$/.test(id)).toBe(false);
+      expect(id.length).toBeGreaterThan(10);
+    });
+
+    it('should not silently overwrite existing provider and cascade delete its keys', () => {
+      const providerId = saveProvider({ type: 'openai', name: 'OverwriteTest', baseUrl: 'http://old', enabled: false });
+      const keyId = saveApiKey(providerId, { name: 'key1', key: 'sk-old' });
+
+      // Re-save with same id but different data (simulate update)
+      saveProvider({ id: providerId, type: 'openai', name: 'OverwriteTest', baseUrl: 'http://new', enabled: true });
+
+      const providers = loadAllProviders();
+      const provider = providers.find((p) => p.id === providerId);
+      if (provider === undefined) throw new Error('expected provider');
+      expect(provider.baseUrl).toBe('http://new');
+      expect(provider.enabled).toBe(true);
+      // API key should still exist (UPSERT should not cascade delete)
+      const key = provider.apiKeys.find((k) => k.id === keyId);
+      if (key === undefined) throw new Error('expected key to survive UPSERT');
+      expect(key.key).toBe('sk-old');
+    });
+
+    it('should rollback transaction on error', () => {
+      const beforeCount = loadAllProviders().length;
+      expect(() => {
+        runInTransaction(() => {
+          saveProvider({ type: 'openai', name: 'RollbackTest', baseUrl: '', enabled: false });
+          throw new Error('intentional failure');
+        });
+      }).toThrow('intentional failure');
+      const afterCount = loadAllProviders().length;
+      expect(afterCount).toBe(beforeCount);
+    });
+
+    it('should return value from runInTransaction', () => {
+      const result = runInTransaction(() => {
+        const id = saveProvider({ type: 'openai', name: 'TxReturn', baseUrl: '', enabled: false });
+        return id;
+      });
+      expect(typeof result).toBe('string');
+      expect(/^\d+$/.test(result)).toBe(false);
+    });
+  });
+
   describe('Migration', () => {
     it('should migrate cards from JSON file', () => {
       const cardsFile = path.join(testDir, 'cards.json');

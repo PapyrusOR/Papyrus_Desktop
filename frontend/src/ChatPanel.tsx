@@ -95,8 +95,8 @@ const loadUserProfile = (): UserProfile => {
     if (saved) {
       return JSON.parse(saved);
     }
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error('Failed to load user profile from localStorage:', err);
   }
   return { userId: '', avatarUrl: null };
 };
@@ -685,18 +685,20 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
         }
       } catch (uploadErr) {
         console.error('File upload failed:', uploadErr);
+        const uploadErrorMessage = uploadErr instanceof Error ? uploadErr.message : '文件上传失败';
+        ArcoMessage.error(uploadErrorMessage);
         // 继续发送消息，文件信息已拼入 messageText
       }
     }
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: messageText,
     };
 
     const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
+      id: crypto.randomUUID(),
       role: 'assistant',
       content: '',
       blocks: [],

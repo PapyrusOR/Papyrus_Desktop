@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { paths } from '../utils/paths.js';
 import { encryptApiKey, decryptApiKey } from '../core/crypto.js';
 import type { CardRecord, Note, Provider, FileRecord } from '../core/types.js';
@@ -702,25 +703,37 @@ function inferProviderType(baseUrl: string | undefined, fallbackType: string | u
 
 export function saveProvider(provider: Partial<Provider> & { id?: string }, logger?: PapyrusLogger): string {
   const database = getDb();
-  const providerId = provider.id ?? String(Date.now());
+  const providerId = provider.id ?? randomUUID();
   const now = Date.now() / 1000;
   const providerType = inferProviderType(provider.baseUrl, provider.type);
 
-  const stmt = database.prepare(
-    `INSERT OR REPLACE INTO providers (id, type, name, base_url, enabled, is_default, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM providers WHERE id = ?), ?), ?)`
-  );
-  stmt.run(
-    providerId,
-    providerType,
-    provider.name ?? '',
-    provider.baseUrl ?? '',
-    provider.enabled ? 1 : 0,
-    provider.isDefault ? 1 : 0,
-    providerId,
-    now,
-    now
-  );
+  const existing = database.prepare('SELECT id FROM providers WHERE id = ?').get(providerId) as { id: string } | undefined;
+  if (existing) {
+    database.prepare(
+      'UPDATE providers SET type = ?, name = ?, base_url = ?, enabled = ?, is_default = ?, updated_at = ? WHERE id = ?'
+    ).run(
+      providerType,
+      provider.name ?? '',
+      provider.baseUrl ?? '',
+      provider.enabled ? 1 : 0,
+      provider.isDefault ? 1 : 0,
+      now,
+      providerId
+    );
+  } else {
+    database.prepare(
+      'INSERT INTO providers (id, type, name, base_url, enabled, is_default, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      providerId,
+      providerType,
+      provider.name ?? '',
+      provider.baseUrl ?? '',
+      provider.enabled ? 1 : 0,
+      provider.isDefault ? 1 : 0,
+      now,
+      now
+    );
+  }
   logger?.info(`Provider saved: ${provider.name}`);
   return providerId;
 }
@@ -754,14 +767,19 @@ export function updateProviderEnabled(providerId: string, enabled: boolean, logg
 
 export function saveApiKey(providerId: string, apiKey: { id?: string; name?: string; key: string }, logger?: PapyrusLogger): string {
   const database = getDb();
-  const keyId = apiKey.id ?? String(Date.now());
+  const keyId = apiKey.id ?? randomUUID();
   const now = Date.now() / 1000;
 
-  const stmt = database.prepare(
-    `INSERT OR REPLACE INTO api_keys (id, provider_id, name, encrypted_key, created_at)
-     VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM api_keys WHERE id = ?), ?))`
-  );
-  stmt.run(keyId, providerId, apiKey.name ?? 'default', encryptApiKey(apiKey.key), keyId, now);
+  const existing = database.prepare('SELECT id FROM api_keys WHERE id = ?').get(keyId) as { id: string } | undefined;
+  if (existing) {
+    database.prepare(
+      'UPDATE api_keys SET provider_id = ?, name = ?, encrypted_key = ?, created_at = COALESCE(created_at, ?) WHERE id = ?'
+    ).run(providerId, apiKey.name ?? 'default', encryptApiKey(apiKey.key), now, keyId);
+  } else {
+    database.prepare(
+      'INSERT INTO api_keys (id, provider_id, name, encrypted_key, created_at) VALUES (?, ?, ?, ?, ?)'
+    ).run(keyId, providerId, apiKey.name ?? 'default', encryptApiKey(apiKey.key), now);
+  }
   logger?.info(`API key saved: ${keyId}`);
   return keyId;
 }
@@ -778,21 +796,36 @@ export function deleteApiKey(keyId: string, logger?: PapyrusLogger): boolean {
 
 export function saveModel(providerId: string, model: { id?: string; name?: string; modelId?: string; port?: string; capabilities?: string[]; apiKeyId?: string; enabled?: boolean }, logger?: PapyrusLogger): string {
   const database = getDb();
-  const modelId = model.id ?? String(Date.now());
+  const modelId = model.id ?? randomUUID();
 
-  const stmt = database.prepare(
-    'INSERT OR REPLACE INTO provider_models (id, provider_id, name, model_id, port, capabilities, api_key_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  );
-  stmt.run(
-    modelId,
-    providerId,
-    model.name ?? '',
-    model.modelId ?? '',
-    model.port ?? 'openai',
-    JSON.stringify(model.capabilities ?? []),
-    model.apiKeyId ?? null,
-    model.enabled ? 1 : 0
-  );
+  const existing = database.prepare('SELECT id FROM provider_models WHERE id = ?').get(modelId) as { id: string } | undefined;
+  if (existing) {
+    database.prepare(
+      'UPDATE provider_models SET provider_id = ?, name = ?, model_id = ?, port = ?, capabilities = ?, api_key_id = ?, enabled = ? WHERE id = ?'
+    ).run(
+      providerId,
+      model.name ?? '',
+      model.modelId ?? '',
+      model.port ?? 'openai',
+      JSON.stringify(model.capabilities ?? []),
+      model.apiKeyId ?? null,
+      model.enabled ? 1 : 0,
+      modelId
+    );
+  } else {
+    database.prepare(
+      'INSERT INTO provider_models (id, provider_id, name, model_id, port, capabilities, api_key_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      modelId,
+      providerId,
+      model.name ?? '',
+      model.modelId ?? '',
+      model.port ?? 'openai',
+      JSON.stringify(model.capabilities ?? []),
+      model.apiKeyId ?? null,
+      model.enabled ? 1 : 0
+    );
+  }
   logger?.info(`Model saved: ${modelId}`);
   return modelId;
 }
@@ -1332,12 +1365,13 @@ export function checkpointDb(): void {
   database.exec('PRAGMA wal_checkpoint(FULL);');
 }
 
-export function runInTransaction(fn: () => void): void {
+export function runInTransaction<T>(fn: () => T): T {
   const database = getDb();
   database.exec('BEGIN TRANSACTION;');
   try {
-    fn();
+    const result = fn();
     database.exec('COMMIT;');
+    return result;
   } catch (e) {
     database.exec('ROLLBACK;');
     throw e;
