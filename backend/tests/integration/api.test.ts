@@ -2162,7 +2162,7 @@ describe('API Integration Tests', () => {
   });
 
   it('POST /api/notes/import/obsidian should import markdown files', async () => {
-    const vaultDir = path.join(os.tmpdir(), `papyrus-obsidian-test-${Date.now()}`);
+    const vaultDir = path.join(os.homedir(), `papyrus-obsidian-test-${Date.now()}`);
     fs.mkdirSync(vaultDir, { recursive: true });
     fs.writeFileSync(path.join(vaultDir, 'Test.md'), '# Hello\n\nWorld');
 
