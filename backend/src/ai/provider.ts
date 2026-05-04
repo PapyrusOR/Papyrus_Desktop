@@ -7,14 +7,40 @@ import type { AIConfig } from './config.js';
 import { isPrivateUrl } from './config.js';
 import { LLMCache } from './llm-cache.js';
 import { getProviderConfigFromDB } from './db-sync.js';
+import { getClientId } from '../utils/client-id.js';
 import { CardTools } from './tools.js';
 import type { OpenAIToolDef } from './tools.js';
+import {
+  createChatSession as repoCreateChatSession,
+  listChatSessions as repoListChatSessions,
+  getChatSession as repoGetChatSession,
+  updateChatSession as repoUpdateChatSession,
+  setActiveChatSession as repoSetActiveChatSession,
+  getActiveChatSession as repoGetActiveChatSession,
+  deleteChatSession as repoDeleteChatSession,
+  clearAllChatSessions as repoClearAllChatSessions,
+  appendChatMessage as repoAppendChatMessage,
+  listChatMessages as repoListChatMessages,
+  getChatMessage as repoGetChatMessage,
+  softDeleteChatMessage as repoSoftDeleteChatMessage,
+  deleteMessagesAfter as repoDeleteMessagesAfter,
+} from '../db/database.js';
+import type { ChatSessionRow, ChatMessageRow } from '../db/database.js';
+import type { ChatBlock, ChatSession, ChatMessage, ChatAttachment, ChatTokenUsage } from '../core/types.js';
 
 type OpenAIFetchParam = NonNullable<
   NonNullable<ConstructorParameters<typeof OpenAI>[0]>['fetch']
 >;
 
-export type StreamEventType = 'content' | 'reasoning' | 'tool_start' | 'tool_result' | 'done' | 'error';
+export type StreamEventType =
+  | 'content'
+  | 'reasoning'
+  | 'tool_start'
+  | 'tool_result'
+  | 'done'
+  | 'error'
+  | 'user_saved'
+  | 'stream_end';
 
 export interface StreamChunk {
   type: StreamEventType;
@@ -103,26 +129,10 @@ export interface AttachmentMeta {
   created_at: number;
 }
 
-export interface SessionMessage {
+interface BackendHistoryMessage {
   role: string;
   content: string;
-  attachments?: AttachmentMeta[];
-}
-
-export interface SessionData {
-  id: string;
-  title: string;
-  messages: SessionMessage[];
-  created_at: number;
-  updated_at: number;
-}
-
-export interface SessionSummary {
-  id: string;
-  title: string;
-  created_at: number;
-  updated_at: number;
-  message_count: number;
+  attachments: AttachmentMeta[];
 }
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
@@ -130,10 +140,63 @@ const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.txt', '.md', '.docx']);
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 const MAX_ATTACHMENTS_PER_MESSAGE = 5;
 
-interface RawMessage {
-  role: string;
-  content: string;
-  attachments?: Array<{ path?: string } | string>;
+function rowToChatSession(row: ChatSessionRow): ChatSession {
+  return {
+    id: row.id,
+    title: row.title,
+    model: row.model,
+    provider: row.provider,
+    isActive: row.is_active === 1,
+    messageCount: row.message_count,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function safeParseJsonArray<T>(text: string): T[] {
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed as T[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function safeParseJsonObject<T>(text: string): T | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as T;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function rowToChatMessage(row: ChatMessageRow): ChatMessage {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    role: row.role,
+    content: row.content,
+    blocks: safeParseJsonArray<ChatBlock>(row.blocks),
+    attachments: safeParseJsonArray<ChatAttachment>(row.attachments),
+    model: row.model,
+    provider: row.provider,
+    tokenUsage: safeParseJsonObject<ChatTokenUsage>(row.token_usage) ?? {},
+    parentMessageId: row.parent_message_id,
+    createdAt: row.created_at,
+  };
+}
+
+function rowToHistoryMessage(row: ChatMessageRow): BackendHistoryMessage {
+  return {
+    role: row.role,
+    content: row.content,
+    attachments: safeParseJsonArray<AttachmentMeta>(row.attachments),
+  };
 }
 
 export class AIManager {
@@ -141,203 +204,264 @@ export class AIManager {
   dataDir: string;
   conversationsDir: string;
   uploadsDir: string;
-  sessionsFile: string;
-  sessions: Record<string, SessionData> = {};
-  activeSessionId: string | null = null;
-  private saveMutex = new Mutex();
+  legacySessionsFile: string;
   llmCache: LLMCache;
+  private saveMutex = new Mutex();
 
   constructor(config: AIConfig) {
     this.config = config;
     this.dataDir = path.dirname(config.configFile);
     this.conversationsDir = path.join(this.dataDir, 'conversations');
     this.uploadsDir = path.join(this.dataDir, 'uploads');
-    this.sessionsFile = path.join(this.conversationsDir, 'sessions.json');
+    this.legacySessionsFile = path.join(this.conversationsDir, 'sessions.json');
     this.llmCache = new LLMCache(path.join(this.dataDir, 'llm_cache'), {
       enabled: config.config.features.cache_enabled,
     });
 
     fs.mkdirSync(this.conversationsDir, { recursive: true });
     fs.mkdirSync(this.uploadsDir, { recursive: true });
-    this.loadSessions();
 
-    if (!this.activeSessionId || !(this.activeSessionId in this.sessions)) {
-      this.createSession('新对话', true);
+    this.migrateLegacySessionsJson();
+
+    if (repoListChatSessions().length === 0) {
+      const fresh = repoCreateChatSession({ id: this.generateSessionId(), title: '新对话' });
+      repoSetActiveChatSession(fresh.id);
+    } else if (!repoGetActiveChatSession()) {
+      const list = repoListChatSessions();
+      if (list.length > 0) repoSetActiveChatSession(list[0]!.id);
     }
   }
 
-  get conversationHistory(): SessionMessage[] {
-    return this.getActiveSession().messages;
+  private generateSessionId(): string {
+    return uuidv4().replace(/-/g, '').slice(0, 12);
   }
 
-  set conversationHistory(value: SessionMessage[] | null) {
-    const session = this.getActiveSession();
-    session.messages = value ? [...value] : [];
-    session.updated_at = Date.now() / 1000;
-    this.saveSessions();
-  }
-
-  private loadSessions(): void {
-    if (!fs.existsSync(this.sessionsFile)) return;
+  private migrateLegacySessionsJson(): void {
+    if (!fs.existsSync(this.legacySessionsFile)) return;
+    if (repoListChatSessions().length > 0) {
+      try {
+        fs.renameSync(this.legacySessionsFile, this.legacySessionsFile + '.bak');
+      } catch {
+        // ignore
+      }
+      return;
+    }
     try {
-      const content = fs.readFileSync(this.sessionsFile, 'utf8');
+      const content = fs.readFileSync(this.legacySessionsFile, 'utf8');
       const data = JSON.parse(content) as unknown;
       if (data === null || typeof data !== 'object') return;
       const dict = data as Record<string, unknown>;
-      this.activeSessionId = dict.active_session_id !== undefined ? String(dict.active_session_id) : null;
-      const loadedSessions = Array.isArray(dict.sessions) ? dict.sessions : [];
-      for (const session of loadedSessions) {
-        if (session === null || typeof session !== 'object') continue;
-        const s = session as Record<string, unknown>;
-        const sessionId = s.id !== undefined ? String(s.id) : '';
-        if (!sessionId) continue;
-        this.sessions[sessionId] = {
-          id: sessionId,
+      const sessions = Array.isArray(dict.sessions) ? dict.sessions : [];
+      const activeId = dict.active_session_id !== undefined ? String(dict.active_session_id) : null;
+      let imported = 0;
+      for (const sessionRaw of sessions) {
+        if (sessionRaw === null || typeof sessionRaw !== 'object') continue;
+        const s = sessionRaw as Record<string, unknown>;
+        const sid = s.id !== undefined ? String(s.id) : '';
+        if (!sid) continue;
+        const createdAt = typeof s.created_at === 'number' ? s.created_at : Date.now() / 1000;
+        const updatedAt = typeof s.updated_at === 'number' ? s.updated_at : createdAt;
+        repoCreateChatSession({
+          id: sid,
           title: s.title !== undefined ? String(s.title) : '新对话',
-          messages: Array.isArray(s.messages) ? s.messages.map((m: unknown) => this.normalizeMessage(m)) : [],
-          created_at: typeof s.created_at === 'number' ? s.created_at : Date.now() / 1000,
-          updated_at: typeof s.updated_at === 'number' ? s.updated_at : Date.now() / 1000,
-        };
+          created_at: createdAt,
+          updated_at: updatedAt,
+        });
+        const messages = Array.isArray(s.messages) ? s.messages : [];
+        let parentId: string | null = null;
+        for (const msgRaw of messages) {
+          if (msgRaw === null || typeof msgRaw !== 'object') continue;
+          const m = msgRaw as Record<string, unknown>;
+          const role = String(m.role ?? 'user');
+          if (role !== 'user' && role !== 'assistant' && role !== 'system' && role !== 'tool') continue;
+          const messageContent = String(m.content ?? '');
+          const attachmentsRaw = Array.isArray(m.attachments) ? m.attachments : [];
+          const inserted = repoAppendChatMessage({
+            session_id: sid,
+            role,
+            content: messageContent,
+            blocks: JSON.stringify(messageContent ? ([{ type: 'text', text: messageContent }] as ChatBlock[]) : []),
+            attachments: JSON.stringify(attachmentsRaw),
+            parent_message_id: role === 'assistant' ? parentId : null,
+            created_at: updatedAt,
+          });
+          parentId = inserted.id;
+        }
+        imported += 1;
       }
+      if (activeId && repoGetChatSession(activeId)) {
+        repoSetActiveChatSession(activeId);
+      }
+      fs.renameSync(this.legacySessionsFile, this.legacySessionsFile + '.bak');
+      console.info(`[AIManager] 已从 sessions.json 迁移 ${imported} 个会话到数据库`);
     } catch (e) {
-      console.error('会话数据加载失败，已重置:', e instanceof Error ? e.message : String(e));
-      this.sessions = {};
-      this.activeSessionId = null;
+      console.error('[AIManager] sessions.json 迁移失败，原文件保留:', e instanceof Error ? e.message : String(e));
     }
+  }
+
+  // ==================== Sessions ====================
+
+  listSessions(): ChatSession[] {
+    return repoListChatSessions().map(rowToChatSession);
+  }
+
+  createSession(title?: string, switchSession = true): ChatSession {
+    const generatedTitle = (title && title.trim()) || new Date().toLocaleString('zh-CN', {
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+    }).replace(/\//g, '-');
+    const row = repoCreateChatSession({ id: this.generateSessionId(), title: generatedTitle });
+    if (switchSession) {
+      repoSetActiveChatSession(row.id);
+      const refreshed = repoGetChatSession(row.id);
+      if (refreshed) return rowToChatSession(refreshed);
+    }
+    return rowToChatSession(row);
+  }
+
+  switchSession(sessionId: string): ChatSession {
+    const ok = repoSetActiveChatSession(sessionId);
+    if (!ok) throw new Error('会话不存在');
+    const row = repoGetChatSession(sessionId);
+    if (!row) throw new Error('会话不存在');
+    return rowToChatSession(row);
+  }
+
+  renameSession(sessionId: string, title: string): ChatSession {
+    const trimmed = title.trim() || '新对话';
+    const ok = repoUpdateChatSession(sessionId, { title: trimmed });
+    if (!ok) throw new Error('会话不存在');
+    const row = repoGetChatSession(sessionId);
+    if (!row) throw new Error('会话不存在');
+    return rowToChatSession(row);
+  }
+
+  deleteSession(sessionId: string): { activeSessionId: string | null } {
+    const result = repoDeleteChatSession(sessionId);
+    if (!result.deleted) throw new Error('会话不存在');
+    if (result.newActiveId === null && repoListChatSessions().length === 0) {
+      const fresh = this.createSession('新对话', true);
+      return { activeSessionId: fresh.id };
+    }
+    return { activeSessionId: result.newActiveId };
+  }
+
+  clearAllSessions(): { activeSessionId: string | null; deletedCount: number } {
+    const deleted = repoClearAllChatSessions();
+    const fresh = this.createSession('新对话', true);
+    return { activeSessionId: fresh.id, deletedCount: deleted };
   }
 
   reset(): void {
-    this.sessions = {};
-    this.activeSessionId = null;
-    try {
-      fs.unlinkSync(this.sessionsFile);
-    } catch {
-      // ignore
-    }
-    this.createSession('新对话', true);
-  }
-
-  private normalizeMessage(m: unknown): SessionMessage {
-    if (m === null || typeof m !== 'object') return { role: 'user', content: '' };
-    const msg = m as Record<string, unknown>;
-    return {
-      role: msg.role !== undefined ? String(msg.role) : 'user',
-      content: msg.content !== undefined ? String(msg.content) : '',
-      attachments: Array.isArray(msg.attachments) ? msg.attachments as AttachmentMeta[] : undefined,
-    };
-  }
-
-  private saving = false;
-  private saveSessions(): void {
-    if (this.saving) return; // 已在保存中，跳过避免竞态
-    this.saving = true;
-    try {
-      const payload = {
-        active_session_id: this.activeSessionId,
-        sessions: Object.values(this.sessions),
-      };
-      const tempFile = `${this.sessionsFile}.tmp`;
-      fs.writeFileSync(tempFile, JSON.stringify(payload, null, 2), 'utf8');
-      fs.renameSync(tempFile, this.sessionsFile);
-    } finally {
-      this.saving = false;
-    }
-  }
-
-  getActiveSession(): SessionData {
-    if (!this.activeSessionId || !(this.activeSessionId in this.sessions)) {
-      return this.createSession('新对话', true);
-    }
-    return this.sessions[this.activeSessionId]!;
-  }
-
-  private getSessionForChat(sessionId?: string): SessionData {
-    if (sessionId && sessionId in this.sessions) {
-      return this.sessions[sessionId]!;
-    }
-    return this.getActiveSession();
-  }
-
-  getSession(sessionId: string): SessionData | null {
-    return this.sessions[sessionId] ?? null;
-  }
-
-  listSessions(): SessionSummary[] {
-    const summaries: SessionSummary[] = [];
-    for (const session of Object.values(this.sessions)) {
-      summaries.push({
-        id: session.id,
-        title: session.title,
-        created_at: session.created_at,
-        updated_at: session.updated_at,
-        message_count: session.messages.length,
-      });
-    }
-    return summaries.sort((a, b) => b.updated_at - a.updated_at);
-  }
-
-  createSession(title?: string, switchSession = true): SessionData {
-    const sessionId = uuidv4().replace(/-/g, '').slice(0, 12);
-    const now = Date.now() / 1000;
-    const session: SessionData = {
-      id: sessionId,
-      title: title ?? new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-'),
-      messages: [],
-      created_at: now,
-      updated_at: now,
-    };
-    this.sessions[sessionId] = session;
-    if (switchSession) {
-      this.activeSessionId = sessionId;
-    }
-    this.saveSessions();
-    return session;
-  }
-
-  switchSession(sessionId: string): SessionData {
-    if (!(sessionId in this.sessions)) {
-      throw new Error('会话不存在');
-    }
-    this.activeSessionId = sessionId;
-    this.sessions[sessionId]!.updated_at = Date.now() / 1000;
-    this.saveSessions();
-    return this.sessions[sessionId]!;
-  }
-
-  renameSession(sessionId: string, title: string): void {
-    if (!(sessionId in this.sessions)) {
-      throw new Error('会话不存在');
-    }
-    this.sessions[sessionId]!.title = title.trim() || '新对话';
-    this.sessions[sessionId]!.updated_at = Date.now() / 1000;
-    this.saveSessions();
-  }
-
-  deleteSession(sessionId: string): void {
-    if (!(sessionId in this.sessions)) {
-      throw new Error('会话不存在');
-    }
-    if (Object.keys(this.sessions).length <= 1) {
-      throw new Error('至少保留一个会话');
-    }
-    delete this.sessions[sessionId];
-    if (this.activeSessionId === sessionId) {
-      this.activeSessionId = Object.keys(this.sessions)[0] ?? null;
-    }
-    this.saveSessions();
+    this.clearAllSessions();
   }
 
   getActiveSessionId(): string | null {
-    return this.activeSessionId;
+    return repoGetActiveChatSession()?.id ?? null;
+  }
+
+  getActiveSession(): ChatSession | null {
+    const row = repoGetActiveChatSession();
+    return row ? rowToChatSession(row) : null;
   }
 
   getActiveSessionTitle(): string {
-    return this.getActiveSession().title;
+    return repoGetActiveChatSession()?.title ?? '';
+  }
+
+  getSession(sessionId: string): ChatSession | null {
+    const row = repoGetChatSession(sessionId);
+    return row ? rowToChatSession(row) : null;
+  }
+
+  listMessages(sessionId: string): ChatMessage[] {
+    return repoListChatMessages(sessionId).map(rowToChatMessage);
+  }
+
+  getMessage(messageId: string): ChatMessage | null {
+    const row = repoGetChatMessage(messageId);
+    return row ? rowToChatMessage(row) : null;
+  }
+
+  deleteMessage(messageId: string): boolean {
+    return repoSoftDeleteChatMessage(messageId);
+  }
+
+  prepareRegenerate(messageId: string): {
+    sessionId: string;
+    userMessage: string;
+    userAttachments: AttachmentMeta[];
+    parentMessageId: string | null;
+  } | null {
+    const target = repoGetChatMessage(messageId);
+    if (!target || target.role !== 'assistant') return null;
+    let userMessage = '';
+    let userAttachments: AttachmentMeta[] = [];
+    if (target.parent_message_id) {
+      const userRow = repoGetChatMessage(target.parent_message_id);
+      if (userRow) {
+        userMessage = userRow.content;
+        userAttachments = safeParseJsonArray<AttachmentMeta>(userRow.attachments);
+      }
+    }
+    repoDeleteMessagesAfter(target.session_id, target.created_at);
+    return {
+      sessionId: target.session_id,
+      userMessage,
+      userAttachments,
+      parentMessageId: target.parent_message_id,
+    };
   }
 
   clearHistory(): void {
-    this.createSession('新对话', true);
+    const fresh = this.createSession('新对话', true);
+    void fresh;
   }
+
+  // ==================== Persistence helpers ====================
+
+  async persistUserMessage(
+    sessionId: string,
+    userMessage: string,
+    attachments: AttachmentMeta[],
+  ): Promise<string> {
+    return await this.saveMutex.runExclusive(() => {
+      const row = repoAppendChatMessage({
+        session_id: sessionId,
+        role: 'user',
+        content: userMessage,
+        blocks: JSON.stringify([{ type: 'text', text: userMessage }] as ChatBlock[]),
+        attachments: JSON.stringify(attachments),
+        parent_message_id: null,
+      });
+      return row.id;
+    });
+  }
+
+  async persistAssistantMessage(input: {
+    sessionId: string;
+    content: string;
+    blocks: ChatBlock[];
+    model: string;
+    provider: string;
+    parentMessageId: string | null;
+    tokenUsage?: ChatTokenUsage;
+  }): Promise<string> {
+    return await this.saveMutex.runExclusive(() => {
+      const row = repoAppendChatMessage({
+        session_id: input.sessionId,
+        role: 'assistant',
+        content: input.content,
+        blocks: JSON.stringify(input.blocks),
+        model: input.model,
+        provider: input.provider,
+        token_usage: JSON.stringify(input.tokenUsage ?? {}),
+        parent_message_id: input.parentMessageId,
+      });
+      return row.id;
+    });
+  }
+
+  // ==================== Attachment helpers ====================
 
   private validateAttachments(attachments: Array<{ path?: string } | string> | null | undefined): string[] {
     if (!attachments) return [];
@@ -349,7 +473,6 @@ export class AIManager {
       const itemPath = typeof item === 'string' ? item : (item.path ?? '');
       if (!itemPath) continue;
 
-      // 尝试直接作为文件路径解析；如果不存在，尝试作为 fileId 在 vault 目录查找
       let resolvedPath = itemPath;
       if (!fs.existsSync(itemPath)) {
         const vaultDir = path.join(this.dataDir, 'vault');
@@ -385,11 +508,13 @@ export class AIManager {
     return normalized;
   }
 
-  private storeAttachments(attachments: Array<{ path?: string } | string> | null | undefined): AttachmentMeta[] {
+  private storeAttachments(
+    attachments: Array<{ path?: string } | string> | null | undefined,
+    sessionId: string,
+  ): AttachmentMeta[] {
     const paths = this.validateAttachments(attachments);
     if (!paths.length) return [];
 
-    const sessionId = this.getActiveSessionId() ?? this.createSession('新对话', true).id;
     const sessionUploadDir = path.join(this.uploadsDir, sessionId);
     fs.mkdirSync(sessionUploadDir, { recursive: true });
 
@@ -569,7 +694,7 @@ export class AIManager {
     return { role: 'user', content: lines.join('\n') };
   }
 
-  private messageToProviderFormat(providerName: string, message: SessionMessage): ProviderMessage {
+  private messageToProviderFormat(providerName: string, message: BackendHistoryMessage): ProviderMessage {
     const role = message.role;
     const content = message.content;
     const attachments = message.attachments ?? [];
@@ -578,6 +703,8 @@ export class AIManager {
     }
     return { role, content };
   }
+
+  // ==================== Stream ====================
 
   async *chatStream(
     userMessage: string,
@@ -595,7 +722,21 @@ export class AIManager {
       return;
     }
 
-    const chatSession = this.getSessionForChat(sessionId);
+    let chatSessionRow: ChatSessionRow | null = null;
+    if (sessionId) {
+      chatSessionRow = repoGetChatSession(sessionId);
+      if (!chatSessionRow) {
+        yield { type: 'error', data: `会话不存在: ${sessionId}` };
+        return;
+      }
+    } else {
+      chatSessionRow = repoGetActiveChatSession();
+      if (!chatSessionRow) {
+        yield { type: 'error', data: '当前没有活动会话' };
+        return;
+      }
+    }
+    const targetSessionId = chatSessionRow.id;
 
     const messages: ProviderMessage[] = [];
     const effectiveSystemPrompt = systemPrompt || (
@@ -609,52 +750,64 @@ export class AIManager {
 
     const contextLength = this.config.config.features.context_length;
     if (contextLength > 0) {
-      const history = chatSession.messages.slice(-(contextLength * 2));
-      for (const msg of history) {
-        messages.push(this.messageToProviderFormat(providerName, msg));
+      const history = repoListChatMessages(targetSessionId).slice(-(contextLength * 2));
+      for (const row of history) {
+        messages.push(this.messageToProviderFormat(providerName, rowToHistoryMessage(row)));
       }
     }
 
-    const attachmentsMeta = this.storeAttachments(attachments);
+    let attachmentsMeta: AttachmentMeta[] = [];
+    try {
+      attachmentsMeta = this.storeAttachments(attachments, targetSessionId);
+    } catch (e) {
+      yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+      return;
+    }
     messages.push(this.buildUserMessageForProvider(providerName, userMessage, attachmentsMeta));
 
     const params = this.config.config.parameters;
     const model = overrideModel || this.config.config.current_model;
     const normalizedReasoning = normalizeReasoning(reasoning);
 
-    const cacheKey = this.llmCache.buildCacheKey(providerName, model, messages, params, systemPrompt, sessionId);
+    let userMessageId: string;
+    try {
+      userMessageId = await this.persistUserMessage(targetSessionId, userMessage, attachmentsMeta);
+    } catch (e) {
+      yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+      return;
+    }
+    yield {
+      type: 'user_saved',
+      data: {
+        messageId: userMessageId,
+        sessionId: targetSessionId,
+        model,
+        provider: providerName,
+        attachments: attachmentsMeta as unknown as Record<string, unknown>[],
+      },
+    };
+
+    const cacheKey = this.llmCache.buildCacheKey(providerName, model, messages, params, systemPrompt, targetSessionId);
     const cached = this.llmCache.get(cacheKey);
     if (cached) {
       try {
         for (const chunk of cached) {
           yield chunk;
         }
-        await this.saveMutex.runExclusive(() => {
-          chatSession.messages.push({
-            role: 'user',
-            content: userMessage,
-            attachments: attachmentsMeta,
-          });
-          chatSession.updated_at = Date.now() / 1000;
-          this.saveSessions();
-        });
-        yield { type: 'done', data: '' };
+        yield {
+          type: 'stream_end',
+          data: {
+            sessionId: targetSessionId,
+            parentMessageId: userMessageId,
+            model,
+            provider: providerName,
+          },
+        };
       } catch (e) {
         yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
       }
       return;
     }
-
-    // Save user message BEFORE streaming to avoid data loss on API failure
-    await this.saveMutex.runExclusive(() => {
-      chatSession.messages.push({
-        role: 'user',
-        content: userMessage,
-        attachments: attachmentsMeta,
-      });
-      chatSession.updated_at = Date.now() / 1000;
-      this.saveSessions();
-    });
 
     const collectedChunks: StreamChunk[] = [];
     try {
@@ -668,7 +821,89 @@ export class AIManager {
       }
 
       this.llmCache.set(cacheKey, collectedChunks);
-      yield { type: 'done', data: '' };
+      yield {
+        type: 'stream_end',
+        data: {
+          sessionId: targetSessionId,
+          parentMessageId: userMessageId,
+          model,
+          provider: providerName,
+        },
+      };
+    } catch (e) {
+      yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
+  async *regenerateStream(
+    parentMessageId: string,
+    overrideModel?: string,
+    mode?: string,
+    reasoning?: unknown,
+  ): AsyncGenerator<StreamChunk> {
+    const userRow = repoGetChatMessage(parentMessageId);
+    if (!userRow || userRow.role !== 'user') {
+      yield { type: 'error', data: '父消息不存在或不是用户消息' };
+      return;
+    }
+    const sessionRow = repoGetChatSession(userRow.session_id);
+    if (!sessionRow) {
+      yield { type: 'error', data: '会话不存在' };
+      return;
+    }
+    const providerName = this.config.config.current_provider;
+    const providerConfig = getProviderConfigFromDB(providerName);
+    if (!providerConfig) {
+      yield { type: 'error', data: `未知 provider: ${providerName}` };
+      return;
+    }
+
+    const messages: ProviderMessage[] = [];
+    const systemPrompt = mode === 'agent'
+      ? '你是一个智能学习助手。你可以使用工具来完成用户的请求。\n\n工具使用规则：\n1. 只读工具（如搜索卡片、搜索笔记、获取统计、读取文件）可以在分析用户需求后主动使用。\n2. 写操作工具（如创建卡片、更新卡片、删除卡片、创建笔记、修改笔记）只能在用户**明确要求**修改数据时才调用。\n3. 如果用户只是打招呼、闲聊或没有明确请求，不要调用任何工具，直接自然回复即可。\n请根据用户的需求，自主决定使用哪些合适的工具。'
+      : undefined;
+    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+
+    const contextLength = this.config.config.features.context_length;
+    const allHistory = repoListChatMessages(userRow.session_id);
+    const history = contextLength > 0 ? allHistory.slice(-(contextLength * 2)) : allHistory;
+    for (const row of history) {
+      messages.push(this.messageToProviderFormat(providerName, rowToHistoryMessage(row)));
+    }
+
+    const params = this.config.config.parameters;
+    const model = overrideModel || this.config.config.current_model;
+    const normalizedReasoning = normalizeReasoning(reasoning);
+
+    yield {
+      type: 'user_saved',
+      data: {
+        messageId: userRow.id,
+        sessionId: userRow.session_id,
+        model,
+        provider: providerName,
+        attachments: safeParseJsonArray<AttachmentMeta>(userRow.attachments) as unknown as Record<string, unknown>[],
+        regenerated: true,
+      },
+    };
+
+    try {
+      const stream = providerName === 'ollama'
+        ? this.chatStreamOllama(messages, model, params, providerConfig, mode)
+        : this.chatStreamOpenAI(messages, model, params, providerConfig, providerName, mode, normalizedReasoning);
+
+      for await (const chunk of stream) {
+        yield chunk;
+      }
+      yield {
+        type: 'stream_end',
+        data: {
+          sessionId: userRow.session_id,
+          parentMessageId: userRow.id,
+          model,
+          provider: providerName,
+        },
+      };
     } catch (e) {
       yield { type: 'error', data: e instanceof Error ? e.message : String(e) };
     }
@@ -701,7 +936,9 @@ export class AIManager {
         if (!apiKey) {
           headers.delete('Authorization');
         }
-        // url 运行时恒为 string；node-fetch v2 与 undici 类型声明不兼容但运行时一致
+        if (providerName === 'liyuan-deepseek') {
+          headers.set('X-Papyrus-Client-Id', getClientId());
+        }
         return fetch(reqUrl, { ...reqInit, headers });
       }) as unknown as OpenAIFetchParam,
     });
@@ -897,6 +1134,8 @@ export class AIManager {
     return out;
   }
 
+  // ==================== Convenience APIs ====================
+
   getHint(question: string): Promise<string> {
     const prompt = `用户正在学习这个问题：\n${question}\n\n请给出一个不直接透露答案的提示，帮助用户思考。`;
     return this.chat(prompt, '你是一个学习助手，擅长给出启发性的提示而不是直接答案。');
@@ -913,31 +1152,48 @@ export class AIManager {
   }
 
   async chat(userMessage: string, systemPrompt?: string): Promise<string> {
-    const chunks: string[] = [];
+    const collectedText: string[] = [];
+    const collectedReasoning: string[] = [];
+    const blocks: ChatBlock[] = [];
+    let parentMessageId: string | null = null;
+    let sessionIdForFinalize: string | null = null;
+    let modelUsed = '';
+    let providerUsed = '';
+
     for await (const chunk of this.chatStream(userMessage, systemPrompt)) {
-      if (chunk.type === 'content') {
-        chunks.push(typeof chunk.data === 'string' ? chunk.data : '');
-      }
-      if (chunk.type === 'done') break;
-      if (chunk.type === 'error') {
+      if (chunk.type === 'user_saved') {
+        const data = chunk.data as Record<string, unknown>;
+        parentMessageId = typeof data.messageId === 'string' ? data.messageId : null;
+        sessionIdForFinalize = typeof data.sessionId === 'string' ? data.sessionId : null;
+        modelUsed = typeof data.model === 'string' ? data.model : '';
+        providerUsed = typeof data.provider === 'string' ? data.provider : '';
+      } else if (chunk.type === 'content') {
+        collectedText.push(typeof chunk.data === 'string' ? chunk.data : '');
+      } else if (chunk.type === 'reasoning') {
+        collectedReasoning.push(typeof chunk.data === 'string' ? chunk.data : '');
+      } else if (chunk.type === 'stream_end') {
+        break;
+      } else if (chunk.type === 'error') {
         throw new Error(typeof chunk.data === 'string' ? chunk.data : 'AI 调用失败');
       }
     }
-    // Save assistant response to session
-    const activeSession = this.getActiveSession();
-    activeSession.messages.push({ role: 'assistant', content: chunks.join('') });
-    activeSession.updated_at = Date.now() / 1000;
-    this.saveSessions();
-    return chunks.join('');
-  }
 
-  async appendAssistantMessage(content: string): Promise<void> {
-    await this.saveMutex.runExclusive(() => {
-      const activeSession = this.getActiveSession();
-      activeSession.messages.push({ role: 'assistant', content });
-      activeSession.updated_at = Date.now() / 1000;
-      this.saveSessions();
-    });
+    const reasoningText = collectedReasoning.join('');
+    const contentText = collectedText.join('');
+    if (reasoningText) blocks.push({ type: 'reasoning', text: reasoningText });
+    if (contentText) blocks.push({ type: 'text', text: contentText });
+
+    if (sessionIdForFinalize) {
+      await this.persistAssistantMessage({
+        sessionId: sessionIdForFinalize,
+        content: contentText,
+        blocks,
+        model: modelUsed,
+        provider: providerUsed,
+        parentMessageId,
+      });
+    }
+    return contentText;
   }
 }
 

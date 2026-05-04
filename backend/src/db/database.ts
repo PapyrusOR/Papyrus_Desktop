@@ -187,11 +187,41 @@ function initSchema(database: DatabaseSync): void {
 
     CREATE INDEX IF NOT EXISTS idx_relations_source ON relations(source_id);
     CREATE INDEX IF NOT EXISTS idx_relations_target ON relations(target_id);
+
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '新对话',
+      model TEXT NOT NULL DEFAULT '',
+      provider TEXT NOT NULL DEFAULT '',
+      is_active INTEGER NOT NULL DEFAULT 0,
+      message_count INTEGER NOT NULL DEFAULT 0,
+      metadata TEXT NOT NULL DEFAULT '{}',
+      created_at REAL NOT NULL DEFAULT 0.0,
+      updated_at REAL NOT NULL DEFAULT 0.0
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK(role IN ('user','assistant','system','tool')),
+      content TEXT NOT NULL DEFAULT '',
+      blocks TEXT NOT NULL DEFAULT '[]',
+      attachments TEXT NOT NULL DEFAULT '[]',
+      model TEXT NOT NULL DEFAULT '',
+      provider TEXT NOT NULL DEFAULT '',
+      token_usage TEXT NOT NULL DEFAULT '{}',
+      parent_message_id TEXT,
+      is_deleted INTEGER NOT NULL DEFAULT 0,
+      created_at REAL NOT NULL DEFAULT 0.0
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_msgs_session ON chat_messages(session_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_chat_msgs_parent ON chat_messages(parent_message_id);
+    CREATE INDEX IF NOT EXISTS idx_chat_sessions_active ON chat_sessions(is_active);
+    CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated ON chat_sessions(updated_at DESC);
   `);
 
-  if (isNewDb) {
-    seedDefaults(database);
-  }
+  seedDefaults(database);
 
   deduplicateData(database);
 
@@ -268,9 +298,26 @@ function deduplicateData(database: DatabaseSync): void {
   }
 }
 
-function seedDefaults(_database: DatabaseSync): void {
-  // 不再预填 mock 供应商/模型数据
-  // 用户通过设置界面手动添加供应商和模型
+function seedDefaults(database: DatabaseSync): void {
+  const count = (database.prepare('SELECT COUNT(*) as c FROM providers').get() as { c: number }).c;
+  if (count > 0) return;
+
+  const now = Date.now();
+  const pid = 'p-liyuan-deepseek';
+  database.prepare(
+    `INSERT INTO providers (id, type, name, base_url, enabled, is_default, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(pid, 'liyuan-deepseek', 'LiYuan For DeepSeek', 'https://papyrus.liyuanstudio.com/v1', 1, 1, now, now);
+
+  database.prepare(
+    `INSERT INTO provider_models (id, provider_id, name, model_id, port, enabled)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(`${pid}-deepseek-v4-flash`, pid, 'DeepSeek V4 Flash', 'deepseek-v4-flash', 'openai-compat', 1);
+
+  database.prepare(
+    `INSERT INTO provider_models (id, provider_id, name, model_id, port, enabled)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(`${pid}-deepseek-v4-pro`, pid, 'DeepSeek V4 Pro', 'deepseek-v4-pro', 'openai-compat', 1);
 }
 
 function tagsToJson(tags: string[] | undefined): string {
@@ -1435,6 +1482,301 @@ export function clearAllData(): void {
   const database = getDb();
   database.exec('DELETE FROM cards;');
   database.exec('DELETE FROM notes;');
+  database.exec('DELETE FROM chat_messages;');
+  database.exec('DELETE FROM chat_sessions;');
+}
+
+// ==================== Chat Sessions ====================
+
+export interface ChatSessionRow {
+  id: string;
+  title: string;
+  model: string;
+  provider: string;
+  is_active: number;
+  message_count: number;
+  metadata: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ChatMessageRow {
+  id: string;
+  session_id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  blocks: string;
+  attachments: string;
+  model: string;
+  provider: string;
+  token_usage: string;
+  parent_message_id: string | null;
+  is_deleted: number;
+  created_at: number;
+}
+
+interface CreateChatSessionInput {
+  id?: string;
+  title?: string;
+  model?: string;
+  provider?: string;
+  created_at?: number;
+  updated_at?: number;
+}
+
+export function createChatSession(input: CreateChatSessionInput = {}, logger?: PapyrusLogger): ChatSessionRow {
+  const database = getDb();
+  const now = Date.now() / 1000;
+  const row: ChatSessionRow = {
+    id: input.id ?? randomUUID(),
+    title: input.title ?? '新对话',
+    model: input.model ?? '',
+    provider: input.provider ?? '',
+    is_active: 0,
+    message_count: 0,
+    metadata: '{}',
+    created_at: input.created_at ?? now,
+    updated_at: input.updated_at ?? now,
+  };
+  const stmt = database.prepare(
+    'INSERT INTO chat_sessions (id, title, model, provider, is_active, message_count, metadata, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  );
+  stmt.run(row.id, row.title, row.model, row.provider, row.is_active, row.message_count, row.metadata, row.created_at, row.updated_at);
+  logger?.info(`创建会话: ${row.id}`);
+  return row;
+}
+
+export function listChatSessions(): ChatSessionRow[] {
+  const database = getDb();
+  const stmt = database.prepare('SELECT * FROM chat_sessions ORDER BY updated_at DESC');
+  return stmt.all() as unknown as ChatSessionRow[];
+}
+
+export function getChatSession(id: string): ChatSessionRow | null {
+  const database = getDb();
+  const stmt = database.prepare('SELECT * FROM chat_sessions WHERE id = ?');
+  const row = stmt.get(id) as ChatSessionRow | undefined;
+  return row ?? null;
+}
+
+interface ChatSessionPatch {
+  title?: string;
+  model?: string;
+  provider?: string;
+  metadata?: string;
+}
+
+export function updateChatSession(id: string, patch: ChatSessionPatch): boolean {
+  const database = getDb();
+  const fields: string[] = [];
+  const values: Array<string | number> = [];
+  if (patch.title !== undefined) { fields.push('title = ?'); values.push(patch.title); }
+  if (patch.model !== undefined) { fields.push('model = ?'); values.push(patch.model); }
+  if (patch.provider !== undefined) { fields.push('provider = ?'); values.push(patch.provider); }
+  if (patch.metadata !== undefined) { fields.push('metadata = ?'); values.push(patch.metadata); }
+  if (fields.length === 0) return false;
+  fields.push('updated_at = ?');
+  values.push(Date.now() / 1000);
+  values.push(id);
+  const stmt = database.prepare(`UPDATE chat_sessions SET ${fields.join(', ')} WHERE id = ?`);
+  const result = stmt.run(...values);
+  return result.changes > 0;
+}
+
+export function setActiveChatSession(id: string): boolean {
+  const database = getDb();
+  const exists = database.prepare('SELECT id FROM chat_sessions WHERE id = ?').get(id);
+  if (!exists) return false;
+  database.exec('BEGIN TRANSACTION;');
+  try {
+    database.prepare('UPDATE chat_sessions SET is_active = 0 WHERE is_active = 1').run();
+    database.prepare('UPDATE chat_sessions SET is_active = 1, updated_at = ? WHERE id = ?').run(Date.now() / 1000, id);
+    database.exec('COMMIT;');
+    return true;
+  } catch (e) {
+    database.exec('ROLLBACK;');
+    throw e;
+  }
+}
+
+export function getActiveChatSession(): ChatSessionRow | null {
+  const database = getDb();
+  const stmt = database.prepare('SELECT * FROM chat_sessions WHERE is_active = 1 LIMIT 1');
+  const row = stmt.get() as ChatSessionRow | undefined;
+  return row ?? null;
+}
+
+export function deleteChatSession(id: string, logger?: PapyrusLogger): { deleted: boolean; newActiveId: string | null } {
+  const database = getDb();
+  const target = getChatSession(id);
+  if (!target) return { deleted: false, newActiveId: getActiveChatSession()?.id ?? null };
+  const wasActive = target.is_active === 1;
+  database.exec('BEGIN TRANSACTION;');
+  try {
+    database.prepare('DELETE FROM chat_sessions WHERE id = ?').run(id);
+    let newActiveId: string | null = null;
+    if (wasActive) {
+      const next = database.prepare('SELECT id FROM chat_sessions ORDER BY updated_at DESC LIMIT 1').get() as { id: string } | undefined;
+      if (next) {
+        database.prepare('UPDATE chat_sessions SET is_active = 1, updated_at = ? WHERE id = ?').run(Date.now() / 1000, next.id);
+        newActiveId = next.id;
+      }
+    } else {
+      newActiveId = getActiveChatSession()?.id ?? null;
+    }
+    database.exec('COMMIT;');
+    logger?.info(`删除会话: ${id}`);
+    return { deleted: true, newActiveId };
+  } catch (e) {
+    database.exec('ROLLBACK;');
+    throw e;
+  }
+}
+
+export function clearAllChatSessions(logger?: PapyrusLogger): number {
+  const database = getDb();
+  const before = database.prepare('SELECT COUNT(*) as c FROM chat_sessions').get() as { c: number };
+  database.exec('BEGIN TRANSACTION;');
+  try {
+    database.exec('DELETE FROM chat_messages;');
+    database.exec('DELETE FROM chat_sessions;');
+    database.exec('COMMIT;');
+    logger?.info(`清空 ${before.c} 个会话`);
+    return before.c;
+  } catch (e) {
+    database.exec('ROLLBACK;');
+    throw e;
+  }
+}
+
+export function touchChatSession(id: string, ts?: number): void {
+  const database = getDb();
+  database.prepare('UPDATE chat_sessions SET updated_at = ? WHERE id = ?').run(ts ?? Date.now() / 1000, id);
+}
+
+// ==================== Chat Messages ====================
+
+interface AppendChatMessageInput {
+  id?: string;
+  session_id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content?: string;
+  blocks?: string;
+  attachments?: string;
+  model?: string;
+  provider?: string;
+  token_usage?: string;
+  parent_message_id?: string | null;
+  created_at?: number;
+}
+
+export function appendChatMessage(input: AppendChatMessageInput, logger?: PapyrusLogger): ChatMessageRow {
+  const database = getDb();
+  const now = input.created_at ?? Date.now() / 1000;
+  const row: ChatMessageRow = {
+    id: input.id ?? randomUUID(),
+    session_id: input.session_id,
+    role: input.role,
+    content: input.content ?? '',
+    blocks: input.blocks ?? '[]',
+    attachments: input.attachments ?? '[]',
+    model: input.model ?? '',
+    provider: input.provider ?? '',
+    token_usage: input.token_usage ?? '{}',
+    parent_message_id: input.parent_message_id ?? null,
+    is_deleted: 0,
+    created_at: now,
+  };
+  database.exec('BEGIN TRANSACTION;');
+  try {
+    const sessionExists = database.prepare('SELECT id FROM chat_sessions WHERE id = ?').get(row.session_id);
+    if (!sessionExists) {
+      throw new Error(`会话不存在: ${row.session_id}`);
+    }
+    database.prepare(
+      'INSERT INTO chat_messages (id, session_id, role, content, blocks, attachments, model, provider, token_usage, parent_message_id, is_deleted, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(row.id, row.session_id, row.role, row.content, row.blocks, row.attachments, row.model, row.provider, row.token_usage, row.parent_message_id, row.is_deleted, row.created_at);
+    database.prepare(
+      'UPDATE chat_sessions SET message_count = message_count + 1, updated_at = ? WHERE id = ?'
+    ).run(now, row.session_id);
+    database.exec('COMMIT;');
+    logger?.info(`插入消息: ${row.id} (session=${row.session_id}, role=${row.role})`);
+    return row;
+  } catch (e) {
+    database.exec('ROLLBACK;');
+    throw e;
+  }
+}
+
+export function listChatMessages(sessionId: string, opts?: { includeDeleted?: boolean }): ChatMessageRow[] {
+  const database = getDb();
+  const includeDeleted = opts?.includeDeleted === true;
+  const sql = includeDeleted
+    ? 'SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC'
+    : 'SELECT * FROM chat_messages WHERE session_id = ? AND is_deleted = 0 ORDER BY created_at ASC';
+  const stmt = database.prepare(sql);
+  return stmt.all(sessionId) as unknown as ChatMessageRow[];
+}
+
+export function getChatMessage(id: string): ChatMessageRow | null {
+  const database = getDb();
+  const stmt = database.prepare('SELECT * FROM chat_messages WHERE id = ?');
+  const row = stmt.get(id) as ChatMessageRow | undefined;
+  return row ?? null;
+}
+
+interface ChatMessagePatch {
+  content?: string;
+  blocks?: string;
+  token_usage?: string;
+  model?: string;
+}
+
+export function updateChatMessage(id: string, patch: ChatMessagePatch): boolean {
+  const database = getDb();
+  const fields: string[] = [];
+  const values: Array<string | number> = [];
+  if (patch.content !== undefined) { fields.push('content = ?'); values.push(patch.content); }
+  if (patch.blocks !== undefined) { fields.push('blocks = ?'); values.push(patch.blocks); }
+  if (patch.token_usage !== undefined) { fields.push('token_usage = ?'); values.push(patch.token_usage); }
+  if (patch.model !== undefined) { fields.push('model = ?'); values.push(patch.model); }
+  if (fields.length === 0) return false;
+  values.push(id);
+  const stmt = database.prepare(`UPDATE chat_messages SET ${fields.join(', ')} WHERE id = ?`);
+  const result = stmt.run(...values);
+  return result.changes > 0;
+}
+
+export function softDeleteChatMessage(id: string, logger?: PapyrusLogger): boolean {
+  const database = getDb();
+  const stmt = database.prepare('UPDATE chat_messages SET is_deleted = 1 WHERE id = ?');
+  const result = stmt.run(id);
+  if (result.changes > 0) logger?.info(`软删除消息: ${id}`);
+  return result.changes > 0;
+}
+
+export function deleteMessagesAfter(sessionId: string, fromCreatedAt: number, logger?: PapyrusLogger): number {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM chat_messages WHERE session_id = ? AND created_at >= ?');
+  const result = stmt.run(sessionId, fromCreatedAt);
+  const changed = Number(result.changes);
+  if (changed > 0) {
+    database.prepare(
+      'UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_messages WHERE session_id = ? AND is_deleted = 0), updated_at = ? WHERE id = ?'
+    ).run(sessionId, Date.now() / 1000, sessionId);
+    logger?.info(`删除会话 ${sessionId} 中 ${changed} 条消息`);
+  }
+  return changed;
+}
+
+export function getChatMessageCount(sessionId: string, opts?: { includeDeleted?: boolean }): number {
+  const database = getDb();
+  const sql = opts?.includeDeleted
+    ? 'SELECT COUNT(*) as c FROM chat_messages WHERE session_id = ?'
+    : 'SELECT COUNT(*) as c FROM chat_messages WHERE session_id = ? AND is_deleted = 0';
+  const stmt = database.prepare(sql);
+  const row = stmt.get(sessionId) as { c: number };
+  return row.c;
 }
 
 export { closeDb, getDb, resetDb };
