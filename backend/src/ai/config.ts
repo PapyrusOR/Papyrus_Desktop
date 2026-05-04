@@ -114,8 +114,8 @@ export class AIConfig {
     const defaultLogDir = path.join(paths.dataDir, 'logs');
     return {
       providers: {},
-      current_provider: 'openai',
-      current_model: 'gpt-4o',
+      current_provider: 'liyuan-deepseek',
+      current_model: 'deepseek-v4-pro',
       parameters: {
         temperature: 0.7,
         top_p: 0.9,
