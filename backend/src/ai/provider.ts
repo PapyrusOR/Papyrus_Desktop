@@ -938,6 +938,7 @@ export class AIManager {
         }
         if (providerName === 'liyuan-deepseek') {
           headers.set('X-Papyrus-Client-Id', getClientId());
+          headers.set('User-Agent', 'PapyrusDesktop/2.0');
         }
         return fetch(reqUrl, { ...reqInit, headers });
       }) as unknown as OpenAIFetchParam,
