@@ -121,7 +121,7 @@ const Root = () => {
 
   return (
     <React.StrictMode>
-      <ConfigProvider locale={locale}>
+     <ConfigProvider locale={locale}>
         {/* 无障碍设置管理 */}
         <AccessibilityProvider>
           {/* 屏幕阅读器通知系统 */}

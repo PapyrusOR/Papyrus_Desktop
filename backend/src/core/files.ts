@@ -13,6 +13,8 @@ import { paths } from '../utils/paths.js';
 import type { FileRecord } from './types.js';
 import type { PapyrusLogger } from '../utils/logger.js';
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 function sanitizeFilename(name: string): string {
   const withoutTraversal = name.replace(/\.\./g, '_');
   return withoutTraversal.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 200);
@@ -152,12 +154,15 @@ export function saveFile(
     updated_at: now,
   };
 
-  try {
-    // Decode and write file content first
-    const buffer = Buffer.from(base64Content, 'base64');
-    if (!validateFileContent(buffer, ext)) {
-      throw new Error(`文件内容与实际扩展名 ${ext} 不匹配，可能为伪造文件`);
-    }
+    try {
+      // Decode and write file content first
+      const buffer = Buffer.from(base64Content, 'base64');
+      if (buffer.length > MAX_FILE_SIZE) {
+        throw new Error(`文件大小超过限制 (${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+      }
+      if (!validateFileContent(buffer, ext)) {
+        throw new Error(`文件内容与实际扩展名 ${ext} 不匹配，可能为伪造文件`);
+      }
     const storagePath = path.join(vaultDir, storageName);
     fs.writeFileSync(storagePath, buffer);
 

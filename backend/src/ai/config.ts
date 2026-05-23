@@ -81,8 +81,7 @@ function toStrList(value: unknown): string[] {
 
 function isValidAscii(text: string): boolean {
   return /^[\x00-\x7F]*$/.test(text);
-}
-
+  }
 export function isPrivateUrl(urlStr: string): boolean {
   if (!urlStr) return false;
   try {
@@ -94,8 +93,13 @@ export function isPrivateUrl(urlStr: string): boolean {
       return true;
     }
 
-    // Reject shorthand localhost forms
-    if (/^127\.\d+\.\d+\.\d+$/.test(hostname)) {
+    // Reject all loopback forms including shorthand (127.1, 127.0.1, etc.)
+    if (/^127(\.\d+){1,3}$/.test(hostname)) {
+      return true;
+    }
+
+    // Reject decimal-only hostnames (e.g., 2130706433, 0)
+    if (/^\d+$/.test(hostname)) {
       return true;
     }
 
@@ -104,9 +108,21 @@ export function isPrivateUrl(urlStr: string): boolean {
       return true;
     }
 
-    // Reject decimal IP addresses that resolve to loopback
-    if (/^2130706433$/.test(hostname) || /^3232235521$/.test(hostname)) {
-      return true;
+    // Reject mixed hexadecimal/octal dotted notation (e.g., 0x7f.0.0.1, 0177.0.0.1)
+    // by detecting any segment that starts with 0x or 0 and is not a standard decimal
+    const ipv4Segments = hostname.split('.');
+    if (ipv4Segments.length >= 2 && ipv4Segments.length <= 4) {
+      const hasNonDecimalSegment = ipv4Segments.some(seg => {
+        if (!seg) return false;
+        // Hex segment
+        if (/^0x[0-9a-f]+$/i.test(seg)) return true;
+        // Octal segment (starts with 0 and is not just "0")
+        if (/^0\d+$/.test(seg)) return true;
+        return false;
+      });
+      if (hasNonDecimalSegment) {
+        return true;
+      }
     }
 
     // Reject private IPv4 ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 169.254.x.x, 0.x.x.x

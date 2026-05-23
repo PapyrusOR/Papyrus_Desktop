@@ -20,16 +20,16 @@ export default defineConfig({
       // jsxRuntime: 'classic',
     }),
   ],
-  server: {
-    port: 5173,
-    strictPort: true,
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-      },
-    },
-  },
+ server: {
+   port: 5173,
+   strictPort: true,
+   proxy: {
+     '/api': {
+       target: 'http://127.0.0.1:8000',
+       changeOrigin: true,
+     },
+   },
+ },
   build: {
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

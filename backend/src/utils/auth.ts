@@ -63,10 +63,13 @@ export function validateRequestToken(headerToken?: string): boolean {
   if (!expected) {
     return true;
   }
-  if (!headerToken || headerToken.length !== expected.length) {
+  if (!headerToken) {
     return false;
   }
   const bufA = Buffer.from(headerToken, 'utf8');
   const bufB = Buffer.from(expected, 'utf8');
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
   return timingSafeEqual(bufA, bufB);
 }

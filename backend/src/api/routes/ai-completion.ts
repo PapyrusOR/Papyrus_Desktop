@@ -76,6 +76,13 @@ export default async function aiCompletionRoutes(fastify: FastifyInstance): Prom
         const firstOllamaModel = providerConfig.models?.[0] ?? '';
         const model = aiConfig.config.current_model || firstOllamaModel;
 
+        if (isPrivateUrl(baseUrl)) {
+          reply.raw.write(`data: {"error":"SSRF: 禁止通过 Ollama provider 访问私有地址"}\n\n`);
+          reply.raw.write(`data: {"done":true}\n\n`);
+          reply.raw.end();
+          return;
+        }
+
         const resp = await fetch(`${baseUrl}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

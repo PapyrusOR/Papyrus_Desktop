@@ -74,6 +74,7 @@ const App = () => {
   const [nextPage, setNextPage] = useState<string | null>(null);
   const pendingActionRef = useRef<'newNote' | 'newCard' | 'startStudy' | null>(null);
   const studyTagRef = useRef<string | undefined>(undefined);
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 处理页面切换动画 - 串行执行，先退出再进入（新页面预加载但不显示）
   const handlePageChange = useCallback((newPage: string, noteId?: string) => {
@@ -99,17 +100,8 @@ const App = () => {
       direction = 'down';
     }
 
-    if (!direction) {
-      setActivePage(newPage);
-      return;
-    }
-
+    setActivePage(newPage);
     prevPageIndexRef.current = newIndex;
-
-    setAnimationDirection(direction);
-    setPrevPage(prevPageValue);
-    setNextPage(newPage);
-    setIsTransitioning(true);
   }, [activePage, isTransitioning]);
 
   // 处理搜索结果点击
@@ -232,6 +224,10 @@ const App = () => {
 
     const handleExitAnimationEnd = (e: React.AnimationEvent) => {
       if (e.animationName.includes('pageExitUp') || e.animationName.includes('pageExitDown')) {
+        if (transitionTimeoutRef.current) {
+          clearTimeout(transitionTimeoutRef.current);
+          transitionTimeoutRef.current = null;
+        }
         setPrevPage(null);
         if (nextPage) {
           setActivePage(nextPage);
