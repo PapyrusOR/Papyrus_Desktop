@@ -98,7 +98,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "should_release=false" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "push" ]; then
-            if [[ "$TAG" == v* ]]; then
+            if [ "${{ github.ref_type }}" = "tag" ]; then
               # tag 推送始终发布
               echo "should_release=true" >> $GITHUB_OUTPUT
             elif [[ "$TAG" == release* ]] || [[ "$TAG" == v2.* ]]; then
