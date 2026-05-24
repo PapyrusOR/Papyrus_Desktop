@@ -21,9 +21,10 @@ name: Build and Release (Optimized)
 
 on:
   push:
+    # 仅 tag 推送、release 分支提交和手动触发可启动发布
     branches:
-      - main
-      - develop
+      - 'release'
+      - 'release/**'
       - 'v2.*'
     tags:
       - 'v*'
@@ -96,8 +97,21 @@ jobs:
           
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "should_release=false" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "push" ] && [[ "$TAG" != v* ]]; then
-            echo "should_release=false" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            if [[ "$TAG" == v* ]]; then
+              # tag 推送始终发布
+              echo "should_release=true" >> $GITHUB_OUTPUT
+            elif [[ "$TAG" == release* ]] || [[ "$TAG" == v2.* ]]; then
+              # release 分支提交：检查自动发布开关（vars.AUTO_RELEASE_DRAFT）
+              if [ "${{ vars.AUTO_RELEASE_DRAFT }}" = "false" ]; then
+                echo "should_release=false" >> $GITHUB_OUTPUT
+              else
+                echo "should_release=true" >> $GITHUB_OUTPUT
+              fi
+            else
+              # 其他分支提交不发布
+              echo "should_release=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "should_release=true" >> $GITHUB_OUTPUT
           fi
