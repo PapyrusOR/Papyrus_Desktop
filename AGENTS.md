@@ -1,4 +1,4 @@
-# Papyrus 项目开发信息
+﻿# Papyrus 项目开发信息
 
 > 版本: 2.0.0-beta.12 | 许可: MIT | 仓库: https://github.com/PapyrusOR/Papyrus_Desktop
 
@@ -381,11 +381,40 @@ GitHub Actions 工作流（`.github/workflows/release-optimized.yml`）：
 
 ### 代码风格
 
-- TypeScript 严格模式
+- TypeScript 严格模式（`strict: true`）
 - 后端使用 ES Module（`"type": "module"`）
 - 导入路径带 `.js` 后缀（TypeScript ES Module 约定）
 - 无 ESLint / Prettier 配置（仅有 `.hintrc`）
 - Tailwind CSS 类名带 `tw-` 前缀
+
+#### TypeScript 类型规范
+
+- **禁止显式 `any`**：任何场景下不得使用显式 `any` 声明类型。若类型暂时无法确定，优先使用 `unknown`，并在使用前通过类型守卫（`typeof`、`instanceof`、自定义 guard）或 Zod 等校验库收窄类型。
+- **优先 `unknown` 而非 `any`**：`unknown` 强制在使用前进行类型检查，避免绕过 TypeScript 编译时检查。仅在极少数与第三方库交互且无法获得类型定义时，才可在局部使用 `any`，但必须附加说明并在注释中解释原因。
+- **`type` 与 `interface` 分工**：`type` 用于联合类型（`A | B`）、元组（`[string, number]`）、条件类型（`T extends U ? X : Y`）、映射类型、交叉类型及复杂类型运算；`interface` 用于定义对象结构、类实现约定及需要扩展合并的实体类型。
+- **避免非空断言 `!`**：禁止使用 `!` 进行非空断言。若需确保值存在，应在代码逻辑中通过 `if (value == null)` 或可选链 `?.` 进行空值检查，或借助 Zod 校验保证运行时非空。
+- **谨慎使用类型断言 `as`**：类型断言 `as` 会绕过类型检查，仅在以下场景允许使用：（1）从 `unknown` 经校验后收窄类型；（2）与老旧无类型声明的第三方库交互；（3）框架特有的类型推断缺陷（如 React `useRef` 初始化）。每次使用必须附带注释说明为何需要断言以及为何无法通过正常类型推导实现。
+- **开启严格模式相关配置**：前后端 `tsconfig.json` 均已启用 `strict: true`。在此基础上，后端额外启用 `noUncheckedIndexedAccess: true`，访问数组或对象索引时必须处理 `undefined` 情况。
+
+#### 导入路径规范
+
+- **优先使用绝对路径或路径别名**：避免使用 `../../` 等多级相对路径，降低重构成本。前端通过 `vite.config.js` 的 `resolve.alias` 配置别名（如 `@/` 映射到 `src/`）；后端通过 `tsconfig.json` 的 `paths` 配置别名，并配合 `tsx` 或 `tsc-alias` 确保编译/运行时解析一致。
+- **后端 ES Module 路径**：后端为 ES Module，导入路径必须带 `.js` 后缀（如 `import { foo } from './bar.js'`）。使用路径别名时，别名目标路径同样需保持 `.js` 后缀。
+
+#### 注释规范
+
+- **每个函数、复杂逻辑块或类型定义必须包含以下三类信息**：
+  1. **代码的说明**：这段代码做了什么，输入输出是什么。
+  2. **为什么这样做**：采用当前方案的业务或技术原因。
+  3. **为什么不用其他方式**：简要说明弃用其他方案的理由（如性能、类型安全、可维护性等）。
+- **示例**：
+  ```typescript
+  // 使用 Map 缓存卡片 ID 到复习间隔的映射
+  // 原因：Map 的查找时间复杂度为 O(1)，且允许任意类型键，
+  //       对象键在此处不频繁变更，Map 比对象更合适。
+  // 未使用对象：对象的键会被强制转为字符串，且原型链存在额外开销。
+  const intervalCache = new Map<string, number>();
+  ```
 
 ### 数据存储
 
