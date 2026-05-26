@@ -6,9 +6,9 @@ name: Build and Release (Optimized)
 # 本工作流用于构建 Papyrus 桌面应用并发布 GitHub Release。
 #
 # 【触发方式】
-# 1. 自动触发：push 代码到 release、BA*-release、BA*-* 分支,
-#    或 push v* 开头的 tag（如 v2.0.0）时自动运行。
-# 2. 手动触发：进入 Actions → Build and Release (Optimized) → Run workflow。
+# 1. 自动触发：push 代码到 release、BA*-release、BA*-* 分支时执行构建校验，
+#    push v* 开头的 tag（如 v2.0.0）时构建并发布 Release。
+# 2. 手动触发：进入 Actions → Build and Release (Optimized) → Run workflow，并填写发布 tag。
 #
 # 【优化说明】
 # - 使用 actions/setup-node 内置缓存替代手动缓存
@@ -33,14 +33,9 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      create_release:
-        description: 'Create GitHub release'
-        required: false
-        default: false
-        type: boolean
       tag:
         description: 'Release tag (e.g. v2.0.0)'
-        required: false
+        required: true
         type: string
       draft:
         description: 'Create as draft release'
@@ -80,7 +75,15 @@ jobs:
         id: prepare
         shell: bash
         run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+            if [ -z "$TAG" ]; then
+              echo "Manual release requires a tag input"
+              exit 1
+            fi
+          else
+            TAG="${{ github.ref_name }}"
+          fi
           echo "tag_name=$TAG" >> $GITHUB_OUTPUT
           
           if [[ "$TAG" == *"alpha"* ]] || [[ "$TAG" == *"beta"* ]] || [[ "$TAG" == *"rc"* ]]; then
@@ -101,15 +104,8 @@ jobs:
             if [ "${{ github.ref_type }}" = "tag" ]; then
               # tag 推送始终发布
               echo "should_release=true" >> $GITHUB_OUTPUT
-            elif [[ "$TAG" == release* ]] || [[ "$TAG" == BA*-release ]] || [[ "$TAG" == BA*-* ]]; then
-              # release 或 BA 分支提交：检查自动发布开关（vars.AUTO_RELEASE_DRAFT）
-              if [ "${{ vars.AUTO_RELEASE_DRAFT }}" = "false" ]; then
-                echo "should_release=false" >> $GITHUB_OUTPUT
-              else
-                echo "should_release=true" >> $GITHUB_OUTPUT
-              fi
             else
-              # 其他分支提交不发布
+              # 分支提交只做构建校验，不发布 release
               echo "should_release=false" >> $GITHUB_OUTPUT
             fi
           else
@@ -171,30 +167,14 @@ jobs:
           restore-keys: |
             eb-${{ runner.os }}-
 
-      - name: Cache Node Modules
-        id: cache-node-modules
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            node_modules
-            frontend/node_modules
-            backend/node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json', 'frontend/package-lock.json', 'backend/package-lock.json') }}
-          restore-keys: |
-            nm-${{ runner.os }}-
-
       - name: Install Dependencies
         shell: bash
         run: |
-          if [ "${{ steps.cache-node-modules.outputs.cache-hit }}" = "true" ]; then
-            echo "Cache hit - skipping install"
-          else
-            echo "Cache miss - installing dependencies (incremental if partial restore)..."
-            npm install --frozen-lockfile --ignore-scripts --no-audit --no-fund --prefer-offline &
-            (cd frontend && npm install --frozen-lockfile --ignore-scripts --no-audit --no-fund --prefer-offline) &
-            (cd backend && npm install --frozen-lockfile --ignore-scripts --no-audit --no-fund --prefer-offline) &
-            wait
-          fi
+          echo "Installing dependencies with npm cache..."
+          npm ci --ignore-scripts --no-audit --no-fund --prefer-offline &
+          (cd frontend && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline) &
+          (cd backend && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline) &
+          wait
 
       - name: Cache Frontend Build
         id: cache-frontend-build
@@ -376,7 +356,7 @@ jobs:
     name: Run Tests &amp; Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test') || contains(github.event.pull_request.labels.*.name, 'typecheck') || (github.event_name == 'push' && startsWith(github.ref_name, 'v')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test') || contains(github.event.pull_request.labels.*.name, 'typecheck') || (github.event_name == 'push' && startsWith(github.ref_name, 'v')) || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout Code
@@ -394,30 +374,14 @@ jobs:
             frontend/package-lock.json
             backend/package-lock.json
 
-      - name: Cache Node Modules
-        id: cache-node-modules
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            node_modules
-            frontend/node_modules
-            backend/node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json', 'frontend/package-lock.json', 'backend/package-lock.json') }}
-          restore-keys: |
-            nm-${{ runner.os }}-
-
       - name: Install Dependencies
         shell: bash
         run: |
-          if [ "${{ steps.cache-node-modules.outputs.cache-hit }}" = "true" ]; then
-            echo "Cache hit - skipping install"
-          else
-            echo "Cache miss - installing dependencies (incremental if partial restore)..."
-            npm install --frozen-lockfile --ignore-scripts --no-audit --no-fund --prefer-offline &
-            (cd frontend && npm install --frozen-lockfile --ignore-scripts --no-audit --no-fund --prefer-offline) &
-            (cd backend && npm install --frozen-lockfile --ignore-scripts --no-audit --no-fund --prefer-offline) &
-            wait
-          fi
+          echo "Installing dependencies with npm cache..."
+          npm ci --ignore-scripts --no-audit --no-fund --prefer-offline &
+          (cd frontend && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline) &
+          (cd backend && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline) &
+          wait
 
       - name: Run Typechecks (Parallel)
         shell: bash
@@ -450,13 +414,23 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'security') || (github.event_name == 'push' && startsWith(github.ref_name, 'v')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'security') || (github.event_name == 'push' && startsWith(github.ref_name, 'v')) || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+            backend/package-lock.json
 
       - name: Run npm audit (Root)
         run: npm audit --audit-level=moderate
