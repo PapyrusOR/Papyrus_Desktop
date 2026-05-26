@@ -1,6 +1,7 @@
 import { Typography } from '@arco-design/web-react';
 import { usePageScenery, type PageType } from '../hooks/useScenery';
 import { Spin } from '@arco-design/web-react';
+import { useState } from 'react';
 
 const STATS_FONT_SIZE = '24px';
 const STATS_LABEL_FONT_SIZE = '12px';
@@ -35,6 +36,10 @@ export const PageLayout = ({
   statsContent,
 }: PageLayoutProps) => {
   const { config: sceneryConfig, loaded } = usePageScenery(pageKey || 'common');
+  const [failedSceneryImages, setFailedSceneryImages] = useState<Record<string, true>>({});
+
+  const imageFailed = !!failedSceneryImages[sceneryConfig.image];
+  const canShowScenery = sceneryConfig.enabled && !!sceneryConfig.image && !imageFailed;
 
   const renderStats = () => {
     if (statsContent) {
@@ -56,8 +61,6 @@ export const PageLayout = ({
       }
 
       const image = sceneryConfig.image;
-      const poem = '且将新火试新茶，诗酒趁年华。';
-      const source = '[宋] 苏轼《望江南·超然台作》';
       const overlayOpacity = Math.max(0.25, Math.min(0.75, sceneryConfig.opacity));
 
       return (
@@ -69,11 +72,12 @@ export const PageLayout = ({
           border: '1px solid var(--color-text-3)',
           overflow: 'hidden',
         }}>
-          {sceneryConfig.enabled && (
+          {canShowScenery && (
             <>
               <img
                 src={image}
-                alt={`窗景图片：${poem} —— ${source}`}
+                alt="窗景图片"
+                onError={() => setFailedSceneryImages(prev => ({ ...prev, [image]: true }))}
                 style={{
                   position: 'absolute',
                   inset: 0,
@@ -118,6 +122,9 @@ export const PageLayout = ({
       );
     }
 
+    const statValueColor = canShowScenery ? STATS_VALUE_COLOR : 'var(--color-text-1)';
+    const statLabelColor = canShowScenery ? STATS_LABEL_COLOR : 'var(--color-text-2)';
+
     const content = (
       <div style={{ display: 'flex', gap: stats ? '48px' : '0', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
         <div style={{ display: 'flex', gap: stats ? '48px' : '0' }}>
@@ -126,7 +133,7 @@ export const PageLayout = ({
               <Typography.Text style={{
                 fontSize: STATS_FONT_SIZE,
                 fontWeight: 600,
-                color: STATS_VALUE_COLOR,
+                color: statValueColor,
               }}>
                 {stat.value}
                 {stat.suffix && <span style={{ fontSize: '14px', fontWeight: 400, marginLeft: '4px' }}>{stat.suffix}</span>}
@@ -135,7 +142,7 @@ export const PageLayout = ({
                 fontSize: STATS_LABEL_FONT_SIZE,
                 display: 'block',
                 marginTop: '4px',
-                color: STATS_LABEL_COLOR,
+                color: statLabelColor,
               }}>
                 {stat.label}
               </Typography.Text>
@@ -146,7 +153,7 @@ export const PageLayout = ({
       </div>
     );
 
-    if (!sceneryConfig.enabled) {
+    if (!canShowScenery) {
       return (
         <div style={{
           display: 'flex',
@@ -164,8 +171,6 @@ export const PageLayout = ({
     }
 
     const image = sceneryConfig.image;
-    const poem = '且将新火试新茶，诗酒趁年华。';
-    const source = '[宋] 苏轼《望江南·超然台作》';
     const overlayOpacity = Math.max(0.25, Math.min(0.75, sceneryConfig.opacity));
 
     return (
@@ -182,7 +187,8 @@ export const PageLayout = ({
       }}>
         <img
           src={image}
-          alt={`窗景图片：${poem} —— ${source}`}
+          alt="窗景图片"
+          onError={() => setFailedSceneryImages(prev => ({ ...prev, [image]: true }))}
           style={{
             position: 'absolute',
             inset: 0,

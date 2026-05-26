@@ -100,6 +100,7 @@ const PRESET_COLORS = [
   '#84CC16', '#EAB308', '#F59E0B', '#F97316', '#EF4444',
   '#EC4899', '#D946EF', '#8B5CF6', '#6366F1', '#64748B',
 ];
+const MAX_VISIBLE_TAG_COLLECTIONS = 12;
 
 function hashString(str: string): number {
   let hash = 0;
@@ -137,7 +138,9 @@ function categorizeCards(cards: Card[]): Collection[] {
     });
   }
 
-  return collections.sort((a, b) => b.scrollCount - a.scrollCount);
+  return collections
+    .sort((a, b) => b.scrollCount - a.scrollCount)
+    .slice(0, MAX_VISIBLE_TAG_COLLECTIONS);
 }
 
 const RecentScrolls = ({ height, onStudyTag }: RecentScrollsProps) => {

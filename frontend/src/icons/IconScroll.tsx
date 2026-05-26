@@ -1,5 +1,5 @@
 const IconScroll = () => (
-  <svg width="1em" height="1em" viewBox="0 0 48 48" fill="currentColor">
+  <svg width="1em" height="1em" viewBox="0 0 40 48" fill="currentColor">
     {/* 左侧矩形，右边开口，高度加大 */}
     <path d="M20 9 L4 9 Q2 9 2 11 L2 37 Q2 39 4 39 L20 39" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
 

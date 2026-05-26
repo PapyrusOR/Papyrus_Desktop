@@ -59,7 +59,7 @@ const App = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [todayDone, setTodayDone] = useState(false);
   const [activePage, setActivePage] = useState('start');
-  const [chatOpen, setChatOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(loadChatWidth);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef<number>(0);
@@ -365,11 +365,13 @@ const App = () => {
             aria-label="调整聊天面板宽度"
             tabIndex={0}
           />
-          <ChatPanel
-            open={chatOpen}
-            width={chatWidth}
-            onClose={() => setChatOpen(false)}
-          />
+          {chatOpen && (
+            <ChatPanel
+              open={chatOpen}
+              width={chatWidth}
+              onClose={() => setChatOpen(false)}
+            />
+          )}
         </div>
         <button
           className="tw-flex-shrink-0 tw-w-5 tw-h-16 tw-flex tw-items-center tw-justify-center tw-bg-arco-bg-1 tw-cursor-pointer tw-text-arco-text-3 hover:tw-bg-arco-fill-2 hover:tw-text-arco-text-1 tw-outline-none tw-shadow-none"

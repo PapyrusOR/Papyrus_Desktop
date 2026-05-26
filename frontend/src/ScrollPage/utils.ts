@@ -1,6 +1,8 @@
 import { type Card as CardType } from '../api';
 import type { Collection, Scroll } from './types';
 
+const MAX_VISIBLE_TAG_COLLECTIONS = 12;
+
 export function generateCollections(cards: CardType[]): Collection[] {
   const tagMap = new Map<string, number>();
   cards.forEach(card => {
@@ -16,7 +18,7 @@ export function generateCollections(cards: CardType[]): Collection[] {
     totalCards: count,
   }));
   collections.sort((a, b) => b.totalCards - a.totalCards);
-  return collections;
+  return collections.slice(0, MAX_VISIBLE_TAG_COLLECTIONS);
 }
 
 export function generateScrolls(cards: CardType[]): Scroll[] {

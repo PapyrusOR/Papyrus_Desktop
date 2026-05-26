@@ -26,7 +26,7 @@ export interface SceneryItem {
 const DEFAULT_SCENERY: SceneryItem = {
   id: 'default',
   name: '默认窗景',
-  image: '/scenery/image.png',
+  image: './scenery/image.png',
 };
 
 // 本地存储键
@@ -34,14 +34,19 @@ const STORAGE_KEY = 'papyrus_scenery_settings';
 const CUSTOM_SCENERIES_KEY = 'papyrus_custom_sceneries';
 const START_PAGE_SCENERY_KEY = 'papyrus_start_page_scenery';
 
+const normalizeSceneryImage = (image: string | undefined): string | undefined => {
+  if (!image) return image;
+  return image.startsWith('/scenery/') ? `.${image}` : image;
+};
+
 // 默认设置（各页面独立窗景配置）
 const defaultPageSceneries: Record<PageType, PageSceneryConfig> = {
-  common: { enabled: true, image: '/scenery/image.png', name: '默认窗景', opacity: 0.35, poem: '且将新火试新茶，诗酒趁年华。', source: '[宋] 苏轼《望江南·超然台作》' },
-  notes: { enabled: true, image: '/scenery/image.png', name: '默认窗景', opacity: 0.35, poem: '且将新火试新茶，诗酒趁年华。', source: '[宋] 苏轼《望江南·超然台作》' },
-  scroll: { enabled: true, image: '/scenery/image.png', name: '默认窗景', opacity: 0.35, poem: '且将新火试新茶，诗酒趁年华。', source: '[宋] 苏轼《望江南·超然台作》' },
-  files: { enabled: true, image: '/scenery/image.png', name: '默认窗景', opacity: 0.35, poem: '且将新火试新茶，诗酒趁年华。', source: '[宋] 苏轼《望江南·超然台作》' },
-  extensions: { enabled: true, image: '/scenery/image.png', name: '默认窗景', opacity: 0.35, poem: '且将新火试新茶，诗酒趁年华。', source: '[宋] 苏轼《望江南·超然台作》' },
-  charts: { enabled: true, image: '/scenery/image.png', name: '默认窗景', opacity: 0.35, poem: '且将新火试新茶，诗酒趁年华。', source: '[宋] 苏轼《望江南·超然台作》' },
+  common: { enabled: true, image: './scenery/image.png', name: '默认窗景', opacity: 0.35 },
+  notes: { enabled: true, image: './scenery/image.png', name: '默认窗景', opacity: 0.35 },
+  scroll: { enabled: true, image: './scenery/image.png', name: '默认窗景', opacity: 0.35 },
+  files: { enabled: true, image: './scenery/image.png', name: '默认窗景', opacity: 0.35 },
+  extensions: { enabled: true, image: './scenery/image.png', name: '默认窗景', opacity: 0.35 },
+  charts: { enabled: true, image: './scenery/image.png', name: '默认窗景', opacity: 0.35 },
 };
 
 // 开始页面窗景设置（用于 DoneCard）
@@ -56,7 +61,7 @@ export interface StartPageSceneryConfig {
 
 const defaultStartPageScenery: StartPageSceneryConfig = {
   enabled: true,
-  image: '/scenery/image.png',
+  image: './scenery/image.png',
   name: '默认窗景',
   opacity: 0.35,
   poem: '春未老，风细柳斜斜。试上超然台上望，半壕春水一城花，烟雨暗千家。寒食后，酒醒却咨嗟。休对故人思故国，且将新火试新茶，诗酒趁年华。',
@@ -76,6 +81,7 @@ const loadSettings = () => {
           pageSceneries[page] = {
             ...defaultPageSceneries[page],
             ...loadedPageSceneries[page],
+            image: normalizeSceneryImage(loadedPageSceneries[page].image) ?? defaultPageSceneries[page].image,
           };
         }
       }
@@ -103,7 +109,12 @@ export const loadStartPageScenery = (): StartPageSceneryConfig => {
   try {
     const saved = localStorage.getItem(START_PAGE_SCENERY_KEY);
     if (saved) {
-      return { ...defaultStartPageScenery, ...JSON.parse(saved) };
+      const parsed = JSON.parse(saved);
+      return {
+        ...defaultStartPageScenery,
+        ...parsed,
+        image: normalizeSceneryImage(parsed.image) ?? defaultStartPageScenery.image,
+      };
     }
   } catch {
     // ignore

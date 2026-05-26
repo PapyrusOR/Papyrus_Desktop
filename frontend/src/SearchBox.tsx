@@ -140,6 +140,21 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
   }, []);
 
   useEffect(() => {
+    const handleAccessibilityChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ noAnimation?: boolean }>).detail;
+      if (detail?.noAnimation) {
+        setIsFocused(false);
+        inputRef.current?.blur();
+      }
+    };
+
+    window.addEventListener('papyrus_accessibility_changed', handleAccessibilityChanged);
+    return () => {
+      window.removeEventListener('papyrus_accessibility_changed', handleAccessibilityChanged);
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -209,20 +224,18 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
       />
 
       {/* 搜索结果下拉菜单 */}
-      <div
-        id="search-results-listbox"
-        role="listbox"
-        aria-label="搜索结果"
-        className={`tw-absolute tw-left-0 tw-right-0 tw-z-50 tw-overflow-hidden tw-bg-arco-bg-popup tw-rounded-arco-lg tw-border tw-border-arco-border-2 no-drag ${
-          isOpen ? 'search-dropdown-enter' : 'search-dropdown-leave'
-        }`}
-        style={{
-          top: 'calc(100% + 8px)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-          minWidth: '360px',
-          pointerEvents: isOpen ? 'auto' : 'none',
-        }}
-      >
+      {isOpen && (
+        <div
+          id="search-results-listbox"
+          role="listbox"
+          aria-label="搜索结果"
+          className="tw-absolute tw-left-0 tw-right-0 tw-z-50 tw-overflow-hidden tw-bg-arco-bg-popup tw-rounded-arco-lg tw-border tw-border-arco-border-2 no-drag search-dropdown-enter"
+          style={{
+            top: 'calc(100% + 8px)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+            minWidth: '360px',
+          }}
+        >
           <div style={{ minHeight: '200px', maxHeight: '400px', overflow: 'auto' }}>
             {/* 加载状态 */}
             {isLoading && (
@@ -315,26 +328,12 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
                         {highlightMatch(result.preview, query)}
                       </Text>
 
-                      {/* 标签和文件夹 */}
+                      {/* 文件夹 */}
                       <div className="tw-flex tw-items-center tw-gap-2 tw-mt-2">
                         {result.folder && (
                           <Text type="secondary" className="tw-text-xs">
                             📁 {result.folder}
                           </Text>
-                        )}
-                        {result.tags && result.tags.length > 0 && (
-                          <div className="tw-flex tw-gap-1">
-                            {result.tags.slice(0, 3).map(tag => (
-                              <Tag key={tag} size="small" color="arcoblue" className="tw-text-xs">
-                                {tag}
-                              </Tag>
-                            ))}
-                            {result.tags.length > 3 && (
-                              <Tag size="small" color="gray" className="tw-text-xs">
-                                +{result.tags.length - 3}
-                              </Tag>
-                            )}
-                          </div>
                         )}
                       </div>
                     </div>
@@ -344,6 +343,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
             )}
           </div>
         </div>
+      )}
     </div>
   );
 };

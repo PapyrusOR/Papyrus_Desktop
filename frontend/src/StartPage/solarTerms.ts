@@ -64,16 +64,21 @@ export async function fetchSolarTerm(date: Date): Promise<string | null> {
     return null;
   }
 
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 1500);
   try {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const res = await fetch(`${apiUrl}?date=${dateStr}`, {
       headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     const data = await res.json();
     return data.solarTerm ?? null;
   } catch {
     return null;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 

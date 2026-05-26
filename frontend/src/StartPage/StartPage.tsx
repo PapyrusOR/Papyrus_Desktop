@@ -216,9 +216,12 @@ const StartCard = ({ scenery, headline, subline, greeting, buttonLabel, onButton
   const [hovered, setHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const showScenery = scenery !== null;
-  const defaultImage = './scenery/image.png';
-  const image = imageError ? defaultImage : scenery?.image;
+  useEffect(() => {
+    setImageError(false);
+  }, [scenery?.image]);
+
+  const showScenery = scenery !== null && !!scenery.image && !imageError;
+  const image = scenery?.image;
   const poem = scenery?.poem ?? '且将新火试新茶，诗酒趁年华。';
   const source = scenery?.source ?? '[宋] 苏轼《望江南·超然台作》';
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Typography, Tag, Checkbox } from '@arco-design/web-react';
+import { Typography, Checkbox } from '@arco-design/web-react';
 import { IconFolder } from '@arco-design/web-react/icon';
 import { useTranslation } from 'react-i18next';
 import type { Note } from '../types';
@@ -98,25 +98,13 @@ export const NoteCard = ({ note, onClick, selectable, selected, onToggleSelect }
         {note.preview}
       </Typography.Paragraph>
 
-      {/* 底部：标签和字数 */}
+      {/* 底部：字数 */}
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
+        justifyContent: 'flex-end',
         alignItems: 'center', 
         marginTop: '16px' 
       }}>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {note.tags.slice(0, 2).map(tag => (
-            <Tag key={tag} size='small' color='arcoblue' style={{ fontSize: '11px' }}>
-              {tag}
-            </Tag>
-          ))}
-          {note.tags.length > 2 && (
-            <Tag size='small' style={{ fontSize: '11px', background: 'var(--color-fill-2)' }}>
-              +{note.tags.length - 2}
-            </Tag>
-          )}
-        </div>
         <Typography.Text type='secondary' style={{ fontSize: '12px' }}>
           {note.wordCount} 字
         </Typography.Text>
