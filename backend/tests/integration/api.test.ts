@@ -1293,4 +1293,1131 @@ describe('API Integration Tests', () => {
       expect(body.success).toBe(true);
     });
   });
+
+  describe('Providers API', () => {
+    it('GET /api/providers should list providers', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/providers',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(Array.isArray(body.providers)).toBe(true);
+    });
+
+    it('POST /api/providers should validate request body', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: { name: '' },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body).success).toBe(false);
+    });
+
+    it('POST /api/providers should create provider with api keys and models', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-create-1',
+          type: 'openai',
+          name: 'Created Provider',
+          baseUrl: 'https://provider.example.com',
+          enabled: true,
+          apiKeys: [{ id: 'key-create-1', name: 'default', key: 'sk-created' }],
+          models: [{ id: 'model-create-1', name: 'GPT Create', modelId: 'gpt-create', enabled: true }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.provider.id).toBe('provider-create-1');
+
+      const listResponse = await app.inject({
+        method: 'GET',
+        url: '/api/providers',
+      });
+      const listBody = JSON.parse(listResponse.body);
+      const provider = (listBody.providers as Array<{
+        id: string;
+        apiKeys: Array<{ id: string; key: string }>;
+        models: Array<{ id: string; modelId: string }>;
+      }>).find((item) => item.id === 'provider-create-1');
+
+      expect(provider).toBeDefined();
+      expect(provider?.apiKeys[0]?.id).toBe('key-create-1');
+      expect(provider?.models[0]?.modelId).toBe('gpt-create');
+    });
+
+    it('PUT /api/providers/:providerId should update provider and prune removed api keys', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-update-1',
+          type: 'openai',
+          name: 'Original Provider',
+          baseUrl: 'https://original.example.com',
+          enabled: true,
+          apiKeys: [
+            { id: 'key-keep', name: 'keep', key: 'sk-keep' },
+            { id: 'key-drop', name: 'drop', key: 'sk-drop' },
+          ],
+        },
+      });
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/api/providers/provider-update-1',
+        payload: {
+          type: 'openai',
+          name: 'Updated Provider',
+          baseUrl: 'https://updated.example.com',
+          enabled: false,
+          apiKeys: [{ id: 'key-keep', name: 'keep', key: 'sk-keep-2' }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body).success).toBe(true);
+
+      const listResponse = await app.inject({
+        method: 'GET',
+        url: '/api/providers',
+      });
+      const listBody = JSON.parse(listResponse.body);
+      const provider = (listBody.providers as Array<{
+        id: string;
+        name: string;
+        enabled: boolean;
+        apiKeys: Array<{ id: string; key: string }>;
+      }>).find((item) => item.id === 'provider-update-1');
+
+      expect(provider?.name).toBe('Updated Provider');
+      expect(provider?.enabled).toBe(false);
+      expect(provider?.apiKeys.map((item) => item.id)).toEqual(['key-keep']);
+      expect(provider?.apiKeys[0]?.key).toBe('sk-keep-2');
+    });
+
+    it('POST /api/providers/:providerId/default should set default provider', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-default-1',
+          type: 'gemini',
+          name: 'Gemini Default',
+          baseUrl: 'https://gemini.example.com',
+          enabled: true,
+          isDefault: false,
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/providers/provider-default-1/default',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body).success).toBe(true);
+
+      const listResponse = await app.inject({
+        method: 'GET',
+        url: '/api/providers',
+      });
+      const provider = (JSON.parse(listResponse.body).providers as Array<{
+        id: string;
+        isDefault: boolean;
+      }>).find((item) => item.id === 'provider-default-1');
+      expect(provider?.isDefault).toBe(true);
+    });
+
+    it('POST /api/providers/:providerId/enabled should validate and update status', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-enabled-1',
+          type: 'anthropic',
+          name: 'Anthropic Toggle',
+          enabled: false,
+        },
+      });
+
+      const invalidResponse = await app.inject({
+        method: 'POST',
+        url: '/api/providers/provider-enabled-1/enabled',
+        payload: { enabled: 'yes' },
+      });
+      expect(invalidResponse.statusCode).toBe(400);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/providers/provider-enabled-1/enabled',
+        payload: { enabled: true },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body).success).toBe(true);
+    });
+
+    it('provider model endpoints should cover validation, foreign-key, and delete branches', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-model-1',
+          type: 'openai',
+          name: 'Model Provider',
+          enabled: true,
+        },
+      });
+
+      const createResponse = await app.inject({
+        method: 'POST',
+        url: '/api/providers/provider-model-1/models',
+        payload: { id: 'model-route-1', name: 'GPT Route', modelId: 'gpt-route', enabled: true },
+      });
+      expect(createResponse.statusCode).toBe(200);
+
+      const invalidResponse = await app.inject({
+        method: 'POST',
+        url: '/api/providers/provider-model-1/models',
+        payload: { id: 'model-route-2', name: '', modelId: '', enabled: true },
+      });
+      expect(invalidResponse.statusCode).toBe(400);
+
+      const badForeignKeyResponse = await app.inject({
+        method: 'PUT',
+        url: '/api/providers/provider-model-1/models/model-route-1',
+        payload: {
+          name: 'GPT Route Updated',
+          modelId: 'gpt-route',
+          apiKeyId: 'missing-api-key',
+          enabled: true,
+        },
+      });
+      expect(badForeignKeyResponse.statusCode).toBe(400);
+
+      const deleteMissingResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/providers/provider-model-1/models/missing-model',
+      });
+      expect(deleteMissingResponse.statusCode).toBe(404);
+
+      const deleteResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/providers/provider-model-1/models/model-route-1',
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+    });
+
+    it('provider api key endpoints should validate, create, and delete', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-key-1',
+          type: 'openai',
+          name: 'Key Provider',
+          enabled: true,
+        },
+      });
+
+      const invalidResponse = await app.inject({
+        method: 'POST',
+        url: '/api/providers/provider-key-1/apikeys',
+        payload: { name: '', key: 'sk-test' },
+      });
+      expect(invalidResponse.statusCode).toBe(400);
+
+      const createResponse = await app.inject({
+        method: 'POST',
+        url: '/api/providers/provider-key-1/apikeys',
+        payload: { name: 'default', key: 'sk-test' },
+      });
+      expect(createResponse.statusCode).toBe(200);
+      const keyId = JSON.parse(createResponse.body).keyId as string;
+
+      const deleteResponse = await app.inject({
+        method: 'DELETE',
+        url: `/api/providers/provider-key-1/apikeys/${keyId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+    });
+
+    it('DELETE /api/providers/:providerId should return 404 for missing provider', async () => {
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/api/providers/missing-provider',
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('AI Sessions and Messages API', () => {
+    it('session endpoints should create, rename, switch, list and delete sessions', async () => {
+      const createResponse = await app.inject({
+        method: 'POST',
+        url: '/api/sessions',
+        payload: { title: 'Session Alpha' },
+      });
+      expect(createResponse.statusCode).toBe(200);
+      const createdSessionId = JSON.parse(createResponse.body).session.id as string;
+
+      const listResponse = await app.inject({
+        method: 'GET',
+        url: '/api/sessions',
+      });
+      expect(listResponse.statusCode).toBe(200);
+      expect(JSON.parse(listResponse.body).sessions.some((item: { id: string }) => item.id === createdSessionId)).toBe(true);
+
+      const invalidRenameResponse = await app.inject({
+        method: 'PATCH',
+        url: `/api/sessions/${createdSessionId}`,
+        payload: {},
+      });
+      expect(invalidRenameResponse.statusCode).toBe(400);
+
+      const renameResponse = await app.inject({
+        method: 'PATCH',
+        url: `/api/sessions/${createdSessionId}`,
+        payload: { title: 'Session Beta' },
+      });
+      expect(renameResponse.statusCode).toBe(200);
+      expect(JSON.parse(renameResponse.body).session.title).toBe('Session Beta');
+
+      const invalidSwitchResponse = await app.inject({
+        method: 'POST',
+        url: '/api/sessions/missing-session/switch',
+      });
+      expect(invalidSwitchResponse.statusCode).toBe(400);
+
+      const switchResponse = await app.inject({
+        method: 'POST',
+        url: `/api/sessions/${createdSessionId}/switch`,
+      });
+      expect(switchResponse.statusCode).toBe(200);
+
+      const deleteMissingResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/sessions/missing-session',
+      });
+      expect(deleteMissingResponse.statusCode).toBe(400);
+
+      const deleteResponse = await app.inject({
+        method: 'DELETE',
+        url: `/api/sessions/${createdSessionId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+      expect(JSON.parse(deleteResponse.body).success).toBe(true);
+
+      const clearResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/sessions',
+      });
+      expect(clearResponse.statusCode).toBe(200);
+      expect(JSON.parse(clearResponse.body).deletedCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('message endpoints should validate payload, persist message and delete it', async () => {
+      const createSessionResponse = await app.inject({
+        method: 'POST',
+        url: '/api/sessions',
+        payload: { title: 'Message Session' },
+      });
+      const sessionId = JSON.parse(createSessionResponse.body).session.id as string;
+
+      const invalidSessionResponse = await app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        payload: { role: 'assistant', content: 'hello' },
+      });
+      expect(invalidSessionResponse.statusCode).toBe(400);
+
+      const invalidRoleResponse = await app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        payload: { sessionId, role: 'system', content: 'hello' },
+      });
+      expect(invalidRoleResponse.statusCode).toBe(400);
+
+      const invalidContentResponse = await app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        payload: { sessionId, role: 'assistant', content: '' },
+      });
+      expect(invalidContentResponse.statusCode).toBe(400);
+
+      const createResponse = await app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        payload: {
+          sessionId,
+          role: 'assistant',
+          content: 'Saved assistant message',
+          blocks: [
+            { type: 'text', text: 'Saved assistant message' },
+            { type: 'tool_result', toolName: 'get_card_stats', toolStatus: 'success', toolResult: { total: 0 } },
+          ],
+          model: 'gpt-test',
+          provider: 'openai',
+        },
+      });
+      expect(createResponse.statusCode).toBe(200);
+      const messageId = JSON.parse(createResponse.body).messageId as string;
+      expect(messageId).toBeTruthy();
+
+      const missingMessagesResponse = await app.inject({
+        method: 'GET',
+        url: '/api/sessions/missing-session/messages',
+      });
+      expect(missingMessagesResponse.statusCode).toBe(404);
+
+      const listMessagesResponse = await app.inject({
+        method: 'GET',
+        url: `/api/sessions/${sessionId}/messages`,
+      });
+      expect(listMessagesResponse.statusCode).toBe(200);
+      const messagesBody = JSON.parse(listMessagesResponse.body);
+      expect(messagesBody.messages.some((item: { id: string }) => item.id === messageId)).toBe(true);
+
+      const deleteMissingResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/messages/missing-message',
+      });
+      expect(deleteMissingResponse.statusCode).toBe(404);
+
+      const deleteResponse = await app.inject({
+        method: 'DELETE',
+        url: `/api/messages/${messageId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+    });
+  });
+
+  describe('Relations API', () => {
+    it('relations endpoints should cover lookup, graph, create, update and delete', async () => {
+      const noteAResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes',
+        payload: { title: 'Relation A', content: 'Alpha content' },
+      });
+      const noteBResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes',
+        payload: { title: 'Relation B', content: 'Beta content' },
+      });
+
+      const noteAId = JSON.parse(noteAResponse.body).note.id as string;
+      const noteBId = JSON.parse(noteBResponse.body).note.id as string;
+
+      const missingRelationsResponse = await app.inject({
+        method: 'GET',
+        url: '/api/notes/missing-note/relations',
+      });
+      expect(missingRelationsResponse.statusCode).toBe(404);
+
+      const emptyRelationsResponse = await app.inject({
+        method: 'GET',
+        url: `/api/notes/${noteAId}/relations`,
+      });
+      expect(emptyRelationsResponse.statusCode).toBe(200);
+      expect(JSON.parse(emptyRelationsResponse.body).outgoing).toEqual([]);
+
+      const invalidSearchResponse = await app.inject({
+        method: 'GET',
+        url: '/api/notes/search-for-relation',
+      });
+      expect(invalidSearchResponse.statusCode).toBe(400);
+
+      const searchResponse = await app.inject({
+        method: 'GET',
+        url: `/api/notes/search-for-relation?query=Relation&exclude_note_id=${noteAId}&limit=99`,
+      });
+      expect(searchResponse.statusCode).toBe(200);
+      const searchBody = JSON.parse(searchResponse.body);
+      expect(searchBody.results.some((item: { id: string }) => item.id === noteBId)).toBe(true);
+
+      const missingGraphResponse = await app.inject({
+        method: 'GET',
+        url: '/api/notes/missing-note/graph',
+      });
+      expect(missingGraphResponse.statusCode).toBe(404);
+
+      const selfRelationResponse = await app.inject({
+        method: 'POST',
+        url: `/api/notes/${noteAId}/relations`,
+        payload: { target_id: noteAId },
+      });
+      expect(selfRelationResponse.statusCode).toBe(400);
+
+      const missingTargetResponse = await app.inject({
+        method: 'POST',
+        url: `/api/notes/${noteAId}/relations`,
+        payload: { target_id: 'missing-note' },
+      });
+      expect(missingTargetResponse.statusCode).toBe(404);
+
+      const createRelationResponse = await app.inject({
+        method: 'POST',
+        url: `/api/notes/${noteAId}/relations`,
+        payload: { target_id: noteBId, relation_type: 'reference', description: 'A to B' },
+      });
+      expect(createRelationResponse.statusCode).toBe(200);
+      const relationId = JSON.parse(createRelationResponse.body).relation_id as string;
+
+      const duplicateRelationResponse = await app.inject({
+        method: 'POST',
+        url: `/api/notes/${noteAId}/relations`,
+        payload: { target_id: noteBId, relation_type: 'reference', description: 'duplicate' },
+      });
+      expect(duplicateRelationResponse.statusCode).toBe(409);
+
+      const graphResponse = await app.inject({
+        method: 'GET',
+        url: `/api/notes/${noteAId}/graph?depth=3`,
+      });
+      expect(graphResponse.statusCode).toBe(200);
+      const graphBody = JSON.parse(graphResponse.body);
+      expect(graphBody.nodes.length).toBeGreaterThanOrEqual(2);
+
+      const relationsResponse = await app.inject({
+        method: 'GET',
+        url: `/api/notes/${noteAId}/relations`,
+      });
+      expect(relationsResponse.statusCode).toBe(200);
+      expect(JSON.parse(relationsResponse.body).outgoing[0].title).toBe('Relation B');
+
+      const updateMissingResponse = await app.inject({
+        method: 'PATCH',
+        url: '/api/relations/missing-relation',
+        payload: { relation_type: 'seealso' },
+      });
+      expect(updateMissingResponse.statusCode).toBe(404);
+
+      const updateResponse = await app.inject({
+        method: 'PATCH',
+        url: `/api/relations/${relationId}`,
+        payload: { relation_type: 'seealso', description: 'updated' },
+      });
+      expect(updateResponse.statusCode).toBe(200);
+
+      const deleteMissingResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/relations/missing-relation',
+      });
+      expect(deleteMissingResponse.statusCode).toBe(404);
+
+      const deleteResponse = await app.inject({
+        method: 'DELETE',
+        url: `/api/relations/${relationId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+    });
+  });
+
+  describe('Notes and MCP API Additional Coverage', () => {
+    it('notes endpoints should cover get, patch, delete, batch delete and import validation', async () => {
+      const createResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes',
+        payload: { title: 'Extra Note', content: 'body', folder: 'Inbox', tags: ['x'] },
+      });
+      const noteId = JSON.parse(createResponse.body).note.id as string;
+
+      const getResponse = await app.inject({
+        method: 'GET',
+        url: `/api/notes/${noteId}`,
+      });
+      expect(getResponse.statusCode).toBe(200);
+
+      const getMissingResponse = await app.inject({
+        method: 'GET',
+        url: '/api/notes/missing-note',
+      });
+      expect(getMissingResponse.statusCode).toBe(404);
+
+      const patchResponse = await app.inject({
+        method: 'PATCH',
+        url: `/api/notes/${noteId}`,
+        payload: { title: 'Extra Note Updated', content: 'updated body' },
+      });
+      expect(patchResponse.statusCode).toBe(200);
+
+      const patchMissingResponse = await app.inject({
+        method: 'PATCH',
+        url: '/api/notes/missing-note',
+        payload: { title: 'Nope' },
+      });
+      expect(patchMissingResponse.statusCode).toBe(404);
+
+      const batchInvalidResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes/batch-delete',
+        payload: {},
+      });
+      expect(batchInvalidResponse.statusCode).toBe(400);
+
+      const createResponse2 = await app.inject({
+        method: 'POST',
+        url: '/api/notes',
+        payload: { title: 'Extra Note 2', content: 'body 2' },
+      });
+      const noteId2 = JSON.parse(createResponse2.body).note.id as string;
+
+      const batchDeleteResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes/batch-delete',
+        payload: { ids: [noteId, noteId2] },
+      });
+      expect(batchDeleteResponse.statusCode).toBe(200);
+      expect(JSON.parse(batchDeleteResponse.body).deleted).toBe(2);
+
+      const deleteMissingResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/notes/missing-note',
+      });
+      expect(deleteMissingResponse.statusCode).toBe(404);
+
+      const obsidianMissingResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes/import/obsidian',
+        payload: {},
+      });
+      expect(obsidianMissingResponse.statusCode).toBe(400);
+
+      const obsidianIllegalPathResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes/import/obsidian',
+        payload: { vault_path: 'bad\u0000path' },
+      });
+      expect(obsidianIllegalPathResponse.statusCode).toBe(400);
+
+      const obsidianOutsideHomeResponse = await app.inject({
+        method: 'POST',
+        url: '/api/notes/import/obsidian',
+        payload: { vault_path: path.parse(testDir).root },
+      });
+      expect(obsidianOutsideHomeResponse.statusCode).toBe(400);
+    });
+
+    it('mcp endpoints should cover note CRUD, search and vault read flows', async () => {
+      const createResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/notes',
+        payload: { title: 'MCP Note', content: 'Tagged content', tags: ['mcp-tag'] },
+      });
+      expect(createResponse.statusCode).toBe(200);
+      const createdNoteId = JSON.parse(createResponse.body).note.id as string;
+
+      const invalidCreateResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/notes',
+        payload: { title: '' },
+      });
+      expect(invalidCreateResponse.statusCode).toBe(400);
+
+      const getResponse = await app.inject({
+        method: 'GET',
+        url: `/api/mcp/notes/${createdNoteId}`,
+      });
+      expect(getResponse.statusCode).toBe(200);
+
+      const getMissingResponse = await app.inject({
+        method: 'GET',
+        url: '/api/mcp/notes/missing-note',
+      });
+      expect(getMissingResponse.statusCode).toBe(404);
+
+      const searchInvalidResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/notes/search',
+        payload: {},
+      });
+      expect(searchInvalidResponse.statusCode).toBe(400);
+
+      const searchResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/notes/search',
+        payload: { query: 'mcp-tag', search_content: false, limit: 5 },
+      });
+      expect(searchResponse.statusCode).toBe(200);
+      expect(JSON.parse(searchResponse.body).notes[0].id).toBe(createdNoteId);
+
+      const patchResponse = await app.inject({
+        method: 'PATCH',
+        url: `/api/mcp/notes/${createdNoteId}`,
+        payload: { title: 'MCP Note Updated', content: 'Updated linked [[Other]] content' },
+      });
+      expect(patchResponse.statusCode).toBe(200);
+
+      const patchMissingResponse = await app.inject({
+        method: 'PATCH',
+        url: '/api/mcp/notes/missing-note',
+        payload: { title: 'Missing' },
+      });
+      expect(patchMissingResponse.statusCode).toBe(404);
+
+      const createLinkedResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/notes',
+        payload: { title: 'Other', content: 'Other body' },
+      });
+      const linkedNoteId = JSON.parse(createLinkedResponse.body).note.id as string;
+
+      const vaultIndexResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/vault/index',
+      });
+      expect(vaultIndexResponse.statusCode).toBe(200);
+      expect(JSON.parse(vaultIndexResponse.body).total).toBeGreaterThanOrEqual(2);
+
+      const vaultReadInvalidResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/vault/read',
+        payload: {},
+      });
+      expect(vaultReadInvalidResponse.statusCode).toBe(400);
+
+      const vaultReadResponse = await app.inject({
+        method: 'POST',
+        url: '/api/mcp/vault/read',
+        payload: { ids: [createdNoteId, linkedNoteId], format: 'detail', include_links: true },
+      });
+      expect(vaultReadResponse.statusCode).toBe(200);
+      expect(JSON.parse(vaultReadResponse.body).notes.length).toBe(2);
+
+      const deleteMissingResponse = await app.inject({
+        method: 'DELETE',
+        url: '/api/mcp/notes/missing-note',
+      });
+      expect(deleteMissingResponse.statusCode).toBe(404);
+
+      const deleteResponse = await app.inject({
+        method: 'DELETE',
+        url: `/api/mcp/notes/${createdNoteId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+    });
+  });
+
+  describe('Logs API', () => {
+    it('log configuration endpoints should validate paths and list log files', async () => {
+      const configResponse = await app.inject({
+        method: 'GET',
+        url: '/api/config/logs',
+      });
+      expect(configResponse.statusCode).toBe(200);
+
+      const invalidLevelResponse = await app.inject({
+        method: 'POST',
+        url: '/api/config/logs',
+        payload: { log_level: 'TRACE' },
+      });
+      expect(invalidLevelResponse.statusCode).toBe(400);
+
+      const invalidDirResponse = await app.inject({
+        method: 'POST',
+        url: '/api/config/logs',
+        payload: { log_dir: path.join(testDir, '..', 'outside-logs') },
+      });
+      expect(invalidDirResponse.statusCode).toBe(400);
+
+      const targetLogDir = path.join(testDir, 'logs-route');
+      const updateResponse = await app.inject({
+        method: 'POST',
+        url: '/api/config/logs',
+        payload: {
+          log_dir: targetLogDir,
+          log_level: 'WARNING',
+          max_log_files: 3,
+          log_rotation: true,
+        },
+      });
+      expect(updateResponse.statusCode).toBe(200);
+
+      fs.mkdirSync(targetLogDir, { recursive: true });
+      fs.writeFileSync(path.join(targetLogDir, 'b.log'), 'bbb');
+      fs.writeFileSync(path.join(targetLogDir, 'a.log'), 'aaa');
+      const oldTime = new Date('2098-01-01T00:00:00.000Z');
+      const newTime = new Date('2099-01-01T00:00:00.000Z');
+      fs.utimesSync(path.join(targetLogDir, 'a.log'), oldTime, oldTime);
+      fs.utimesSync(path.join(targetLogDir, 'b.log'), newTime, newTime);
+
+      const dirResponse = await app.inject({
+        method: 'GET',
+        url: '/api/config/logs/dir',
+      });
+      expect(dirResponse.statusCode).toBe(200);
+      const dirBody = JSON.parse(dirResponse.body);
+      expect(dirBody.files[0].name).toBe('b.log');
+
+      const openDirResponse = await app.inject({
+        method: 'POST',
+        url: '/api/config/logs/open-dir',
+      });
+      expect(openDirResponse.statusCode).toBe(200);
+      expect(JSON.parse(openDirResponse.body).path).toBe(targetLogDir);
+    });
+  });
+
+  describe('AI Chat and Completion API', () => {
+    it('POST /api/chat should validate message and provider state', async () => {
+      const { aiConfig } = await import('../../src/api/routes/ai.js');
+
+      const invalidMessageResponse = await app.inject({
+        method: 'POST',
+        url: '/api/chat',
+        payload: {},
+      });
+      expect(invalidMessageResponse.statusCode).toBe(400);
+
+      aiConfig.config.current_provider = 'missing-provider';
+      const missingProviderResponse = await app.inject({
+        method: 'POST',
+        url: '/api/chat',
+        payload: { message: 'hello' },
+      });
+      expect(missingProviderResponse.statusCode).toBe(400);
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-openai-no-key',
+          type: 'openai',
+          name: 'OpenAI No Key',
+          baseUrl: 'https://api.openai.com/v1',
+          enabled: true,
+        },
+      });
+      aiConfig.config.current_provider = 'openai';
+
+      const noKeyResponse = await app.inject({
+        method: 'POST',
+        url: '/api/chat',
+        payload: { message: 'hello' },
+      });
+      expect(noKeyResponse.statusCode).toBe(400);
+    });
+
+    it('POST /api/chat should stream content, reasoning and tool execution events', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-ollama-chat',
+          type: 'ollama',
+          name: 'Ollama Chat',
+          baseUrl: 'https://ollama.example.com',
+          enabled: true,
+          isDefault: true,
+          models: [{ id: 'model-ollama-chat', name: 'llama3', modelId: 'llama3', enabled: true }],
+        },
+      });
+
+      const { aiConfig, aiManager } = await import('../../src/api/routes/ai.js');
+      aiConfig.config.current_provider = 'ollama';
+      aiConfig.config.current_model = 'llama3';
+      const session = aiManager.createSession('SSE Session', true);
+      const originalChatStream = aiManager.chatStream.bind(aiManager);
+
+      aiManager.chatStream = async function* () {
+        yield {
+          type: 'user_saved',
+          data: {
+            messageId: 'user-msg-1',
+            sessionId: session.id,
+            model: 'llama3',
+            provider: 'ollama',
+            attachments: [],
+          },
+        };
+        yield { type: 'content', data: 'Hello' };
+        yield { type: 'reasoning', data: 'Think' };
+        yield {
+          type: 'tool_start',
+          data: {
+            id: 'tool-call-1',
+            function: {
+              name: 'get_card_stats',
+              arguments: '{}',
+            },
+          },
+        };
+        yield {
+          type: 'stream_end',
+          data: {
+            sessionId: session.id,
+            parentMessageId: 'user-msg-1',
+            model: 'llama3',
+            provider: 'ollama',
+          },
+        };
+      };
+
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/chat',
+          payload: { message: 'hello from chat route', session_id: session.id },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toContain('"type":"user_saved"');
+        expect(response.body).toContain('"type":"text"');
+        expect(response.body).toContain('"type":"reasoning"');
+        expect(response.body).toContain('"type":"tool_call"');
+        expect(response.body).toContain('"type":"tool_result"');
+        expect(response.body).toContain('"type":"done"');
+      } finally {
+        aiManager.chatStream = originalChatStream;
+      }
+    });
+
+    it('POST /api/messages/:messageId/regenerate should cover not-found and success streaming branches', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-ollama-regen',
+          type: 'ollama',
+          name: 'Ollama Regen',
+          baseUrl: 'https://ollama.example.com',
+          enabled: true,
+          isDefault: true,
+          models: [{ id: 'model-ollama-regen', name: 'llama3', modelId: 'llama3', enabled: true }],
+        },
+      });
+
+      const { aiConfig, aiManager } = await import('../../src/api/routes/ai.js');
+      aiConfig.config.current_provider = 'ollama';
+      aiConfig.config.current_model = 'llama3';
+      const originalPrepareRegenerate = aiManager.prepareRegenerate.bind(aiManager);
+      const originalRegenerateStream = aiManager.regenerateStream.bind(aiManager);
+
+      const missingResponse = await app.inject({
+        method: 'POST',
+        url: '/api/messages/missing-message/regenerate',
+        payload: {},
+      });
+      expect(missingResponse.statusCode).toBe(404);
+
+      const session = aiManager.createSession('Regen Session', true);
+      aiManager.prepareRegenerate = () => ({
+        sessionId: session.id,
+        userMessage: 'saved user message',
+        userAttachments: [],
+        parentMessageId: 'parent-msg-1',
+      });
+      aiManager.regenerateStream = async function* () {
+        yield {
+          type: 'user_saved',
+          data: {
+            messageId: 'user-msg-regen',
+            sessionId: session.id,
+            model: 'llama3',
+            provider: 'ollama',
+            attachments: [],
+            regenerated: true,
+          },
+        };
+        yield { type: 'content', data: 'Regenerated reply' };
+        yield {
+          type: 'stream_end',
+          data: {
+            sessionId: session.id,
+            parentMessageId: 'parent-msg-1',
+            model: 'llama3',
+            provider: 'ollama',
+          },
+        };
+      };
+
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/messages/assistant-msg-1/regenerate',
+          payload: {},
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toContain('"type":"user_saved"');
+        expect(response.body).toContain('Regenerated reply');
+        expect(response.body).toContain('"type":"done"');
+      } finally {
+        aiManager.prepareRegenerate = originalPrepareRegenerate;
+        aiManager.regenerateStream = originalRegenerateStream;
+      }
+    });
+
+    it('completion endpoints should cover config validation and streaming branches', async () => {
+      const { aiConfig } = await import('../../src/api/routes/ai.js');
+
+      const getConfigResponse = await app.inject({
+        method: 'GET',
+        url: '/api/completion/config',
+      });
+      expect(getConfigResponse.statusCode).toBe(200);
+
+      const invalidEnabledResponse = await app.inject({
+        method: 'POST',
+        url: '/api/completion/config',
+        payload: { enabled: 'yes' },
+      });
+      expect(invalidEnabledResponse.statusCode).toBe(400);
+
+      const invalidKeyResponse = await app.inject({
+        method: 'POST',
+        url: '/api/completion/config',
+        payload: { unknown_key: true },
+      });
+      expect(invalidKeyResponse.statusCode).toBe(400);
+
+      const updateConfigResponse = await app.inject({
+        method: 'POST',
+        url: '/api/completion/config',
+        payload: { enabled: false, max_tokens: 12 },
+      });
+      expect(updateConfigResponse.statusCode).toBe(200);
+
+      aiConfig.config.current_provider = 'missing-provider';
+      const missingProviderResponse = await app.inject({
+        method: 'POST',
+        url: '/api/completion',
+        payload: { prefix: 'hello' },
+      });
+      expect(missingProviderResponse.statusCode).toBe(400);
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-openai-private',
+          type: 'openai',
+          name: 'OpenAI Private',
+          baseUrl: 'http://127.0.0.1:9001',
+          enabled: true,
+          apiKeys: [{ id: 'key-openai-private', name: 'default', key: 'sk-private' }],
+          models: [{ id: 'model-openai-private', name: 'gpt-4', modelId: 'gpt-4', enabled: true }],
+        },
+      });
+      aiConfig.config.current_provider = 'openai';
+      aiConfig.config.current_model = 'gpt-4';
+
+      const privateOpenAiResponse = await app.inject({
+        method: 'POST',
+        url: '/api/completion',
+        payload: { prefix: 'hello' },
+      });
+      expect(privateOpenAiResponse.statusCode).toBe(200);
+      expect(privateOpenAiResponse.body).toContain('SSRF');
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-custom-no-key-completion',
+          type: 'custom',
+          name: 'Custom Completion No Key',
+          baseUrl: 'https://custom.example.com/v1',
+          enabled: true,
+          models: [{ id: 'model-custom-no-key', name: 'custom-mini', modelId: 'custom-mini', enabled: true }],
+        },
+      });
+      aiConfig.config.current_provider = 'custom';
+      aiConfig.config.current_model = 'custom-mini';
+
+      const missingKeyResponse = await app.inject({
+        method: 'POST',
+        url: '/api/completion',
+        payload: { prefix: 'hello' },
+      });
+      expect(missingKeyResponse.statusCode).toBe(200);
+      expect(missingKeyResponse.body).toContain('AI API Key 未设置');
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-ollama-public-completion',
+          type: 'ollama',
+          name: 'Ollama Public Completion',
+          baseUrl: 'https://ollama.example.com',
+          enabled: true,
+          models: [{ id: 'model-ollama-public', name: 'llama3', modelId: 'llama3', enabled: true }],
+        },
+      });
+      aiConfig.config.current_provider = 'ollama';
+      aiConfig.config.current_model = 'llama3';
+
+      const savedFetch = global.fetch;
+      try {
+        const chunks = [
+          Buffer.from(`${JSON.stringify({ message: { content: 'Hel' } })}\n`),
+          Buffer.from(`${JSON.stringify({ message: { content: 'lo' } })}\n`),
+        ];
+        let readIndex = 0;
+        global.fetch = () => Promise.resolve({
+          ok: true,
+          status: 200,
+          body: {
+            getReader: () => ({
+              read: async () => {
+                if (readIndex >= chunks.length) {
+                  return { done: true, value: undefined };
+                }
+                const value = chunks[readIndex];
+                readIndex += 1;
+                return { done: false, value };
+              },
+            }),
+          },
+        } as unknown as Response);
+
+        const successResponse = await app.inject({
+          method: 'POST',
+          url: '/api/completion',
+          payload: { prefix: 'stream please', max_tokens: 6 },
+        });
+
+        expect(successResponse.statusCode).toBe(200);
+        expect(successResponse.body).toContain('"text":"Hel"');
+        expect(successResponse.body).toContain('"text":"lo"');
+        expect(successResponse.body).toContain('"done":true');
+      } finally {
+        global.fetch = savedFetch;
+      }
+
+      await app.inject({
+        method: 'PUT',
+        url: '/api/providers/provider-ollama-public-completion',
+        payload: {
+          type: 'ollama',
+          name: 'Ollama Public Completion',
+          baseUrl: 'http://127.0.0.1:11434',
+          enabled: true,
+          models: [{ id: 'model-ollama-public', name: 'llama3', modelId: 'llama3', enabled: true }],
+        },
+      });
+
+      aiConfig.config.current_provider = 'ollama';
+      aiConfig.config.current_model = 'llama3';
+
+      const privateOllamaResponse = await app.inject({
+        method: 'POST',
+        url: '/api/completion',
+        payload: { prefix: 'private ollama' },
+      });
+      expect(privateOllamaResponse.statusCode).toBe(200);
+      expect(privateOllamaResponse.body).toContain('SSRF');
+    });
+  });
 });

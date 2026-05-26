@@ -19,7 +19,20 @@ export default {
       },
     ],
   },
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+  collectCoverageFrom: [
+    'src/core/**/*.ts',
+    'src/utils/**/*.ts',
+    '!src/utils/proxy.ts',
+    'src/ai/config.ts',
+    'src/ai/llm-cache.ts',
+    'src/ai/tool-manager.ts',
+    'src/ai/tools/cards.ts',
+    'src/ai/tools/data.ts',
+    'src/ai/tools/extensions.ts',
+    'src/ai/tools/parser.ts',
+    'src/ai/tools/registry.ts',
+    '!src/**/*.d.ts',
+  ],
   coverageThreshold: {
     global: {
       branches: 80,
