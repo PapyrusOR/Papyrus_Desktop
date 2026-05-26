@@ -6,7 +6,7 @@ name: Build and Release (Optimized)
 # 本工作流用于构建 Papyrus 桌面应用并发布 GitHub Release。
 #
 # 【触发方式】
-# 1. 自动触发：push 代码到 main/develop/v2.* 分支,
+# 1. 自动触发：push 代码到 release、BA*-release、BA*-* 分支,
 #    或 push v* 开头的 tag（如 v2.0.0）时自动运行。
 # 2. 手动触发：进入 Actions → Build and Release (Optimized) → Run workflow。
 #
@@ -21,11 +21,11 @@ name: Build and Release (Optimized)
 
 on:
   push:
-    # 仅 tag 推送、release 分支提交和手动触发可启动发布
     branches:
       - 'release'
       - 'release/**'
-      - 'v2.*'
+      - 'BA*-release'
+      - 'BA*-*'
     tags:
       - 'v*'
   pull_request:
@@ -101,8 +101,8 @@ jobs:
             if [ "${{ github.ref_type }}" = "tag" ]; then
               # tag 推送始终发布
               echo "should_release=true" >> $GITHUB_OUTPUT
-            elif [[ "$TAG" == release* ]] || [[ "$TAG" == v2.* ]]; then
-              # release 分支提交：检查自动发布开关（vars.AUTO_RELEASE_DRAFT）
+            elif [[ "$TAG" == release* ]] || [[ "$TAG" == BA*-release ]] || [[ "$TAG" == BA*-* ]]; then
+              # release 或 BA 分支提交：检查自动发布开关（vars.AUTO_RELEASE_DRAFT）
               if [ "${{ vars.AUTO_RELEASE_DRAFT }}" = "false" ]; then
                 echo "should_release=false" >> $GITHUB_OUTPUT
               else
