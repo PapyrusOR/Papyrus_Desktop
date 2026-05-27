@@ -6,7 +6,7 @@ name: Build and Release (Optimized)
 # 本工作流用于构建 Papyrus 桌面应用并发布 GitHub Release。
 #
 # 【触发方式】
-# 1. 自动触发：push 代码到 release、BA*-release、BA*-* 分支时执行构建校验，
+# 1. 自动触发：push 代码到 release、BA* 分支时执行构建校验，
 #    push v* 开头的 tag（如 v2.0.0）时构建并发布 Release。
 # 2. 手动触发：进入 Actions → Build and Release (Optimized) → Run workflow，并填写发布 tag。
 #
@@ -24,8 +24,7 @@ on:
     branches:
       - 'release'
       - 'release/**'
-      - 'BA*-release'
-      - 'BA*-*'
+      - 'BA*'
     tags:
       - 'v*'
   pull_request:
@@ -356,7 +355,7 @@ jobs:
     name: Run Tests &amp; Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test') || contains(github.event.pull_request.labels.*.name, 'typecheck') || (github.event_name == 'push' && startsWith(github.ref_name, 'v')) || github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test') || contains(github.event.pull_request.labels.*.name, 'typecheck')
 
     steps:
       - name: Checkout Code
@@ -414,7 +413,7 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'security') || (github.event_name == 'push' && startsWith(github.ref_name, 'v')) || github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'security')
 
     steps:
       - name: Checkout Code
