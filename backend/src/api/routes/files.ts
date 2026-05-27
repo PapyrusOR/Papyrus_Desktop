@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import fs from 'node:fs';
 import sharp from 'sharp';
-import { listFiles, createFolder, saveFile, deleteFileItem, getFileStream, getFileById } from '../../core/files.js';
+import { listFiles, createFolder, saveFile, deleteFileItem, getFileById } from '../../core/files.js';
 
 const MAX_PREVIEW_SIZE = 10 * 1024 * 1024;
 const THUMBNAIL_SIZE = 128;

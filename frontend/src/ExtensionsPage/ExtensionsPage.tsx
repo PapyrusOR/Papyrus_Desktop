@@ -1,6 +1,6 @@
 import { Typography, Button, Tabs, Tag, Switch, Card, Empty, Spin, Message } from '@arco-design/web-react';
 import { useState, useEffect, useCallback } from 'react';
-import { IconPlus, IconSettings, IconDelete, IconCheckCircleFill, IconDownload, IconStarFill, IconRefresh } from '@arco-design/web-react/icon';
+import { IconSettings, IconDelete, IconCheckCircleFill, IconDownload, IconStarFill, IconRefresh } from '@arco-design/web-react/icon';
 import { useCommonCardStyle, CommonCard, PageLayout } from '../components';
 import { PRIMARY_COLOR, SUCCESS_COLOR } from '../theme-constants';
 import { api } from '../api';
@@ -115,7 +115,7 @@ type TabPhase = 'idle' | 'exit' | 'enter';
 const ExtensionsPage = () => {
   const [activeTab, setActiveTab] = useState('installed');
   const [extensions, setExtensions] = useState<Extension[]>([]);
-  const [stats, setStats] = useState<ExtensionStats>({ total: 0, enabled: 0, builtin: 0 });
+  const [, setStats] = useState<ExtensionStats>({ total: 0, enabled: 0, builtin: 0 });
   const [tabPhase, setTabPhase] = useState<TabPhase>('idle');
   const [exitDirection, setExitDirection] = useState<'left' | 'right'>('left');
   const [loading, setLoading] = useState(true);

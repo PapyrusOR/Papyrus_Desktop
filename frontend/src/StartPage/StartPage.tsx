@@ -1,12 +1,11 @@
 import { Typography, Button, Message } from '@arco-design/web-react';
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import RecentScrolls from './RecentScrolls';
 import RecentNotes from './RecentNotes';
 import ReviewQueue from './ReviewQueue';
 import { getSolarTerm, fetchSolarTerm } from './solarTerms';
 import { type SceneryContent, fetchSceneryContent } from './sceneryContent';
-import FlashcardStudy from '../ScrollPage/FlashcardStudy';
 import { api } from '../api';
 import { useCommonCardStyle, CommonCard, CardGroup } from '../components';
 import './StartPage.css';
@@ -112,36 +111,6 @@ function useStartPageData(t: (key: string) => string): StartPageData & { refresh
     loading,
     refresh,
   }), [today, solarTerm, scenery, stats, loading, refresh, t]);
-}
-
-function useCardHeight() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(300);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const measure = () => {
-      setHeight(element.offsetHeight);
-    };
-
-    measure();
-
-    const observer = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(measure)
-      : null;
-
-    observer?.observe(element);
-    window.addEventListener('resize', measure);
-
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', measure);
-    };
-  }, []);
-
-  return { ref, height };
 }
 
 const ShelfSection = ({ label, children }: { label: string; children: ReactNode }) => (

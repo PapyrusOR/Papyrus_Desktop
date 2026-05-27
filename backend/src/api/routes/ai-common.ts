@@ -1,6 +1,4 @@
-import type { StreamChunk } from '../../ai/provider.js';
 import type { ToolCallRecord } from '../../ai/tool-manager.js';
-import type { ChatBlock } from '../../core/types.js';
 
 export interface AIConfigPayload {
   current_provider: string;

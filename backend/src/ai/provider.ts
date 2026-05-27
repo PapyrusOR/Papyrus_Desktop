@@ -30,10 +30,6 @@ import {
 import type { ChatSessionRow, ChatMessageRow } from '../db/database.js';
 import type { ChatBlock, ChatSession, ChatMessage, ChatAttachment, ChatTokenUsage } from '../core/types.js';
 
-type OpenAIFetchParam = NonNullable<
-  NonNullable<ConstructorParameters<typeof OpenAI>[0]>['fetch']
->;
-
 export type StreamEventType =
   | 'content'
   | 'reasoning'

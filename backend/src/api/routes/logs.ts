@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 import { paths } from '../../utils/paths.js';
 import { PapyrusLogger } from '../../utils/logger.js';
 import { aiConfig } from './ai.js';

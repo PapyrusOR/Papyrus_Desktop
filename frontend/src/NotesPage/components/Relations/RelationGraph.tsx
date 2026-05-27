@@ -12,11 +12,6 @@ interface RelationGraphProps {
   height?: number;
 }
 
-interface GraphData {
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
-
 // 关联类型颜色
 const RELATION_COLORS: Record<RelationType, string> = {
   reference: '#165DFF',
@@ -36,7 +31,6 @@ export const RelationGraph: React.FC<RelationGraphProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<GraphData>({ nodes: [], links: [] });
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -75,7 +69,6 @@ export const RelationGraph: React.FC<RelationGraphProps> = ({
           };
         });
         
-        setData({ nodes: result.nodes, links: result.links });
         simulationRef.current = { nodes, links: result.links, animationId: null };
         startSimulation();
       } else {

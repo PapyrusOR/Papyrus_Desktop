@@ -6,7 +6,7 @@ import {
 } from '../../core/notes.js';
 import { getNoteById as dbGetNote, updateNote as dbUpdateNote } from '../../db/database.js';
 import { saveNoteVersion } from '../../core/versioning.js';
-import type { ToolDescriptor, ToolResult } from './types.js';
+import type { ToolDescriptor } from './types.js';
 import { requireString, optionalString, requireId, isErr } from './types.js';
 
 export const NOTE_TOOLS: ToolDescriptor[] = [

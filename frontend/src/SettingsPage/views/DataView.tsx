@@ -16,7 +16,7 @@ import {
 import { api } from '../../api';
 import { SettingItem, SettingsViewLayout, type NavItem } from '../components';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 interface DataViewProps {
   onBack: () => void;

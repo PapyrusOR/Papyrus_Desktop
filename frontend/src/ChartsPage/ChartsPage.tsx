@@ -1,10 +1,9 @@
-import { Typography, Card, Progress, Tooltip, Spin, Empty } from '@arco-design/web-react';
+import { Typography, Card, Progress, Tooltip, Empty } from '@arco-design/web-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { IconFire, IconClockCircle, IconCheckCircle, IconCalendar } from '@arco-design/web-react/icon';
 import { api, type Card as CardType } from '../api';
 import { useCommonCardStyle, CommonCard, PageLayout } from '../components';
 import { PRIMARY_COLOR, SUCCESS_COLOR } from '../theme-constants';
-import { getAdaptivePrimaryColor } from '../hooks/useSceneryColor';
 
 function useAnimatedNumber(targetValue: number, duration: number = 800, delay: number = 100, dataReady: boolean = false): number {
   const [displayValue, setDisplayValue] = useState(0);
@@ -104,13 +103,6 @@ interface HeatmapItem {
   level: number;
 }
 
-interface HeatmapResponse {
-  success: boolean;
-  data: HeatmapItem[];
-  total_days: number;
-  total_cards: number;
-}
-
 // 统计数据类型
 interface StatsData {
   totalCards: number;
@@ -121,22 +113,6 @@ interface StatsData {
   todayCards: number;
   dailyTarget: number;
 }
-
-// 统计项
-const StatItem = ({ label, value, suffix, colorConfig }: { label: string; value: string | number; suffix?: string; colorConfig?: { primary: string; secondary: string; brightness: number } }) => {
-  const finalColor = colorConfig ? getAdaptivePrimaryColor(colorConfig.brightness, PRIMARY_COLOR) : PRIMARY_COLOR;
-  
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <Typography.Text style={{ fontSize: '24px', fontWeight: 600, color: finalColor }}>
-        {value}{suffix && <span style={{ fontSize: '14px', fontWeight: 400, marginLeft: '4px' }}>{suffix}</span>}
-      </Typography.Text>
-      <Typography.Text type='secondary' style={{ fontSize: '12px', display: 'block', marginTop: '4px', color: colorConfig?.secondary }}>
-        {label}
-      </Typography.Text>
-    </div>
-  );
-};
 
 // 统计卡片
 const StatCard = ({ title, value, suffix, icon }: { title: string; value: string | number; suffix?: string; icon: React.ReactNode }) => {
@@ -254,10 +230,8 @@ const WeekChart = ({ cards }: { cards: CardType[] }) => {
   // 简单的数据展示
   const weekData = useMemo(() => {
     const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    const now = new Date();
-    const dayOfWeek = now.getDay() || 7;
     
-    return days.map((day, index) => {
+    return days.map((day) => {
       // 模拟基于卡片数量的数据
       const baseCount = Math.max(1, Math.floor(cards.length / 10));
       return {

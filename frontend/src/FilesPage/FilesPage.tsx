@@ -1,6 +1,6 @@
 import { Typography, Button, Tag, Radio, Empty, Tooltip, Message, Modal, Input, Breadcrumb } from '@arco-design/web-react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete, IconLeft } from '@arco-design/web-react/icon';
+import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete } from '@arco-design/web-react/icon';
 import { api, getFileUrl, getThumbnailUrl } from '../api';
 import type { FileItemData } from '../api';
 import { PageLayout } from '../components';

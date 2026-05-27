@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Typography, Input, Tag, Button, Breadcrumb, Message, Modal, Dropdown } from '@arco-design/web-react';
 import SmartTextArea, { type SmartTextAreaRef } from '../../components/SmartTextArea';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +18,6 @@ import {
 } from '@arco-design/web-react/icon';
 import { RelationsPanel, RelationGraph } from '../components/Relations';
 import type { Note, CreateNoteParams, UpdateNoteParams } from '../types';
-import { PRIMARY_COLOR } from '../constants';
 import { renderMarkdown } from '../../utils/markdown';
 
 interface NoteDetailViewProps {
@@ -613,7 +612,7 @@ export const NoteDetailView = ({
           >
             <RelationsPanel
               noteId={note.id}
-              onNavigateToNote={async (targetId) => {
+              onNavigateToNote={async (_targetId) => {
                 // 保存当前笔记后跳转
                 if (isEditable && title.trim()) {
                   const success = await handleSave(false);
@@ -640,7 +639,7 @@ export const NoteDetailView = ({
             <RelationGraph
               noteId={note.id}
               depth={1}
-              onNodeClick={(nodeId) => {
+              onNodeClick={(_nodeId) => {
                 setShowGraphDrawer(false);
                 // 可以添加跳转到对应笔记的逻辑
               }}

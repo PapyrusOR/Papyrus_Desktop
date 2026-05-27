@@ -1,5 +1,5 @@
-import { Button, Space, Menu, Dropdown, Avatar, Modal, Message, Divider, Input, Popover } from '@arco-design/web-react';
-import { IconMinus, IconExpand, IconClose, IconUser, IconUpload, IconRefresh } from '@arco-design/web-react/icon';
+import { Button, Space, Menu, Dropdown, Avatar, Modal, Message, Divider, Input } from '@arco-design/web-react';
+import { IconMinus, IconExpand, IconClose, IconUpload, IconRefresh } from '@arco-design/web-react/icon';
 import './TitleBar.css';
 import { api, type SearchResult } from './api';
 import type { UserProfile } from './types/common';

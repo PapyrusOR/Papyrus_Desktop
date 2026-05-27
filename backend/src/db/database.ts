@@ -66,11 +66,6 @@ export function restoreDbSnapshot(snapshotPath: string): void {
 }
 
 function initSchema(database: DatabaseSync): void {
-  const tableCheck = database.prepare(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='cards'"
-  );
-  const isNewDb = tableCheck.get() === undefined;
-
   try {
     const columns = database.prepare("SELECT name FROM pragma_table_info('extensions')").all() as Array<{ name: string }>;
     const existingColumns = new Set(columns.map(c => c.name));
@@ -825,7 +820,7 @@ export function getAllFolders(): string[] {
 
 // ==================== Providers ====================
 
-export function loadAllProviders(logger?: PapyrusLogger): Provider[] {
+export function loadAllProviders(_logger?: PapyrusLogger): Provider[] {
   const database = getDb();
   const providerStmt = database.prepare('SELECT * FROM providers ORDER BY created_at');
   const providerRows = providerStmt.all() as Array<{
@@ -1284,7 +1279,7 @@ export function getLatestCardVersionHash(cardId: string): string | null {
 
 // ==================== Files ====================
 
-export function loadAllFiles(logger?: PapyrusLogger): FileRecord[] {
+export function loadAllFiles(_logger?: PapyrusLogger): FileRecord[] {
   const database = getDb();
   const stmt = database.prepare('SELECT * FROM files ORDER BY is_folder DESC, name ASC');
   const rows = stmt.all() as Record<string, unknown>[];

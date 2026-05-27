@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import { getDb } from '../../db/database.js';
-import { recordCardReviewed } from '../../core/progress.js';
 
 function getToday(): string {
   return new Date().toISOString().slice(0, 10);

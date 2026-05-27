@@ -14,7 +14,7 @@ import IconAccessibility from '../../icons/IconAccessibility';
 import { useAccessibility } from '../../contexts/AccessibilityContext';
 import { SettingItem, SettingsViewLayout, type NavItem } from '../components';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 interface AccessibilityViewProps {
   onBack: () => void;

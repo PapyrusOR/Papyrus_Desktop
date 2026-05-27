@@ -4,7 +4,6 @@ import type {
   MessageBlockToolStatus,
   RestoredMessageView,
   SelectedFile,
-  SSEEvent,
 } from './types';
 import type { ChatBlock as ApiChatBlock } from '../api';
 import { getAuthToken, BASE, api, clearAuthTokenCache } from '../api';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Typography } from '@arco-design/web-react';
 import { IconPlus } from '@arco-design/web-react/icon';
 import type { AddCardProps } from '../types';
-import { SECONDARY_COLOR, PRIMARY_COLOR } from '../constants';
+import { PRIMARY_COLOR } from '../constants';
 
 const AddCard = ({ label, onClick }: AddCardProps) => {
   const [hovered, setHovered] = useState(false);

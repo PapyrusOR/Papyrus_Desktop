@@ -39,7 +39,6 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
 
   const {
     models,
-    selectedModelId: model,
     selectedModel,
     loading: modelLoading,
     configChecked,

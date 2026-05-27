@@ -1,18 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Select,
   Switch,
   Button,
   Slider,
   InputNumber,
   Typography,
-  Form,
   Input,
   Message,
 } from '@arco-design/web-react';
 import {
-  IconArrowLeft,
   IconMessage,
   IconSafe,
   IconRobot,
@@ -30,8 +27,7 @@ import { AddProviderModal } from './ChatView/components';
 import { ModelModal } from './ChatView/components';
 import type { Provider, Model, UserProfile } from './ChatView/types';
 
-const FormItem = Form.Item;
-const { Title, Text, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 interface ChatViewProps {
   onBack: () => void;
@@ -53,25 +49,12 @@ const ChatView = ({ onBack }: ChatViewProps) => {
   const [completionSaving, setCompletionSaving] = useState(false);
 
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [providersLoading, setProvidersLoading] = useState(false);
+  const [, setProvidersLoading] = useState(false);
   const [currentModelId, setCurrentModelId] = useState<string>('');
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [modelModalVisible, setModelModalVisible] = useState(false);
   const [editingModel, setEditingModel] = useState<Model | null>(null);
   const [modelModalProviderId, setModelModalProviderId] = useState<string>('');
-
-  const selected = providers.find(p => p.enabled);
-  
-  const getCurrentModel = () => {
-    for (const p of providers) {
-      const model = p.models.find(m => m.id === currentModelId && m.enabled);
-      if (model) return { ...model, provider: p };
-    }
-    return null;
-  };
-  
-  const currentModel = getCurrentModel();
-  const currentModelSupportTools = currentModel?.capabilities.includes('tools') ?? false;
 
   useEffect(() => {
     api.getCompletionConfig()
@@ -121,10 +104,6 @@ const ChatView = ({ onBack }: ChatViewProps) => {
       })
       .catch(console.error)
       .finally(() => setProvidersLoading(false));
-  };
-
-  const updateProvider = (id: string, updates: Partial<Provider>) => {
-    setProviders(providers.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
   const deleteProvider = (id: string) => {

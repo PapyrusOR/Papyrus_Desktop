@@ -2,7 +2,7 @@
  * 快捷键管理 Hook
  * 统一管理应用快捷键设置
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 // 快捷键配置类型
 export interface ShortcutConfig {

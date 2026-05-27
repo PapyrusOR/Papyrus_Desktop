@@ -1,4 +1,4 @@
-import { Typography, Button, Message } from '@arco-design/web-react';
+import { Button, Message } from '@arco-design/web-react';
 import { IconPlus, IconEye, IconEdit } from '@arco-design/web-react/icon';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -46,7 +46,7 @@ const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
   const [newCardTags, setNewCardTags] = useState('');
   const [isSubmittingCard, setIsSubmittingCard] = useState(false);
 
-  const { config: sceneryConfig } = usePageScenery('scroll');
+  usePageScenery('scroll');
 
   const overallProgress = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0;
 

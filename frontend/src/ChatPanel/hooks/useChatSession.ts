@@ -20,7 +20,7 @@ export interface UseChatSessionReturn {
 }
 
 export function useChatSession(
-  open: boolean,
+  _open: boolean,
 ): UseChatSessionReturn {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);

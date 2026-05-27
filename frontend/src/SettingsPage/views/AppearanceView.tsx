@@ -32,12 +32,6 @@ interface AppearanceViewProps {
   onBack: () => void;
 }
 
-interface SceneryHook {
-  config: { enabled: boolean; image: string; name: string; opacity: number };
-  updateConfig: (updates: Partial<{ enabled: boolean; image: string; name: string; opacity: number }>) => void;
-  loaded?: boolean;
-}
-
 const FONT_SIZE_OPTIONS = (t: (key: string) => string) => [
   { label: t('appearanceView.fontSizeSmall'), value: 'small' },
   { label: t('appearanceView.fontSizeMedium'), value: 'medium' },
@@ -79,7 +73,7 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
 
   const [addSceneryModalVisible, setAddSceneryModalVisible] = useState(false);
   const [sceneryForm] = Form.useForm();
-  const [activeSceneryPage, setActiveSceneryPage] = useState<PageType>('scroll');
+  const [, setActiveSceneryPage] = useState<PageType>('scroll');
 
   const handleAddCustomScenery = () => {
     sceneryForm.validate().then((values: { name: string; imageUrl: string; poem?: string; source?: string }) => {

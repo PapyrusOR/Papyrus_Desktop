@@ -1,7 +1,5 @@
 import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { IconDown, IconPlus, IconHistory, IconClose } from '@arco-design/web-react/icon';
-import IconAgentMode from '../../icons/IconAgentMode';
-import { IconMessage } from '@arco-design/web-react/icon';
 import type { ModelOption } from '../../utils/modelSelector';
 
 export interface ChatHeaderProps {
@@ -15,15 +13,9 @@ export interface ChatHeaderProps {
   onClose: () => void;
 }
 
-const MODES = [
-  { key: 'agent', icon: <IconAgentMode />, label: 'Agent 模式' },
-  { key: 'chat', icon: <IconMessage />, label: 'Chat 模式' },
-];
-
 export function ChatHeader({
   selectedModel,
   availableModels,
-  modelLoading,
   configChecked,
   onModelSelect,
   onNewChat,

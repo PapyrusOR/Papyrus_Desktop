@@ -220,7 +220,6 @@ export class AIConfig {
   private normalizeLogConfig(raw: unknown, fallback: LogConfig): LogConfig {
     if (raw === null || typeof raw !== 'object') return { ...fallback };
     const dict = raw as Record<string, unknown>;
-    const defaultLogDir = path.join(paths.dataDir, 'logs');
     return {
       log_dir: dict.log_dir !== undefined ? toStr(dict.log_dir, fallback.log_dir) : fallback.log_dir,
       log_level: dict.log_level !== undefined ? toStr(dict.log_level, fallback.log_level) : fallback.log_level,

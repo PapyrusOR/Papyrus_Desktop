@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Typography, Button, Tag, Message, Modal } from '@arco-design/web-react';
+import { Button, Tag, Message, Modal } from '@arco-design/web-react';
 import { IconPlus, IconDelete, IconClose, IconCheckSquare } from '@arco-design/web-react/icon';
 import type { Note, Folder } from '../types';
 import { NoteCard, FolderTab, AddCard } from '../components';

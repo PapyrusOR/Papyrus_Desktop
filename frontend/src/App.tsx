@@ -57,7 +57,7 @@ const saveChatWidth = (width: number): void => {
 const App = () => {
   const { t } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [todayDone, setTodayDone] = useState(false);
+  const [, setTodayDone] = useState(false);
   const [activePage, setActivePage] = useState('start');
   const [chatOpen, setChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(loadChatWidth);
@@ -90,19 +90,9 @@ const App = () => {
       setActivePage(newPage);
       return;
     }
-    const prevIndex = prevPageIndexRef.current;
-    const prevPageValue = activePage;
-
-    let direction: 'up' | 'down' | null = null;
-    if (newIndex > prevIndex) {
-      direction = 'up';
-    } else if (newIndex < prevIndex) {
-      direction = 'down';
-    }
-
     setActivePage(newPage);
     prevPageIndexRef.current = newIndex;
-  }, [activePage, isTransitioning]);
+  }, [isTransitioning, t]);
 
   // 处理搜索结果点击
   const handleSearchResult = useCallback((result: SearchResult) => {
@@ -259,8 +249,6 @@ const App = () => {
         studyTagRef.current = undefined;
       }
     };
-
-    const isStartExiting = isTransitioning && prevPage === 'start';
 
     return (
       <>

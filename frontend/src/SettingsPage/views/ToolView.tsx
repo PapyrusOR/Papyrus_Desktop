@@ -16,7 +16,7 @@ import {
 import { SettingItem, SettingsViewLayout, type NavItem } from '../components';
 import { api } from '../../api';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const NAV_ITEMS: NavItem[] = [
   { key: 'tools-section', label: 'toolView.toolManagement', icon: IconTool },
@@ -31,7 +31,7 @@ const ToolView = ({ onBack }: ToolViewProps) => {
 
   const [toolsMode, setToolsMode] = useState<string>('manual');
   const [autoExecuteTools, setAutoExecuteTools] = useState<string[]>([]);
-  const [toolsConfigLoading, setToolsConfigLoading] = useState(false);
+  const [, setToolsConfigLoading] = useState(false);
   const [toolsConfigSaving, setToolsConfigSaving] = useState(false);
   const [toolCatalog, setToolCatalog] = useState<Array<{ name: string; category: string; side_effect: string; description: string }>>([]);
 

@@ -7,7 +7,6 @@ import {
   IconRobot,
   IconSettings,
   IconStorage,
-  IconSafe,
   IconEdit,
   IconTool,
   IconFileImage,

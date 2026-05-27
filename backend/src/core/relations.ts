@@ -8,7 +8,6 @@ import {
   getGraphData,
 } from '../db/database.js';
 import type { PapyrusLogger } from '../utils/logger.js';
-import type { Note } from './types.js';
 
 export interface RelatedNote {
   relation_id: string;

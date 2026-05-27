@@ -2,7 +2,7 @@ import { Typography } from '@arco-design/web-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, type Note } from '../api';
-import { useCommonCardStyle, CommonCard, CardGroup, PRIMARY_COLOR } from '../components';
+import { useCommonCardStyle, CommonCard, CardGroup } from '../components';
 import { addRecentItem } from '../utils/recentFiles';
 
 interface NoteCardProps {

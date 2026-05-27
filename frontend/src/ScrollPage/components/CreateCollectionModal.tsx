@@ -1,6 +1,5 @@
 import { Typography, Modal, Input, Select, Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../api';
 import type { CreateCollectionModalProps } from '../types';
 
 const CreateCollectionModal = ({

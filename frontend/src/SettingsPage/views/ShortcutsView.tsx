@@ -5,18 +5,14 @@ import {
   Modal,
   Input,
   Message,
-  Typography,
 } from '@arco-design/web-react';
 import {
   IconEdit,
   IconBulb,
   IconCommand,
-  IconRefresh,
 } from '@arco-design/web-react/icon';
 import { useShortcuts, type ShortcutConfig } from '../../hooks/useShortcuts';
 import { SettingItem, SettingsViewLayout, type NavItem } from '../components';
-
-const { Title, Text, Paragraph } = Typography;
 
 interface ShortcutsViewProps {
   onBack: () => void;
@@ -61,7 +57,7 @@ const ShortcutsView = ({ onBack }: ShortcutsViewProps) => {
     { key: 'find', label: t('shortcutsView.find') },
   ] as const;
 
-  const [studyShortcuts, setStudyShortcuts] = useState({
+  const [studyShortcuts] = useState({
     revealAnswer: 'Space / Enter',
     rateForgot: '1',
     rateHard: '2',

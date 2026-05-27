@@ -1,8 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { Message as ArcoMessage } from '@arco-design/web-react';
 import type { Message, SSEEvent, SelectedFile } from '../types';
 import type { ModelOption } from '../../utils/modelSelector';
-import { api } from '../../api';
 import { authFetch } from '../utils';
 
 export interface UseChatActionsProps {
@@ -40,7 +39,6 @@ export function useChatActions({
   setText,
   setMessages,
   setIsGenerating,
-  messages,
 }: UseChatActionsProps): UseChatActionsReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
   const textOverrideRef = useRef<string | null>(null);
@@ -80,9 +78,6 @@ export function useChatActions({
 
               if (event.type === 'user_saved') {
                 const realUserId = event.data?.messageId;
-                const sessionId = event.data?.sessionId;
-                if (typeof sessionId === 'string' && sessionId) {
-                }
                 if (typeof realUserId === 'string' && realUserId) {
                   setMessages((prev) =>
                     prev.map((m) =>
@@ -172,7 +167,6 @@ export function useChatActions({
 
                   case 'done': {
                     const realAssistantId = event.data?.messageId;
-                    const sessionId = event.data?.sessionId;
                     if (typeof realAssistantId === 'string' && realAssistantId) {
                       newId = realAssistantId;
                       assistantId = realAssistantId;

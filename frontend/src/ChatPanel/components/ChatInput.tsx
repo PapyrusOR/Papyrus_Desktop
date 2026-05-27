@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Tag, Tooltip } from '@arco-design/web-react';
 import type { SelectedFile } from '../types';
 import { ChatToolbar } from './ChatToolbar';
@@ -36,7 +36,6 @@ export function ChatInput({
   mode,
   reasoning,
   agentModeEnabled,
-  onFilesChange,
   onFileSelect,
   onSendMessage,
   onStopGeneration,

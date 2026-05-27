@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Mutex } from 'async-mutex';
 import {
   loadAllCards,
-  saveAllCards,
   insertCard as dbInsertCard,
   deleteCardById,
   deleteCardsByIds,

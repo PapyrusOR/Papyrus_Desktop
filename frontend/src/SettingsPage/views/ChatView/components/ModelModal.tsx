@@ -4,7 +4,6 @@ import { ProviderLogo } from '../../../../icons/ProviderLogo';
 import { PORT_OPTIONS } from '../../../../utils/modelSelector';
 import { CAPABILITIES_MAP } from '../constants';
 import { api } from '../../../../api';
-import { notifyAIConfigChanged } from '../utils';
 import type { Provider, Model } from '../types';
 
 const { Title, Text } = Typography;

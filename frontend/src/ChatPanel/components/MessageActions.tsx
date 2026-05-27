@@ -1,4 +1,4 @@
-import { Tooltip, Modal, Button, Message as ArcoMessage } from '@arco-design/web-react';
+import { Tooltip, Modal, Message as ArcoMessage } from '@arco-design/web-react';
 import {
   IconRefresh,
   IconEdit,
@@ -41,10 +41,6 @@ export function MessageActions({
         onSendMessage();
       },
     });
-  };
-
-  const handleEdit = () => {
-    return { messageId: message.id, draft: message.content };
   };
 
   const handleCopy = () => {

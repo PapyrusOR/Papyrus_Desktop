@@ -35,7 +35,7 @@ interface UseFlashcardStudyReturn {
 export function useFlashcardStudy({
   demo,
   filterTag,
-  onExit,
+  onExit: _onExit,
 }: UseFlashcardStudyProps): UseFlashcardStudyReturn {
   const [studyState, setStudyState] = useState<StudyState>('loading');
   const [currentCard, setCurrentCard] = useState<Card | null>(null);

@@ -1,4 +1,4 @@
-import fs, { Dir } from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 
 export type JSONScalar = string | number | boolean | null;

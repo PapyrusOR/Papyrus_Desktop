@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
 import { Message as ArcoMessage } from '@arco-design/web-react';
-import { IconFilePdf, IconFile, IconImage } from '@arco-design/web-react/icon';
 import type { SelectedFile } from '../types';
 import {
   validateFiles,

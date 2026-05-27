@@ -28,14 +28,6 @@ const DEFAULT_CONFIG: Required<CommonCardConfig> = {
   height: 140,
 };
 
-const AUTO_SIZE_CONFIG: Omit<Required<CommonCardConfig>, 'width' | 'height'> = {
-  borderWidth: 1,
-  defaultBorderColor: 'var(--color-text-3)',
-  hoverBorderColor: 'var(--color-primary)',
-  defaultBackground: 'var(--color-bg-1)',
-  hoverBackground: 'var(--color-primary-light)',
-};
-
 export const useCommonCardStyle = (config: CommonCardConfig = {}) => {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
   const [hovered, setHovered] = useState(false);
@@ -75,7 +67,7 @@ interface CommonCardProps {
 }
 
 export const CommonCard = ({
-  hovered,
+  hovered: _hovered,
   setHovered,
   cardStyle,
   children,

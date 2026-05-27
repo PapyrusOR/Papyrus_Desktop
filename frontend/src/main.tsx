@@ -7,7 +7,7 @@
  * - 无障碍支持（WCAG 2.1 AA/AAA）
  * - 深色模式检测
  */
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider } from '@arco-design/web-react';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
