@@ -6,7 +6,7 @@ name: Build and Release (Optimized)
 # 本工作流用于构建 Papyrus 桌面应用并发布 GitHub Release。
 #
 # 【触发方式】
-# 1. 自动触发：push 代码到 release、BA* 分支时执行构建校验，
+# 1. 自动触发：push 代码到 release、BA*、codex/BA* 分支时执行构建校验，
 #    push v* 开头的 tag（如 v2.0.0）时构建并发布 Release。
 # 2. 手动触发：进入 Actions → Build and Release (Optimized) → Run workflow，并填写发布 tag。
 #
@@ -25,6 +25,7 @@ on:
       - 'release'
       - 'release/**'
       - 'BA*'
+      - 'codex/BA*'
     tags:
       - 'v*'
   pull_request:
