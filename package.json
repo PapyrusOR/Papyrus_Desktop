@@ -1,6 +1,6 @@
 {
   "name": "papyrus",
-  "version": "2.0.0-beta.12",
+  "version": "2.0.0-beta.11",
   "description": "Papyrus Desktop - A modern note-taking and learning application",
   "main": "electron/main.js",
   "author": "PapyrusOR",
@@ -28,7 +28,8 @@
     "test:bump": "node --test scripts/__tests__/bump-version.test.js",
     "build:installer": "npm run sync-version && npm run build:backend && npm run build:frontend && electron-builder --win nsis --x64 --publish=never --config .electron-builder.config.js",
     "generate-icons": "node tools/generate-icons.js",
-    "generate-cert": "powershell -ExecutionPolicy Bypass -File build/create-cert.ps1"
+    "generate-cert": "powershell -ExecutionPolicy Bypass -File build/create-cert.ps1",
+    "set-version": "node scripts/set-version.js"
   },
   "devDependencies": {
     "@fiahfy/icns": "^0.0.7",
