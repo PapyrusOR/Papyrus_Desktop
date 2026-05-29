@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { parseExtensionManifestFromZip } from '#/core/extension-package.js';
+import { addExtensionEventClient } from '#/core/extension-events.js';
 import {
   loadAllExtensions,
   getExtensionById,
@@ -10,13 +12,14 @@ import {
   updateExtensionConfig,
   getExtensionStats,
   type CreateExtensionInput,
-} from '../../db/database.js';
+} from '#/db/database.js';
 
 export interface ExtensionInfo {
   id: string;
   name: string;
   description: string;
   version: string;
+  type: string;
   author: string;
   rating: number;
   downloads: number;
@@ -25,6 +28,7 @@ export interface ExtensionInfo {
   tags: string[];
   isBuiltin?: boolean;
   latestVersion?: string;
+  config: Record<string, unknown>;
 }
 
 function toApiFormat(ext: {
@@ -32,6 +36,7 @@ function toApiFormat(ext: {
   name: string;
   description: string;
   version: string;
+  type: string;
   author: string;
   rating: number;
   downloads: number;
@@ -40,12 +45,14 @@ function toApiFormat(ext: {
   update_available: boolean;
   latest_version: string | null;
   tags: string[];
+  config: Record<string, unknown>;
 }): ExtensionInfo {
   return {
     id: ext.id,
     name: ext.name,
     description: ext.description,
     version: ext.version,
+    type: ext.type,
     author: ext.author,
     rating: ext.rating,
     downloads: ext.downloads,
@@ -54,6 +61,7 @@ function toApiFormat(ext: {
     updateAvailable: ext.update_available,
     latestVersion: ext.latest_version ?? undefined,
     tags: ext.tags,
+    config: ext.config,
   };
 }
 
@@ -65,6 +73,7 @@ export function getExtensionsList(): ExtensionInfo[] {
 const InstallExtensionSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  type: z.string().optional(),
   description: z.string().optional(),
   version: z.string().optional(),
   author: z.string().optional(),
@@ -73,7 +82,22 @@ const InstallExtensionSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+const LocalZipInstallSchema = z.object({
+  filename: z.string().optional(),
+  content: z.string().min(1),
+});
+
 export default async function extensionsRoutes(fastify: FastifyInstance): Promise<void> {
+  fastify.get('/events', async (_request, reply) => {
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    });
+    reply.raw.write(': connected\n\n');
+    addExtensionEventClient(reply.raw);
+  });
+
   fastify.get('/', async (request, reply) => {
     try {
       const extensions = getExtensionsList();
@@ -133,6 +157,48 @@ export default async function extensionsRoutes(fastify: FastifyInstance): Promis
       const message = err instanceof Error ? err.message : '服务器内部错误';
       request.log.error({ err }, message);
       return reply.status(500).send({ success: false, error: message });
+    }
+  });
+
+  fastify.post('/install-local', async (request, reply) => {
+    try {
+      const parseResult = LocalZipInstallSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        return reply.status(400).send({
+          success: false,
+          error: parseResult.error.errors.map(e => e.message).join('; '),
+        });
+      }
+      console.log(`[extensions] installing local package: ${parseResult.data.filename ?? 'extension.zip'}`);
+      const manifest = parseExtensionManifestFromZip(Buffer.from(parseResult.data.content, 'base64'));
+      const existing = getExtensionById(manifest.id);
+      if (existing) {
+        return reply.status(409).send({ success: false, error: '该扩展已安装' });
+      }
+      const ext = installExtension({
+        id: manifest.id,
+        name: manifest.name,
+        version: manifest.version,
+        type: manifest.type,
+        description: manifest.description,
+        author: manifest.author,
+        tags: manifest.tags,
+      });
+      if (manifest.config) {
+        updateExtensionConfig(manifest.id, manifest.config);
+      }
+      const installed = getExtensionById(manifest.id) ?? ext;
+      return reply.send({
+        success: true,
+        extension: toApiFormat(installed),
+        manifest,
+        message: '本地扩展安装成功',
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '服务器内部错误';
+      request.log.error({ err }, message);
+      console.log('[extensions] local install failed:', message);
+      return reply.status(400).send({ success: false, error: message });
     }
   });
 

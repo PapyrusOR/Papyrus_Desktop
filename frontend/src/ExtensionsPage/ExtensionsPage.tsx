@@ -1,6 +1,6 @@
-import { Typography, Button, Tabs, Tag, Switch, Card, Empty, Spin, Message } from '@arco-design/web-react';
+import { Typography, Button, Tabs, Tag, Switch, Card, Empty, Spin, Message, Upload, Drawer, Form, Input } from '@arco-design/web-react';
 import { useState, useEffect, useCallback } from 'react';
-import { IconSettings, IconDelete, IconCheckCircleFill, IconDownload, IconStarFill, IconRefresh } from '@arco-design/web-react/icon';
+import { IconSettings, IconDelete, IconCheckCircleFill, IconDownload, IconStarFill, IconRefresh, IconUpload } from '@arco-design/web-react/icon';
 import { useCommonCardStyle, CommonCard, PageLayout } from '../components';
 import { PRIMARY_COLOR, SUCCESS_COLOR } from '../theme-constants';
 import { api } from '../api';
@@ -11,6 +11,7 @@ interface Extension {
   name: string;
   description: string;
   version: string;
+  type: string;
   author: string;
   rating: number;
   downloads: number;
@@ -19,6 +20,7 @@ interface Extension {
   updateAvailable?: boolean;
   latestVersion?: string;
   tags: string[];
+  config: Record<string, unknown>;
 }
 
 interface ExtensionStats {
@@ -120,6 +122,10 @@ const ExtensionsPage = () => {
   const [exitDirection, setExitDirection] = useState<'left' | 'right'>('left');
   const [loading, setLoading] = useState(true);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [configVisible, setConfigVisible] = useState(false);
+  const [selectedExtension, setSelectedExtension] = useState<Extension | null>(null);
+  const [configText, setConfigText] = useState('{}');
 
   const loadExtensions = useCallback(async () => {
     try {
@@ -225,7 +231,57 @@ const ExtensionsPage = () => {
   };
 
   const handleSettings = (ext: Extension) => {
-    Message.info(`扩展设置: ${ext.name}`);
+    setSelectedExtension(ext);
+    setConfigText(JSON.stringify(ext.config ?? {}, null, 2));
+    setConfigVisible(true);
+  };
+
+  const handleSaveConfig = async () => {
+    if (!selectedExtension) return;
+    try {
+      const parsedConfig = JSON.parse(configText) as Record<string, unknown>;
+      const response = await api.updateExtensionConfig(selectedExtension.id, parsedConfig);
+      if (response.success) {
+        Message.success('配置已保存');
+        setExtensions(prev => prev.map(ext =>
+          ext.id === selectedExtension.id ? { ...ext, config: parsedConfig } : ext
+        ));
+        setConfigVisible(false);
+      }
+    } catch (error) {
+      Message.error('配置必须是合法 JSON');
+      console.error('Failed to save extension config:', error);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      resolve(result.includes(',') ? result.split(',')[1] ?? '' : result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const handleLocalInstall = async (file: File) => {
+    try {
+      setInstalling(true);
+      console.log('[extensions] local install selected:', file.name);
+      const content = await fileToBase64(file);
+      const response = await api.installLocalExtension(file.name, content);
+      if (response.success) {
+        Message.success(response.message);
+        await loadExtensions();
+        setActiveTab('installed');
+      }
+    } catch (error) {
+      Message.error(error instanceof Error ? error.message : '本地扩展安装失败');
+      console.error('Failed to install local extension:', error);
+    } finally {
+      setInstalling(false);
+    }
+    return false;
   };
 
   const handleCheckUpdates = async () => {
@@ -276,6 +332,25 @@ const ExtensionsPage = () => {
     return (
       <div className={`extensions-tab-content ${getAnimationClass()}`}>
         {activeTab === 'installed' && (
+          <Upload
+            drag
+            accept=".zip,application/zip"
+            showUploadList={false}
+            beforeUpload={(file) => handleLocalInstall(file)}
+            style={{ marginBottom: '16px' }}
+          >
+            <div style={{ padding: '18px 0' }}>
+              <IconUpload style={{ fontSize: 24, color: PRIMARY_COLOR }} />
+              <Typography.Text style={{ display: 'block', marginTop: 8 }}>
+                拖拽 zip 到这里，或点击选择本地扩展包
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                manifest 最小字段：id、name、version、type
+              </Typography.Text>
+            </div>
+          </Upload>
+        )}
+        {activeTab === 'installed' && (
           extensions.length === 0 ? (
             <Empty description="暂无已安装扩展" style={{ marginTop: '48px' }} />
           ) : (
@@ -316,19 +391,30 @@ const ExtensionsPage = () => {
   ];
 
   const extraStatsContent = (
-    <Button
-      shape='round'
-      type='primary'
-      icon={<IconRefresh />}
-      loading={checkingUpdates}
-      onClick={handleCheckUpdates}
-      style={{
-        backgroundColor: PRIMARY_COLOR,
-        borderRadius: '20px',
-      }}
-    >
-      {updateCount > 0 ? `检查更新 (${updateCount})` : '检查更新'}
-    </Button>
+    <div style={{ display: 'flex', gap: 8 }}>
+      <Upload
+        accept=".zip,application/zip"
+        showUploadList={false}
+        beforeUpload={(file) => handleLocalInstall(file)}
+      >
+        <Button shape='round' icon={<IconUpload />} loading={installing}>
+          本地安装
+        </Button>
+      </Upload>
+      <Button
+        shape='round'
+        type='primary'
+        icon={<IconRefresh />}
+        loading={checkingUpdates}
+        onClick={handleCheckUpdates}
+        style={{
+          backgroundColor: PRIMARY_COLOR,
+          borderRadius: '20px',
+        }}
+      >
+        {updateCount > 0 ? `检查更新 (${updateCount})` : '检查更新'}
+      </Button>
+    </div>
   );
 
   return (
@@ -352,6 +438,29 @@ const ExtensionsPage = () => {
       <div className="extensions-tab-container">
         {renderContent()}
       </div>
+      <Drawer
+        title={selectedExtension ? `${selectedExtension.name} 配置` : '扩展配置'}
+        visible={configVisible}
+        width={520}
+        onCancel={() => setConfigVisible(false)}
+        footer={(
+          <div style={{ textAlign: 'right' }}>
+            <Button style={{ marginRight: 8 }} onClick={() => setConfigVisible(false)}>取消</Button>
+            <Button type="primary" onClick={handleSaveConfig}>保存</Button>
+          </div>
+        )}
+      >
+        <Form layout="vertical">
+          <Form.Item label="JSON 配置">
+            <Input.TextArea
+              value={configText}
+              onChange={setConfigText}
+              autoSize={{ minRows: 12, maxRows: 20 }}
+              placeholder='{"enabled": true}'
+            />
+          </Form.Item>
+        </Form>
+      </Drawer>
     </PageLayout>
   );
 };

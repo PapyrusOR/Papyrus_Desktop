@@ -5,6 +5,7 @@ import os from 'node:os';
 import { getAllNotes, createNote, updateNote, deleteNote, deleteNotes, getNoteById } from '../../core/notes.js';
 import { importObsidianVault } from '../../core/notes.js';
 import { recordNoteCreated } from '../../core/progress.js';
+import { pushExtensionEvent } from '#/core/extension-events.js';
 
 export default async function notesRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/', async (_request, reply) => {
@@ -48,6 +49,11 @@ export default async function notesRoutes(fastify: FastifyInstance): Promise<voi
         reply.status(404).send({ success: false, error: 'Note not found' });
         return;
       }
+      pushExtensionEvent('note.modified', {
+        note_id: noteId,
+        title: note.title,
+        updated_at: note.updated_at,
+      });
       reply.send({ success: true, note });
     } catch (err) {
       const message = err instanceof Error ? err.message : '服务器内部错误';

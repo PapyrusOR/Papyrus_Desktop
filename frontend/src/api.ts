@@ -250,6 +250,49 @@ export type FileItemData = {
 
 export type ListFilesRes = { success: boolean; files: FileItemData[]; count: number };
 
+// ========== CLI Manager Types ==========
+export type CliStatusRes = {
+  success: boolean;
+  installed: boolean;
+  version: string | null;
+  path: string | null;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  packageName: string;
+};
+
+export type CliInstallRes = {
+  success: boolean;
+  version: string;
+  path: string;
+  packageName: string;
+};
+
+export type CliRunRes = {
+  success: boolean;
+  exitCode: number | null;
+  stdout: string;
+  stderr: string;
+};
+
+// ========== Extension Types ==========
+export type ExtensionItem = {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  type: string;
+  author: string;
+  rating: number;
+  downloads: number;
+  isEnabled: boolean;
+  isBuiltin?: boolean;
+  updateAvailable?: boolean;
+  latestVersion?: string;
+  tags: string[];
+  config: Record<string, unknown>;
+};
+
 // ========== Chat Session Types ==========
 export type ChatBlockType = 'text' | 'reasoning' | 'tool_call' | 'tool_result';
 
@@ -572,7 +615,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getExtensionsList: () =>
-    request<{ success: boolean; extensions: Array<{ id: string; name: string; description: string; version: string; author: string; rating: number; downloads: number; isEnabled: boolean; isBuiltin?: boolean; updateAvailable?: boolean; latestVersion?: string; tags: string[] }>; count: number; stats?: { total: number; enabled: number; builtin: number } }>('/extensions'),
+    request<{ success: boolean; extensions: ExtensionItem[]; count: number; stats?: { total: number; enabled: number; builtin: number } }>('/extensions'),
   installExtension: (data: { id: string; name: string; description?: string; version?: string; author?: string; rating?: number; downloads?: number; tags?: string[] }) =>
     request<{ success: boolean; extension: unknown; message: string }>('/extensions', {
       method: 'POST',
@@ -587,6 +630,11 @@ export const api = {
     }),
   checkExtensionUpdates: () =>
     request<{ success: boolean; hasUpdates: boolean; updateCount: number; updates: Array<{ id: string; hasUpdate: boolean; currentVersion: string; latestVersion: string }>; extensions: unknown[] }>('/extensions/check-updates', { method: 'POST' }),
+  installLocalExtension: (filename: string, content: string) =>
+    request<{ success: boolean; extension: ExtensionItem; message: string }>('/extensions/install-local', {
+      method: 'POST',
+      body: JSON.stringify({ filename, content }),
+    }),
   updateExtensionConfig: (id: string, config: Record<string, unknown>) =>
     request<{ success: boolean; message: string }>(`/extensions/${id}/config`, {
       method: 'PUT',
@@ -596,4 +644,13 @@ export const api = {
   // Update
   getVersion: () => request<VersionRes>('/update/version'),
   checkUpdate: () => request<UpdateCheckRes>('/update/check'),
+
+  // CLI Manager
+  cliStatus: () => request<CliStatusRes>('/cli/status'),
+  cliInstall: () => request<CliInstallRes>('/cli/install', { method: 'POST' }),
+  cliUpdate: () => request<CliInstallRes>('/cli/update', { method: 'POST' }),
+  cliRun: (args: string[]) => request<CliRunRes>('/cli/run', {
+    method: 'POST',
+    body: JSON.stringify({ args }),
+  })
 };

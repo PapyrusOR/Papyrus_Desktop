@@ -73,7 +73,7 @@ export async function initApp(): Promise<void> {
   setGlobalLogger(logger);
   const { initAIConfig } = await import('../ai/config-instance.js');
   initAIConfig();
-  const allowedPorts = new Set([5173, 4173, 8000, 3000, 9100]);
+  const allowedPorts = new Set([5173, 4173, 8000, 3000, 9100, 9200]);
   await app.register(cors, {
     origin: (origin, cb) => {
       if (!origin) {
@@ -147,6 +147,7 @@ export async function initApp(): Promise<void> {
   const { default: filesRoutes } = await import('./routes/files.js');
   const { default: relationsRoutes } = await import('./routes/relations.js');
   const { default: extensionsRoutes } = await import('./routes/extensions.js');
+  const { default: cliRoutes } = await import('./routes/cli.js');
 
   app.register(cardsRoutes, { prefix: '/api/cards' });
   app.register(reviewRoutes, { prefix: '/api/review' });
@@ -165,6 +166,7 @@ export async function initApp(): Promise<void> {
   app.register(filesRoutes, { prefix: '/api/files' });
   app.register(relationsRoutes, { prefix: '/api' });
   app.register(extensionsRoutes, { prefix: '/api/extensions' });
+  app.register(cliRoutes, { prefix: '/api/cli' });
 }
 
 let mcpServer: MCPServer | null = null;
@@ -214,3 +216,4 @@ export { app, logger, gracefulShutdown };
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   await start();
 }
+

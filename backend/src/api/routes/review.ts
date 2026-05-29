@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { getNextDueCard, rateCard, getCardStats } from '../../core/cards.js';
 import { recordCardReviewed } from '../../core/progress.js';
+import { pushExtensionEvent } from '#/core/extension-events.js';
 
 export default async function reviewRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/next', async (request, reply) => {
@@ -47,6 +48,12 @@ export default async function reviewRoutes(fastify: FastifyInstance): Promise<vo
         return;
       }
       recordCardReviewed();
+      pushExtensionEvent('card.review.completed', {
+        card_id: cardId,
+        grade,
+        interval_days: result.intervalDays,
+        ef: result.ef,
+      });
 
       const next = getNextDueCard();
       const stats = getCardStats();

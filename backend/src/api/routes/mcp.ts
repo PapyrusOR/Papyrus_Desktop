@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { loadAllNotes, getNoteById, deleteNoteById } from '../../db/database.js';
+import { loadAllNotes, getNoteById, deleteNoteById } from '#/db/database.js';
 import type { Note } from '../../core/types.js';
 import { createNote, updateNote } from '../../core/notes.js';
+import { executeMcpTool, getMcpToolsCatalog } from '#/mcp/tools.js';
 
 function noteToInfo(note: Note): Record<string, unknown> {
   return {
@@ -41,6 +42,66 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
       request.log.error({ err }, message);
       reply.status(500).send({ success: false, error: message });
     }
+  });
+
+  fastify.get('/tools', async (_request, reply) => {
+    console.log('[mcp] list tools from /api/mcp');
+    reply.send(getMcpToolsCatalog());
+  });
+
+  fastify.post('/call', async (request, reply) => {
+    try {
+      const payload = request.body as { tool?: string; params?: Record<string, unknown> };
+      if (!payload.tool) {
+        reply.status(400).send({ success: false, error: '缺少 tool 字段' });
+        return;
+      }
+      console.log(`[mcp] /api/mcp/call ${payload.tool}`);
+      const result = await executeMcpTool(payload.tool, payload.params ?? {});
+      reply.send(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '服务器内部错误';
+      request.log.error({ err }, message);
+      reply.status(500).send({ success: false, error: message });
+    }
+  });
+
+  fastify.get('/cards', async (_request, reply) => {
+    reply.send(await executeMcpTool('search_cards', { keyword: '' }));
+  });
+
+  fastify.get('/cards/:cardId', async (request, reply) => {
+    const { cardId } = request.params as { cardId: string };
+    const result = await executeMcpTool('get_card', { card_id: cardId });
+    if (result.success === false) {
+      reply.status(404).send(result);
+      return;
+    }
+    reply.send(result);
+  });
+
+  fastify.post('/cards', async (request, reply) => {
+    const payload = request.body as { question?: string; answer?: string; tags?: string[] };
+    reply.send(await executeMcpTool('create_card', payload as Record<string, unknown>));
+  });
+
+  fastify.patch('/cards/:cardId', async (request, reply) => {
+    const { cardId } = request.params as { cardId: string };
+    const payload = request.body as { question?: string; answer?: string };
+    reply.send(await executeMcpTool('update_card', { ...payload, card_id: cardId }));
+  });
+
+  fastify.delete('/cards/:cardId', async (request, reply) => {
+    const { cardId } = request.params as { cardId: string };
+    reply.send(await executeMcpTool('delete_card', { card_id: cardId }));
+  });
+
+  fastify.get('/files', async (_request, reply) => {
+    reply.send(await executeMcpTool('list_files', {}));
+  });
+
+  fastify.get('/review/stats', async (_request, reply) => {
+    reply.send(await executeMcpTool('get_review_stats', {}));
   });
 
   fastify.get('/notes', async (request, reply) => {
@@ -247,3 +308,4 @@ export default async function mcpRoutes(fastify: FastifyInstance): Promise<void>
     }
   });
 }
+

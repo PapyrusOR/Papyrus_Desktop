@@ -78,6 +78,7 @@ function initSchema(database: DatabaseSync): void {
       { name: 'downloads', type: 'INTEGER DEFAULT 0' },
       { name: 'is_enabled', type: 'INTEGER DEFAULT 0' },
       { name: 'is_builtin', type: 'INTEGER DEFAULT 0' },
+      { name: 'type', type: "TEXT DEFAULT 'local'" },
       { name: 'update_available', type: 'INTEGER DEFAULT 0' },
       { name: 'latest_version', type: 'TEXT' },
       { name: 'tags', type: "TEXT DEFAULT '[]'" },
@@ -285,6 +286,7 @@ function initSchema(database: DatabaseSync): void {
       name TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
       version TEXT NOT NULL DEFAULT '1.0.0',
+      type TEXT NOT NULL DEFAULT 'local',
       author TEXT NOT NULL DEFAULT 'Unknown',
       rating REAL DEFAULT 0.0,
       downloads INTEGER DEFAULT 0,
@@ -424,10 +426,10 @@ function seedDefaults(database: DatabaseSync): void {
 
     for (const ext of builtinExtensions) {
       database.prepare(
-        `INSERT INTO extensions (id, name, description, version, author, rating, downloads, is_enabled, is_builtin, update_available, latest_version, tags, config, installed_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO extensions (id, name, description, version, type, author, rating, downloads, is_enabled, is_builtin, update_available, latest_version, tags, config, installed_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
-        ext.id, ext.name, ext.description, ext.version, ext.author, ext.rating, ext.downloads,
+        ext.id, ext.name, ext.description, ext.version, 'builtin', ext.author, ext.rating, ext.downloads,
         1, 1, 0, ext.version, JSON.stringify(ext.tags), '{}', now / 1000, now / 1000
       );
     }
@@ -1940,6 +1942,7 @@ export interface ExtensionRecord {
   name: string;
   description: string;
   version: string;
+  type: string;
   author: string;
   rating: number;
   downloads: number;
@@ -1956,6 +1959,7 @@ export interface ExtensionRecord {
 export interface CreateExtensionInput {
   id: string;
   name: string;
+  type?: string;
   description?: string;
   version?: string;
   author?: string;
@@ -1971,6 +1975,7 @@ function extensionFromRow(row: Record<string, unknown>): ExtensionRecord {
     name: String(row.name ?? ''),
     description: String(row.description ?? ''),
     version: String(row.version ?? '1.0.0'),
+    type: String(row.type ?? 'local'),
     author: String(row.author ?? 'Unknown'),
     rating: Number(row.rating ?? 0),
     downloads: Number(row.downloads ?? 0),
@@ -2010,6 +2015,7 @@ export function installExtension(input: CreateExtensionInput, logger?: PapyrusLo
     name: input.name,
     description: input.description ?? '',
     version: input.version ?? '1.0.0',
+    type: input.type ?? 'local',
     author: input.author ?? 'Unknown',
     rating: input.rating ?? 0,
     downloads: input.downloads ?? 0,
@@ -2024,10 +2030,10 @@ export function installExtension(input: CreateExtensionInput, logger?: PapyrusLo
   };
 
   database.prepare(
-    `INSERT OR REPLACE INTO extensions (id, name, description, version, author, rating, downloads, is_enabled, is_builtin, update_available, latest_version, tags, config, installed_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT OR REPLACE INTO extensions (id, name, description, version, type, author, rating, downloads, is_enabled, is_builtin, update_available, latest_version, tags, config, installed_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
-    ext.id, ext.name, ext.description, ext.version, ext.author, ext.rating, ext.downloads,
+    ext.id, ext.name, ext.description, ext.version, ext.type, ext.author, ext.rating, ext.downloads,
     ext.is_enabled ? 1 : 0, ext.is_builtin ? 1 : 0, ext.update_available ? 1 : 0, ext.latest_version,
     JSON.stringify(ext.tags), JSON.stringify(ext.config), ext.installed_at, ext.updated_at
   );

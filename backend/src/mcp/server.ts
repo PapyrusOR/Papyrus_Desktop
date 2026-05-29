@@ -1,7 +1,6 @@
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
-import { CardTools } from '../ai/tools.js';
-import { loadAllNotes, getNoteById } from '../db/database.js';
+import { executeMcpTool, getMcpToolsCatalog } from '#/mcp/tools.js';
 import type { PapyrusLogger } from '../utils/logger.js';
 
 export interface MCPServerOptions {
@@ -16,7 +15,7 @@ function generateToken(): string {
 }
 
 function isAllowedOrigin(origin: string): boolean {
-  const allowedPorts = new Set([5173, 4173, 8000, 3000, 9100]);
+  const allowedPorts = new Set([5173, 4173, 8000, 3000, 9100, 9200]);
   try {
     const parsed = new URL(origin);
     const port = parsed.port ? parseInt(parsed.port, 10) : (parsed.protocol === 'https:' ? 443 : 80);
@@ -42,14 +41,12 @@ export class MCPServer {
   private logger?: PapyrusLogger;
   private authToken: string;
   private server?: http.Server;
-  private cardTools: CardTools;
 
   constructor(options: MCPServerOptions = {}) {
     this.host = options.host ?? '127.0.0.1';
-    this.port = options.port ?? 9100;
+    this.port = options.port ?? 9200;
     this.logger = options.logger;
     this.authToken = options.authToken ?? generateToken();
-    this.cardTools = new CardTools(this.logger);
   }
 
   start(): Promise<void> {
@@ -80,28 +77,7 @@ export class MCPServer {
         }
 
         if (req.method === 'GET' && req.url === '/tools') {
-          const cardToolsList = [
-            'search_cards',
-            'get_card_stats',
-            'create_card',
-            'update_card',
-            'delete_card',
-          ];
-          const vaultToolsList = [
-            'vault_index',
-            'vault_read',
-            'vault_watch',
-            'vault_emergency_sample',
-          ];
-          sendJson(
-            res,
-            {
-              tools: cardToolsList.concat(vaultToolsList),
-              categories: { cards: cardToolsList, vault: vaultToolsList },
-            },
-            200,
-            origin,
-          );
+          sendJson(res, getMcpToolsCatalog(), 200, origin);
           return;
         }
 
@@ -118,7 +94,7 @@ export class MCPServer {
 
         let body = '';
         req.on('data', chunk => { body += chunk; });
-        req.on('end', () => {
+        req.on('end', async () => {
           let parsed: unknown;
           try {
             parsed = JSON.parse(body);
@@ -143,20 +119,9 @@ export class MCPServer {
             return;
           }
 
-          const vaultToolNames = new Set([
-            'vault_index',
-            'vault_read',
-            'vault_watch',
-            'vault_emergency_sample',
-          ]);
-
-          if (vaultToolNames.has(toolName)) {
-            const result = this.executeVaultTool(toolName, params);
-            sendJson(res, result, 200, origin);
-          } else {
-            const result = this.cardTools.executeTool(toolName, params);
-            sendJson(res, result, 200, origin);
-          }
+          console.log(`[mcp] /call ${toolName}`);
+          const result = await executeMcpTool(toolName, params, this.logger);
+          sendJson(res, result, 200, origin);
         });
       });
 
@@ -167,31 +132,6 @@ export class MCPServer {
 
       this.server.on('error', reject);
     });
-  }
-
-  private executeVaultTool(toolName: string, _params: Record<string, unknown>): Record<string, unknown> {
-    if (toolName === 'vault_index') {
-      const notes = loadAllNotes(this.logger);
-      return {
-        success: true,
-        notes: notes.map(n => ({
-          id: n.id,
-          title: n.title,
-          folder: n.folder,
-          preview: n.preview,
-          tags: n.tags,
-          word_count: n.word_count,
-          updated_at: n.updated_at,
-        })),
-        total: notes.length,
-      };
-    }
-    if (toolName === 'vault_read') {
-      const ids = Array.isArray(_params.ids) ? _params.ids as string[] : [];
-      const notes = ids.map(id => getNoteById(id)).filter(Boolean);
-      return { success: true, notes };
-    }
-    return { success: false, error: 'Vault工具未完全实现' };
   }
 
   getActualPort(): number {
@@ -215,3 +155,4 @@ export class MCPServer {
     return this.authToken;
   }
 }
+

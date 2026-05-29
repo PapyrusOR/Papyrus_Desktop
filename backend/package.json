@@ -4,6 +4,9 @@
   "description": "Papyrus Desktop TypeScript backend",
   "type": "module",
   "main": "dist/api/server.js",
+  "imports": {
+    "#/*": "./dist/*"
+  },
   "scripts": {
     "dev": "tsx watch src/api/server.ts",
     "build": "tsc",
@@ -23,6 +26,7 @@
     "markdown-it": "^14.1.0",
     "openai": "^4.96.0",
     "sharp": "^0.34.5",
+    "tar": "^7.5.15",
     "undici": "^8.2.0",
     "uuid": "^14.0.0",
     "zod": "^3.25.76"
