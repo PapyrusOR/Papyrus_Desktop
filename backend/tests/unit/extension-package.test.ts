@@ -98,4 +98,28 @@ describe('extension package manifest parser', () => {
     const zip = createZip([{ name: 'readme.txt', content: 'hello' }]);
     expect(() => parseExtensionManifestFromZip(zip)).toThrow('manifest.json');
   });
+
+  describe('edge cases', () => {
+    it('should reject zip with invalid EOCD signature', () => {
+      const badZip = Buffer.from('PK\x03\x04' + 'A'.repeat(100));
+      expect(() => parseExtensionManifestFromZip(badZip)).toThrow(/无法打开扩展 zip/);
+    });
+
+    it('should reject manifest with missing required fields', () => {
+      const zip = createZip([{
+        name: 'manifest.json',
+        content: JSON.stringify({ id: '', name: '', version: '1', type: '' }),
+      }]);
+      expect(() => parseExtensionManifestFromZip(zip)).toThrow();
+    });
+
+    it('should find manifest in nested path', () => {
+      const zip = createZip([{
+        name: 'sub/manifest.json',
+        content: JSON.stringify({ id: 'nested', name: 'Nested', version: '1.0.0', type: 'agent' }),
+      }]);
+      const manifest = parseExtensionManifestFromZip(zip);
+      expect(manifest.id).toBe('nested');
+    });
+  });
 });

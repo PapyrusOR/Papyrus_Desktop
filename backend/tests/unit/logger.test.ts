@@ -255,4 +255,20 @@ describe('PapyrusLogger', () => {
     const files = fs.readdirSync(testDir).filter(f => f.includes('.backup.'));
     expect(files.length).toBeLessThanOrEqual(2);
   });
+
+  describe('edge cases', () => {
+    it('exportLogs returns null for invalid export path', () => {
+      const logger = new PapyrusLogger(testDir);
+      const result = logger.exportLogs('/nonexistent/locked/path/xyz');
+      expect(result).toBeNull();
+    });
+
+    it('handles empty log directory gracefully', () => {
+      const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'papyrus-logger-empty-'));
+      const logger = new PapyrusLogger(emptyDir);
+      const logs = logger.getLogs('all', 10);
+      expect(Array.isArray(logs)).toBe(true);
+      try { fs.rmSync(emptyDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    });
+  });
 });

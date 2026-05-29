@@ -369,4 +369,16 @@ describe('AI provider helpers and manager utilities', () => {
     const session = getChatSession('session-regen');
     expect(session?.message_count).toBe(1);
   });
+  describe('edge cases', () => {
+    it('getProviderModality returns default for unknown model', async () => {
+      const { getProviderModality } = await import('../../src/ai/provider.js');
+      expect(getProviderModality('unknown-vendor-model')).toBe('text-only');
+    });
+
+    it('modelSupportsReasoning returns none for non-reasoning models', async () => {
+      const { modelSupportsReasoning } = await import('../../src/ai/provider.js');
+      expect(modelSupportsReasoning('openai', 'gpt-3.5-turbo')).toBe(false);
+      expect(modelSupportsReasoning('anthropic', 'claude-instant')).toBe(false);
+    });
+  });
 });

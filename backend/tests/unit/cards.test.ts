@@ -239,4 +239,42 @@ describe('Cards', () => {
       expect(stats.total).toBeGreaterThan(0);
     });
   });
+
+  describe('createCard edge cases', () => {
+    it('should create card with empty q or a (document actual behavior)', () => {
+      const card = createCard('', 'A');
+      expect(card.q).toBe('');
+      expect(card.a).toBe('A');
+    });
+  });
+
+  describe('rateCard edge cases', () => {
+    it('should return null for non-existent cardId', async () => {
+      const result = await rateCard('nonexistent123', 3);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('importCardsFromTxt edge cases', () => {
+    it('should handle mixed delimiters', () => {
+      const content = 'Q1 === A1\nQ2\tA2';
+      const cards = importCardsFromTxt(content);
+      expect(cards.length).toBe(2);
+    });
+
+    it('should skip lines without delimiters', () => {
+      const content = 'no delimiter here\nQ === A';
+      const cards = importCardsFromTxt(content);
+      expect(cards.length).toBe(1);
+      expect(cards[0]!.q).toBe('Q');
+    });
+
+    it('should handle extra whitespace around parts', () => {
+      const content = '  Q  ===  A  ';
+      const cards = importCardsFromTxt(content);
+      expect(cards.length).toBe(1);
+      expect(cards[0]!.q).toBe('Q');
+      expect(cards[0]!.a).toBe('A');
+    });
+  });
 });

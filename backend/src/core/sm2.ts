@@ -9,13 +9,15 @@ export function applySm2(card: CardState, grade: number, now?: number): { interv
   const currentTimestamp = now ?? Date.now() / 1000;
 
   const efRaw = card.ef;
-  let ef = typeof efRaw === 'number' ? efRaw : 2.5;
+  let ef = typeof efRaw === 'number' && !Number.isNaN(efRaw) ? efRaw : 2.5;
 
   const repRaw = card.repetitions;
-  let repetitions = typeof repRaw === 'number' ? Math.floor(repRaw) : 0;
+  let repetitions = typeof repRaw === 'number' && !Number.isNaN(repRaw) ? Math.max(0, Math.floor(repRaw)) : 0;
 
   const qualityMap: Record<number, number> = { 1: 1, 2: 3, 3: 5 };
-  const quality = qualityMap[grade] ?? 3;
+  let quality = qualityMap[grade] ?? 3;
+  if (grade < 1) quality = 1;
+  if (grade > 3) quality = 3;
 
   let intervalDays: number;
 
@@ -26,7 +28,7 @@ export function applySm2(card: CardState, grade: number, now?: number): { interv
       intervalDays = 6.0;
     } else {
       const intervalRaw = card.interval;
-      const intervalVal = typeof intervalRaw === 'number' ? intervalRaw : 86400.0;
+      const intervalVal = typeof intervalRaw === 'number' && !Number.isNaN(intervalRaw) ? intervalRaw : 86400.0;
       intervalDays = (intervalVal / 86400.0) * ef;
     }
     repetitions += 1;

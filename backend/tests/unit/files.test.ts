@@ -173,4 +173,26 @@ describe('Files', () => {
       result!.stream.on('error', done);
     });
   });
+
+  describe('edge cases', () => {
+    it('saveFile should throw for content exceeding 50MB', () => {
+      const oversized = Buffer.alloc(51 * 1024 * 1024).toString('base64');
+      expect(() => saveFile('big.bin', oversized)).toThrow(/超过限制/);
+    });
+
+    it('saveFile sanitizes path traversal in disk storage path', () => {
+      const content = Buffer.from('test').toString('base64');
+      const file = saveFile('..\\evil.txt', content);
+      expect(file.file_storage_path).not.toMatch(/\.\./);
+      const storageName = path.basename(file.file_storage_path!);
+      expect(storageName).not.toContain('\\');
+      // record.name preserves original for display
+      expect(file.name).toContain('..');
+    });
+
+    it('deleteFileItem returns 0 for non-existent file', () => {
+      const result = deleteFileItem('nonexistent123');
+      expect(result.deleted).toBe(0);
+    });
+  });
 });

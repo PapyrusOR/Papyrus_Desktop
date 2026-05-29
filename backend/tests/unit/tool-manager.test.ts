@@ -113,4 +113,30 @@ describe('ToolManager', () => {
     expect(manager.getCall(callId)).not.toBeNull();
     expect(manager.getCall('no-such-id')).toBeNull();
   });
+
+  describe('edge cases', () => {
+    it('setConfig stores empty auto_execute_tools', () => {
+      manager.setConfig({ mode: 'manual', auto_execute_tools: [] });
+      expect(manager.getConfig().auto_execute_tools).toEqual([]);
+    });
+
+    it('getAllCalls with limit=0 returns empty', () => {
+      manager.createPendingCall('t1', {});
+      expect(manager.getAllCalls(0).length).toBe(0);
+    });
+
+    it('getAllCalls filters by status', () => {
+      const id = manager.createPendingCall('t1', {});
+      manager.approveCall(id);
+      expect(manager.getAllCalls(100, 'approved').length).toBe(1);
+      expect(manager.getAllCalls(100, 'rejected').length).toBe(0);
+    });
+
+    it('clearHistory(false) removes pending calls', () => {
+      manager.createPendingCall('t1', {});
+      manager.clearHistory(false);
+      expect(manager.getPendingCalls().length).toBe(0);
+      expect(manager.getAllCalls().length).toBe(0);
+    });
+  });
 });

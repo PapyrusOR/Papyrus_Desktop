@@ -2421,3 +2421,42 @@ describe('API Integration Tests', () => {
     });
   });
 });
+
+describe('Review Edge Cases', () => {
+  it('POST /api/review/:cardId/rate rejects grade 0', async () => {
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: { q: 'Q', a: 'A' },
+    });
+    const card = JSON.parse(createRes.body).card as { id: string };
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/review/${card.id}/rate`,
+      payload: { grade: 0 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/review/:cardId/rate rejects non-existent card', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/review/nosuchcard/rate',
+      payload: { grade: 3 },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('Search Edge Cases', () => {
+  it('GET /api/search truncates limit to 200', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/search?query=test&limit=999' });
+    const body = JSON.parse(res.body) as { limit: number };
+    expect(body.limit).toBe(200);
+  });
+
+  it('GET /api/search returns empty when offset exceeds total', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/search?query=unlikelyxyzabc&offset=1000' });
+    expect(JSON.parse(res.body).results).toEqual([]);
+  });
+});

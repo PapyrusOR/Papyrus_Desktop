@@ -77,4 +77,20 @@ describe('auth', () => {
     expect(token).not.toBe('short');
     expect(token.length).toBeGreaterThanOrEqual(32);
   });
+
+  describe('edge cases', () => {
+    it('should reject token with different length', () => {
+      process.env.PAPYRUS_AUTH_TOKEN = 'a'.repeat(32);
+      expect(validateRequestToken('a'.repeat(31))).toBe(false);
+      expect(validateRequestToken('a'.repeat(33))).toBe(false);
+    });
+
+    it('should return null when auth disabled and no token file', () => {
+      delete process.env.PAPYRUS_AUTH_TOKEN;
+      const tokenFile = path.join(testDir, '.api_token');
+      if (fs.existsSync(tokenFile)) fs.rmSync(tokenFile);
+      expect(getAuthToken()).toBeNull();
+      expect(isAuthEnabled()).toBe(false);
+    });
+  });
 });

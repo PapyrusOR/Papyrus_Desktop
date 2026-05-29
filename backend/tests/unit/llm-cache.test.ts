@@ -248,4 +248,18 @@ describe('LLMCache', () => {
       expect(fs.existsSync(newDir)).toBe(true);
     });
   });
+
+  describe('edge cases', () => {
+    it('returns null and deletes corrupted cache file', () => {
+      fs.writeFileSync(path.join(testDir, 'corrupt.json'), '{ broken json');
+      const cache = new LLMCache(testDir);
+      expect(cache.get('corrupt')).toBeNull();
+    });
+
+    it('ttl=0 causes immediate expiration', () => {
+      const cache = new LLMCache(testDir, { ttlMs: 0 });
+      cache.set('k', [{ type: 'content', data: 'v' }]);
+      expect(cache.get('k')).toBeNull();
+    });
+  });
 });

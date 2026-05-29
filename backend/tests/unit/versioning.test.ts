@@ -288,4 +288,23 @@ describe('Versioning', () => {
       expect(history.length).toBe(0);
     });
   });
+  describe('edge cases', () => {
+    it('saveNoteVersion skips duplicate hash', () => {
+      const note = createNote('T', 'C');
+      saveNoteVersion(note);
+      saveNoteVersion(note);
+      expect(getNoteHistory(note.id).length).toBe(1);
+    });
+
+    it('rollbackNote returns null for non-existent versionId', () => {
+      const note = createNote('T', 'C');
+      const result = rollbackNote(note.id, 'nosuch-version');
+      expect(result).toBeNull();
+    });
+
+    it('rollbackCard returns null for non-existent cardId', () => {
+      const result = rollbackCard('nosuch-card', 'nosuch-version');
+      expect(result).toBeNull();
+    });
+  });
 });

@@ -262,4 +262,40 @@ describe('Notes', () => {
       expect(note.folder).toBe('sub');
     });
   });
+
+  describe('createNote edge cases', () => {
+    it('should create note with empty title (document actual behavior)', () => {
+      const note = createNote('', 'content');
+      expect(note.title).toBe('');
+      expect(note.content).toBe('content');
+    });
+  });
+
+  describe('importObsidianVault edge cases', () => {
+    it('should skip duplicate titles', () => {
+      const vaultDir = path.join(testDir, 'dup-vault');
+      fs.mkdirSync(vaultDir, { recursive: true });
+      fs.writeFileSync(path.join(vaultDir, 'a.md'), '---\ntitle: Same\n---\nA', 'utf8');
+      fs.writeFileSync(path.join(vaultDir, 'b.md'), '---\ntitle: Same\n---\nB', 'utf8');
+      const result = importObsidianVault(vaultDir);
+      expect(result.imported).toBe(1);
+    });
+
+    it('should ignore non-md files', () => {
+      const vaultDir = path.join(testDir, 'mixed-vault');
+      fs.mkdirSync(vaultDir, { recursive: true });
+      fs.writeFileSync(path.join(vaultDir, 'note.txt'), 'text', 'utf8');
+      fs.writeFileSync(path.join(vaultDir, 'note.md'), 'markdown', 'utf8');
+      const result = importObsidianVault(vaultDir);
+      expect(result.imported).toBe(1);
+    });
+
+    it('should return zero for empty vault', () => {
+      const vaultDir = path.join(testDir, 'empty-vault');
+      fs.mkdirSync(vaultDir, { recursive: true });
+      const result = importObsidianVault(vaultDir);
+      expect(result.imported).toBe(0);
+      expect(result.errors).toBe(0);
+    });
+  });
 });

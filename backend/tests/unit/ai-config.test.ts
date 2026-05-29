@@ -163,4 +163,17 @@ describe('AIConfig', () => {
     expect(config.config.current_provider).toBe('user-custom-provider');
     expect(config.config.current_model).toBe('user-custom-model');
   });
+  describe('edge cases', () => {
+    it('isPrivateUrl blocks private IP ranges', async () => {
+      const { isPrivateUrl } = await import('../../src/ai/config.js');
+      expect(isPrivateUrl('http://127.0.0.1:11434')).toBe(true);
+      expect(isPrivateUrl('http://localhost:8080')).toBe(true);
+      expect(isPrivateUrl('http://192.168.1.1')).toBe(true);
+      expect(isPrivateUrl('http://10.0.0.1')).toBe(true);
+      expect(isPrivateUrl('http://172.16.0.1')).toBe(true);
+      expect(isPrivateUrl('http://169.254.1.1')).toBe(true);
+      expect(isPrivateUrl('http://0.0.0.0')).toBe(true);
+      expect(isPrivateUrl('http://public.com')).toBe(false);
+    });
+  });
 });

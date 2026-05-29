@@ -304,4 +304,37 @@ describe('Relations', () => {
       expect(result.outgoing).toEqual([]);
     });
   });
+
+  describe('edge cases', () => {
+    it('should allow self-relation (document behavior)', () => {
+      const note = createNote('Self', 'content');
+      const id = createRelation(note.id, note.id, 'self', '');
+      expect(id).toBeTruthy();
+      const rels = getNoteRelations(note.id);
+      expect(rels.outgoing.length).toBe(1);
+      expect(rels.incoming.length).toBe(1);
+      expect(rels.outgoing[0]?.note_id).toBe(note.id);
+    });
+
+    it('getNoteGraph with depth=0 returns only center node', () => {
+      const a = createNote('A', 'content');
+      const b = createNote('B', 'content');
+      createRelation(a.id, b.id, 'ref', '');
+      const graph = getNoteGraph(a.id, 0);
+     expect(graph.links.length).toBe(0);
+      expect(graph.nodes.length).toBe(1);
+      expect(graph.links.length).toBe(0);
+      expect(graph.nodes[0]?.is_center).toBe(true);
+      expect(graph.nodes[0]?.id).toBe(a.id);
+    });
+
+    it('searchForRelation excludes the requesting note from results', () => {
+      const a = createNote('Requester', 'content');
+      const b = createNote('TargetNote', 'TargetContent');
+      const results = searchForRelation('Target', a.id, 10);
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.some(r => r.id === b.id)).toBe(true);
+      expect(results.some(r => r.id === a.id)).toBe(false);
+    });
+  });
 });

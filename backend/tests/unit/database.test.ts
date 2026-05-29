@@ -592,4 +592,22 @@ describe('Database', () => {
       expect(folderIdx).toBeLessThan(fileIdx);
     });
   });
+
+  describe('edge cases', () => {
+    it('updateCard handles non-existent id without error', () => {
+      const result = updateCard({ id: 'nosuch', q: 'x', a: 'y' });
+      expect(typeof result).toBe('boolean');
+    });
+
+    it('getCardsDueBefore returns empty array when no cards due', () => {
+      const result = getCardsDueBefore(0);
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(0);
+    });
+
+    it('getNoteById returns null for non-existent id', () => {
+      const result = getNoteById('nosuch');
+      expect(result).toBeNull();
+    });
+  });
 });

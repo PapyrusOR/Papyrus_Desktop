@@ -181,4 +181,23 @@ describe('Crypto', () => {
     expect(() => encryptApiKey('test')).toThrow();
     spy.mockRestore();
   });
+  describe('edge cases', () => {
+    it('should return empty string for corrupted encrypted data', () => {
+      const corrupted = 'enc:' + Buffer.from('garbage').toString('base64url');
+      expect(decryptApiKey(corrupted)).toBe('');
+    });
+
+    it('should encrypt and decrypt empty string', () => {
+      const encrypted = encryptApiKey('');
+      expect(decryptApiKey(encrypted)).toBe('');
+    });
+
+    it('should decrypt plain: prefix correctly', () => {
+      expect(decryptApiKey('plain:hello')).toBe('hello');
+    });
+
+    it('should decrypt legacy plaintext without prefix', () => {
+      expect(decryptApiKey('just-a-key')).toBe('just-a-key');
+    });
+  });
 });
