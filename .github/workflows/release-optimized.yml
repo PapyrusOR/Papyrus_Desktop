@@ -226,14 +226,14 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const file = 'backend/dist/db/database.js';
-          const target = '  seedDefaults(database);';
+          const target = 'function seedDefaults(database) {';
           const replacement = [
+            'function seedDefaults(database) {',
             '  // CI release build keeps first-run user data clean by default.',
             '  // Source stays unchanged; this only affects the packaged backend output.',
-            "  if (process.env.PAPYRUS_ENABLE_SEED_DATA === 'true') {",
-            '    seedDefaults(database);',
-            '  }',
+            "  if (process.env.PAPYRUS_ENABLE_SEED_DATA !== 'true') { return; }",
           ].join('\n');
+
 
           if (!fs.existsSync(file)) {
             console.error(`Missing compiled database file: ${file}`);
@@ -243,14 +243,14 @@ jobs:
           const content = fs.readFileSync(file, 'utf8');
           const occurrences = content.split(target).length - 1;
           if (occurrences !== 1) {
-            console.error(`Expected exactly one default seed call in ${file}, found ${occurrences}`);
+            console.error(`Expected exactly one seedDefaults() definition in ${file}, found ${occurrences}`);
             process.exit(1);
           }
 
           fs.writeFileSync(file, content.replace(target, replacement));
           NODE
 
-          if grep -R -E "DEMO_CARDS|demo-[0-9]+|艾宾浩斯遗忘曲线|Python 中列表推导式|SQL 注入攻击" frontend/dist >/dev/null 2>&1; then
+          if [ -d "frontend/dist" ] && grep -R -E "DEMO_CARDS|demo-[0-9]+|艾宾浩斯遗忘曲线|Python 中列表推导式|SQL 注入攻击" frontend/dist >/dev/null 2>&1; then
             echo "Error: frontend production bundle still contains demo/mock review card data."
             echo "Refusing to package dirty first-run data."
             exit 1
