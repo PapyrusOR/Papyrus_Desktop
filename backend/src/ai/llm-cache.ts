@@ -79,7 +79,7 @@ export class LLMCache {
       if (!Array.isArray(entry.chunks)) return null;
 
       const createdAt = entry.createdAt;
-      if (typeof createdAt === 'number' && Date.now() - createdAt > this.ttlMs) {
+      if (typeof createdAt === 'number' && Date.now() - createdAt >= this.ttlMs) {
         fs.rmSync(filePath, { force: true });
         return null;
       }
