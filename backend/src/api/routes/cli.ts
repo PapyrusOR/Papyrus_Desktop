@@ -52,7 +52,7 @@ export default async function cliRoutes(fastify: FastifyInstance): Promise<void>
       reply.send(await defaultCliManager.run(args));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'CLI 运行失败';
-      request.log.error({ err }, message);
+      request.log.warn({ err }, message);
       reply.status(400).send({ success: false, error: message });
     }
   });

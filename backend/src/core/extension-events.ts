@@ -16,6 +16,9 @@ export function addExtensionEventClient(res: ServerResponse): void {
     clients.delete(res);
     console.log(`[extensions] SSE client disconnected: ${clients.size}`);
   });
+  res.on('error', () => {
+    clients.delete(res);
+  });
 }
 
 export function pushExtensionEvent(type: ExtensionEvent['type'], payload: Record<string, unknown>): void {
@@ -30,7 +33,12 @@ export function pushExtensionEvent(type: ExtensionEvent['type'], payload: Record
   console.log(`[extensions] push event ${type} to ${enabledExtensions.length} enabled extensions`);
 
   for (const client of clients) {
-    client.write(`event: ${type}\n`);
-    client.write(`data: ${JSON.stringify(event)}\n\n`);
+    try {
+      client.write(`event: ${type}\n`);
+      client.write(`data: ${JSON.stringify(event)}\n\n`);
+    } catch {
+      // 客户端已断开连接，移除并继续
+      clients.delete(client);
+    }
   }
 }
