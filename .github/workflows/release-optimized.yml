@@ -394,7 +394,7 @@ jobs:
         working-directory: backend
         shell: bash
         run: |
-          npm test -- --verbose 2>&1 | tee test-output.log
+          npm test -- --runInBand --verbose 2>&1 | tee test-output.log
           TEST_EXIT=${PIPESTATUS[0]}
           if [ $TEST_EXIT -ne 0 ]; then
             echo "Tests failed with exit code $TEST_EXIT"
@@ -435,6 +435,22 @@ jobs:
             package-lock.json
             frontend/package-lock.json
             backend/package-lock.json
+
+      - name: Install Dependencies
+        shell: bash
+        run: |
+          echo "Installing dependencies for security audit..."
+          npm ci --ignore-scripts --no-audit --no-fund --prefer-offline
+          (cd frontend && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline)
+          (cd backend && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline)
+
+      - name: Apply Available Audit Fixes
+        shell: bash
+        run: |
+          echo "Applying available audit fixes in the CI workspace..."
+          npm audit fix --ignore-scripts --no-audit --no-fund
+          (cd frontend && npm audit fix --ignore-scripts --no-audit --no-fund)
+          (cd backend && npm audit fix --ignore-scripts --no-audit --no-fund)
 
       - name: Run npm audit (Root)
         run: npm audit --audit-level=moderate
