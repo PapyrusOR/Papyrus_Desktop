@@ -356,7 +356,6 @@ jobs:
     name: Run Tests &amp; Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test') || contains(github.event.pull_request.labels.*.name, 'typecheck')
 
     steps:
       - name: Checkout Code
@@ -402,6 +401,12 @@ jobs:
             exit $TEST_EXIT
           fi
 
+      - name: Run Root Script Tests
+        run: npm run test:bump
+
+      - name: Run E2E API Tests
+        run: npx playwright test -c e2e/playwright.config.ts
+
       - name: Upload Test Output on Failure
         if: failure()
         uses: actions/upload-artifact@v7.0.1
@@ -414,7 +419,6 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'security')
 
     steps:
       - name: Checkout Code
