@@ -218,6 +218,46 @@ jobs:
           # 直接跳过rebuild，项目中没有native modules需要重新编译
           npm prune --production
 
+      - name: Clean Packaged First-Run Data
+        shell: bash
+        run: |
+          echo "Cleaning packaged first-run data..."
+
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'backend/dist/db/database.js';
+          const target = '  seedDefaults(database);';
+          const replacement = [
+            '  // CI release build keeps first-run user data clean by default.',
+            '  // Source stays unchanged; this only affects the packaged backend output.',
+            "  if (process.env.PAPYRUS_ENABLE_SEED_DATA === 'true') {",
+            '    seedDefaults(database);',
+            '  }',
+          ].join('\n');
+
+          if (!fs.existsSync(file)) {
+            console.error(`Missing compiled database file: ${file}`);
+            process.exit(1);
+          }
+
+          const content = fs.readFileSync(file, 'utf8');
+          const occurrences = content.split(target).length - 1;
+          if (occurrences !== 1) {
+            console.error(`Expected exactly one default seed call in ${file}, found ${occurrences}`);
+            process.exit(1);
+          }
+
+          fs.writeFileSync(file, content.replace(target, replacement));
+          NODE
+
+          if grep -R -E "DEMO_CARDS|demo-[0-9]+|艾宾浩斯遗忘曲线|Python 中列表推导式|SQL 注入攻击" frontend/dist >/dev/null 2>&1; then
+            echo "Error: frontend production bundle still contains demo/mock review card data."
+            echo "Refusing to package dirty first-run data."
+            exit 1
+          fi
+
+          echo "Packaged first-run data cleanup passed"
+
       - name: Build Electron App
         shell: bash
         run: |
@@ -387,8 +427,28 @@ jobs:
         run: |
           echo "Running typechecks in parallel..."
           (cd frontend && npm run typecheck) &
+          FRONTEND_PID=$!
           (cd backend && npm run typecheck) &
-          wait
+          BACKEND_PID=$!
+
+          FRONTEND_EXIT=0
+          BACKEND_EXIT=0
+
+          wait "$FRONTEND_PID" || FRONTEND_EXIT=$?
+          wait "$BACKEND_PID" || BACKEND_EXIT=$?
+
+          if [ "$FRONTEND_EXIT" -ne 0 ]; then
+            echo "Frontend typecheck failed with exit code $FRONTEND_EXIT"
+          fi
+          if [ "$BACKEND_EXIT" -ne 0 ]; then
+            echo "Backend typecheck failed with exit code $BACKEND_EXIT"
+          fi
+
+          if [ "$FRONTEND_EXIT" -ne 0 ] || [ "$BACKEND_EXIT" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "Frontend and backend typechecks passed"
 
       - name: Run Backend Tests
         working-directory: backend
