@@ -12,6 +12,7 @@ import {
 interface UseFlashcardStudyProps {
   demo: boolean;
   filterTag?: string;
+  targetCardId?: string;
   onExit: () => void;
 }
 
@@ -35,6 +36,7 @@ interface UseFlashcardStudyReturn {
 export function useFlashcardStudy({
   demo,
   filterTag,
+  targetCardId,
   onExit: _onExit,
 }: UseFlashcardStudyProps): UseFlashcardStudyReturn {
   const [studyState, setStudyState] = useState<StudyState>('loading');
@@ -46,6 +48,7 @@ export function useFlashcardStudy({
   const [isDemo, setIsDemo] = useState(demo);
   const [demoIndex, setDemoIndex] = useState(0);
   const loadedRef = useRef(false);
+  const lastTargetCardIdRef = useRef<string | undefined>(undefined);
 
   const loadDemoCard = useCallback((index: number) => {
     const remaining = DEMO_CARDS.length - index;
@@ -67,6 +70,19 @@ export function useFlashcardStudy({
       setDueCount(res.due_count);
       setTotalCount(res.total_count);
 
+      if (targetCardId) {
+        const cardsRes = await api.listCards();
+        const targetCard = cardsRes.cards.find(card => card.id === targetCardId);
+        if (targetCard && (targetCard.next_review || 0) <= Date.now() / 1000) {
+          setCurrentCard(targetCard);
+          setStudyState('question');
+          return;
+        }
+        if (targetCard) {
+          Message.info('该卡片尚未到复习时间，已切换到当前待复习卡片');
+        }
+      }
+
       if (res.card) {
         setCurrentCard(res.card);
         setStudyState('question');
@@ -80,11 +96,12 @@ export function useFlashcardStudy({
       Message.error(msg);
       setStudyState('empty');
     }
-  }, [filterTag]);
+  }, [filterTag, targetCardId]);
 
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
+    lastTargetCardIdRef.current = targetCardId;
 
     setStudyState('loading');
     if (isDemo) {
@@ -92,7 +109,17 @@ export function useFlashcardStudy({
     } else {
       loadRealCard();
     }
-  }, [isDemo, loadDemoCard, loadRealCard]);
+  }, [isDemo, loadDemoCard, loadRealCard, targetCardId]);
+
+  useEffect(() => {
+    if (!targetCardId || isDemo || lastTargetCardIdRef.current === targetCardId) {
+      return;
+    }
+    lastTargetCardIdRef.current = targetCardId;
+    setLastResult(null);
+    setStudyState('loading');
+    void loadRealCard();
+  }, [isDemo, loadRealCard, targetCardId]);
 
   useEffect(() => {
     if (isDemo || studyState === 'empty' || studyState === 'loading') return;

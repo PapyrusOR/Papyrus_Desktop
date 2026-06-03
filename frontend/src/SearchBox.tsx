@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Input, Spin, Empty, Tag, Typography } from '@arco-design/web-react';
 import { IconSearch, IconFile, IconBook } from '@arco-design/web-react/icon';
+import { useTranslation } from 'react-i18next';
 import { api, type SearchResult } from './api';
 import { useShortcuts } from './hooks/useShortcuts';
 
@@ -13,6 +14,7 @@ interface SearchBoxProps {
 const { Text } = Typography;
 
 const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: SearchBoxProps) => {
+  const { t } = useTranslation();
   const { getShortcutDisplay } = useShortcuts();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -181,16 +183,22 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
     if (type === 'note') {
       return <IconFile className="tw-text-base tw-text-arco-text-2" />;
     }
+    if (type === 'file') {
+      return <IconFile className="tw-text-base tw-text-arco-text-2" />;
+    }
     return <IconBook className="tw-text-base tw-text-arco-text-2" />;
   };
 
   const getMatchedFieldLabel = (field: string) => {
     const labels: Record<string, string> = {
-      title: '标题',
-      content: '内容',
-      tags: '标签',
-      question: '问题',
-      answer: '答案',
+      title: t('searchBox.fields.title'),
+      content: t('searchBox.fields.content'),
+      tags: t('searchBox.fields.tags'),
+      question: t('searchBox.fields.question'),
+      answer: t('searchBox.fields.answer'),
+      name: t('searchBox.fields.name'),
+      file_type: t('searchBox.fields.fileType'),
+      mime_type: t('searchBox.fields.mimeType'),
     };
     return labels[field] || field;
   };
@@ -199,7 +207,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
     <div ref={containerRef} className="tw-relative tw-w-full">
       <Input
         ref={inputRef}
-        placeholder={`搜索 (${getShortcutDisplay('search')})`}
+        placeholder={t('searchBox.placeholder', { shortcut: getShortcutDisplay('search') })}
         prefix={<IconSearch aria-hidden="true" />}
         size="small"
         value={query}
@@ -216,7 +224,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
 
         className="titlebar-search-input"
         allowClear
-        aria-label={`搜索笔记和卡片，按 ${getShortcutDisplay('search')} 快速聚焦`}
+        aria-label={t('searchBox.ariaLabel', { shortcut: getShortcutDisplay('search') })}
         aria-autocomplete="list"
         aria-controls={isOpen ? 'search-results-listbox' : undefined}
         aria-expanded={isOpen}
@@ -228,7 +236,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
         <div
           id="search-results-listbox"
           role="listbox"
-          aria-label="搜索结果"
+          aria-label={t('searchBox.resultsAriaLabel')}
           className="tw-absolute tw-left-0 tw-right-0 tw-z-50 tw-overflow-hidden tw-bg-arco-bg-popup tw-rounded-arco-lg tw-border tw-border-arco-border-2 no-drag search-dropdown-enter"
           style={{
             top: 'calc(100% + 8px)',
@@ -247,7 +255,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
             {/* 空状态 */}
             {!isLoading && query.trim() && results.length === 0 && (
               <div className="tw-flex tw-items-center tw-justify-center" style={{ height: '180px' }}>
-                <Empty description="未找到相关结果" />
+                <Empty description={t('searchBox.noResults')} />
               </div>
             )}
 
@@ -255,12 +263,12 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
             {!isLoading && !query.trim() && (
               <div className="tw-p-6">
                 <Text type="secondary" className="tw-text-sm">
-                  输入关键词搜索笔记和卡片...
+                  {t('searchBox.initialHint')}
                 </Text>
                 <div className="tw-mt-4 tw-flex tw-gap-2 tw-flex-wrap">
-                  <Tag size="small" className="tw-text-xs">↑↓ 导航</Tag>
-                  <Tag size="small" className="tw-text-xs">↵ 选择</Tag>
-                  <Tag size="small" className="tw-text-xs">Esc 关闭</Tag>
+                  <Tag size="small" className="tw-text-xs">{t('searchBox.keyboardNavigate')}</Tag>
+                  <Tag size="small" className="tw-text-xs">{t('searchBox.keyboardSelect')}</Tag>
+                  <Tag size="small" className="tw-text-xs">{t('searchBox.keyboardClose')}</Tag>
                 </div>
               </div>
             )}
@@ -271,17 +279,22 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
                 {/* 统计信息 */}
                 <div className="tw-px-4 tw-py-2.5 tw-border-b tw-border-arco-border-2 tw-flex tw-justify-between tw-items-center">
                   <Text type="secondary" className="tw-text-xs">
-                    找到 {results.length} 个结果
+                    {t('searchBox.resultCount', { count: results.length })}
                   </Text>
                   <div className="tw-flex tw-gap-2">
                     {results.some(r => r.type === 'note') && (
                       <Tag size="small" color="arcoblue">
-                        笔记 {results.filter(r => r.type === 'note').length}
+                        {t('searchBox.noteCount', { count: results.filter(r => r.type === 'note').length })}
                       </Tag>
                     )}
                     {results.some(r => r.type === 'card') && (
                       <Tag size="small" color="green">
-                        卡片 {results.filter(r => r.type === 'card').length}
+                        {t('searchBox.cardCount', { count: results.filter(r => r.type === 'card').length })}
+                      </Tag>
+                    )}
+                    {results.some(r => r.type === 'file') && (
+                      <Tag size="small" color="orange">
+                        {t('searchBox.fileCount', { count: results.filter(r => r.type === 'file').length })}
                       </Tag>
                     )}
                   </div>

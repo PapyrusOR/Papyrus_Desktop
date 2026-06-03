@@ -141,13 +141,17 @@ export type ImportObsidianRes = {
 // ========== Search Types ==========
 export type SearchResult = {
   id: string;
-  type: 'note' | 'card';
+  type: 'note' | 'card' | 'file';
   title: string;
   preview: string;
   folder: string;
   tags: string[];
   matched_field: string;
   updated_at: number;
+  parent_id?: string | null;
+  is_folder?: boolean;
+  file_type?: string;
+  mime_type?: string;
 };
 
 export type SearchRes = {
@@ -157,6 +161,7 @@ export type SearchRes = {
   total: number;
   notes_count: number;
   cards_count: number;
+  files_count?: number;
 };
 
 // ========== AI Config Types ==========

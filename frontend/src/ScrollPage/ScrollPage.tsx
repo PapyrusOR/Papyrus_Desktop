@@ -21,7 +21,7 @@ import { generateCollections, generateScrolls } from './utils';
 import { PRIMARY_COLOR } from './constants';
 import type { ScrollPageProps } from './types';
 
-const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
+const ScrollPage = ({ initialTag, initialCardId, onInitialTagUsed, onInitialCardIdUsed }: ScrollPageProps) => {
   const { t } = useTranslation();
   const [isStudying, setIsStudying] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
@@ -45,6 +45,7 @@ const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
   const [newCardAnswer, setNewCardAnswer] = useState('');
   const [newCardTags, setNewCardTags] = useState('');
   const [isSubmittingCard, setIsSubmittingCard] = useState(false);
+  const [targetCardId, setTargetCardId] = useState<string | undefined>(undefined);
 
   usePageScenery('scroll');
 
@@ -137,6 +138,7 @@ const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
 
   const startStudy = (tag?: string) => {
     setIsExiting(false);
+    setTargetCardId(undefined);
     setFilterTag(tag);
     setIsDemo(false);
     setIsStudying(true);
@@ -147,6 +149,7 @@ const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
     setTimeout(() => {
       setIsStudying(false);
       setIsExiting(false);
+      setTargetCardId(undefined);
     }, 300);
   };
 
@@ -157,6 +160,17 @@ const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTag]);
+
+  useEffect(() => {
+    if (initialCardId) {
+      setIsExiting(false);
+      setTargetCardId(initialCardId);
+      setFilterTag(undefined);
+      setIsDemo(false);
+      setIsStudying(true);
+      onInitialCardIdUsed?.();
+    }
+  }, [initialCardId, onInitialCardIdUsed]);
 
   const startDemo = () => {
     setIsDemo(true);
@@ -242,7 +256,7 @@ const ScrollPage = ({ initialTag, onInitialTagUsed }: ScrollPageProps) => {
           ? 'flashcardStudyExit 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards'
           : 'flashcardStudyEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards',
       }}>
-        <FlashcardStudy onExit={handleExitStudy} demo={isDemo} filterTag={filterTag} />
+        <FlashcardStudy onExit={handleExitStudy} demo={isDemo} filterTag={filterTag} targetCardId={targetCardId} />
         <style>{`
           @keyframes flashcardStudyEnter {
             from {

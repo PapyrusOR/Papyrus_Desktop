@@ -43,6 +43,11 @@ export default async function updateRoutes(fastify: FastifyInstance): Promise<vo
     try {
       const res = await fetchWithProxy(`https://api.github.com/repos/${REPO}/releases/latest`, {
         signal: AbortSignal.timeout(10000),
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'User-Agent': `Papyrus-Desktop/${CURRENT_VERSION}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
       });
       if (!res.ok) {
         const errorMessage = res.status === 403

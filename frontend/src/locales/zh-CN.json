@@ -519,9 +519,15 @@
     "pageNotFound": "页面 '{{page}}' 不存在于页面顺序列表中",
     "openNote": "打开笔记: {{title}}",
     "navigateToReview": "跳转到复习页面",
+    "openFile": "打开文件: {{title}}",
     "skipToMainContent": "跳转到主内容",
     "backToTop": "返回顶部",
     "mainContent": "主内容",
+    "mainContentPage": "{{title}}页面",
+    "chatPanel": "AI 助手聊天面板",
+    "resizeChatPanel": "调整聊天面板宽度",
+    "collapseChatPanel": "收起聊天面板",
+    "expandChatPanel": "展开聊天面板",
     "pageTitles": {
       "start": "开始",
       "scroll": "复习",
@@ -530,6 +536,30 @@
       "files": "文件",
       "extensions": "扩展",
       "settings": "设置"
+    }
+  },
+  "searchBox": {
+    "placeholder": "搜索 ({{shortcut}})",
+    "ariaLabel": "搜索笔记、卡片和文件，按 {{shortcut}} 快速聚焦",
+    "resultsAriaLabel": "搜索结果",
+    "noResults": "未找到相关结果",
+    "initialHint": "输入关键词搜索笔记、卡片和文件...",
+    "keyboardNavigate": "↑↓ 导航",
+    "keyboardSelect": "↵ 选择",
+    "keyboardClose": "Esc 关闭",
+    "resultCount": "找到 {{count}} 个结果",
+    "noteCount": "笔记 {{count}}",
+    "cardCount": "卡片 {{count}}",
+    "fileCount": "文件 {{count}}",
+    "fields": {
+      "title": "标题",
+      "content": "内容",
+      "tags": "标签",
+      "question": "问题",
+      "answer": "答案",
+      "name": "名称",
+      "fileType": "文件类型",
+      "mimeType": "MIME 类型"
     }
   },
   "scrollPage": {

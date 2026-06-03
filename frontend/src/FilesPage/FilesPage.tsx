@@ -118,6 +118,11 @@ const FILTER_MAP: Record<FilterTag, (f: FileItemData) => boolean> = {
   '音频': (f) => !f.is_folder && f.type === 'audio',
 };
 
+interface FilesPageProps {
+  initialFileId?: string;
+  onInitialFileIdUsed?: () => void;
+}
+
 
 
 function fileToBase64(file: File): Promise<string> {
@@ -134,7 +139,7 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-const FilesPage = () => {
+const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [allFiles, setAllFiles] = useState<FileItemData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,6 +322,54 @@ const FilesPage = () => {
       window.open(getFileUrl(file.id, 'download'), '_blank');
     }
   }, []);
+
+  const buildFolderStack = useCallback((folderId: string | null, files: FileItemData[]) => {
+    const stack: Array<{ id: string | null; name: string }> = [{ id: null, name: '文件库' }];
+    if (!folderId) {
+      return stack;
+    }
+
+    const byId = new Map(files.map(file => [file.id, file]));
+    const folders: FileItemData[] = [];
+    let currentId: string | null = folderId;
+    while (currentId) {
+      const folder = byId.get(currentId);
+      if (!folder) break;
+      folders.unshift(folder);
+      currentId = folder.parent_id;
+    }
+
+    for (const folder of folders) {
+      stack.push({ id: folder.id, name: folder.name });
+    }
+    return stack;
+  }, []);
+
+  useEffect(() => {
+    if (!initialFileId || loading) {
+      return;
+    }
+
+    const target = allFiles.find(file => file.id === initialFileId);
+    if (!target) {
+      onInitialFileIdUsed?.();
+      return;
+    }
+
+    if (target.is_folder) {
+      setFolderNavDirection('forward');
+      setCurrentFolder(target.id);
+      setFolderStack(buildFolderStack(target.id, allFiles));
+      setActiveFilter('全部');
+    } else {
+      setFolderNavDirection('forward');
+      setCurrentFolder(target.parent_id);
+      setFolderStack(buildFolderStack(target.parent_id, allFiles));
+      setActiveFilter('全部');
+      handleFileClick(target);
+    }
+    onInitialFileIdUsed?.();
+  }, [allFiles, buildFolderStack, handleFileClick, initialFileId, loading, onInitialFileIdUsed]);
 
   const handleBreadcrumbClick = (index: number) => {
     const target = folderStack[index];

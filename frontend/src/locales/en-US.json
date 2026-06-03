@@ -519,9 +519,15 @@
     "pageNotFound": "Page '{{page}}' not found in page order list",
     "openNote": "Open note: {{title}}",
     "navigateToReview": "Navigate to review page",
+    "openFile": "Open file: {{title}}",
     "skipToMainContent": "Skip to main content",
     "backToTop": "Back to top",
     "mainContent": "Main content",
+    "mainContentPage": "{{title}} page",
+    "chatPanel": "AI assistant chat panel",
+    "resizeChatPanel": "Resize chat panel",
+    "collapseChatPanel": "Collapse chat panel",
+    "expandChatPanel": "Expand chat panel",
     "pageTitles": {
       "start": "Start",
       "scroll": "Review",
@@ -530,6 +536,30 @@
       "files": "Files",
       "extensions": "Extensions",
       "settings": "Settings"
+    }
+  },
+  "searchBox": {
+    "placeholder": "Search ({{shortcut}})",
+    "ariaLabel": "Search notes, cards, and files. Press {{shortcut}} to focus",
+    "resultsAriaLabel": "Search results",
+    "noResults": "No related results found",
+    "initialHint": "Enter keywords to search notes, cards, and files...",
+    "keyboardNavigate": "↑↓ Navigate",
+    "keyboardSelect": "↵ Select",
+    "keyboardClose": "Esc Close",
+    "resultCount": "{{count}} results found",
+    "noteCount": "Notes {{count}}",
+    "cardCount": "Cards {{count}}",
+    "fileCount": "Files {{count}}",
+    "fields": {
+      "title": "Title",
+      "content": "Content",
+      "tags": "Tags",
+      "question": "Question",
+      "answer": "Answer",
+      "name": "Name",
+      "fileType": "File type",
+      "mimeType": "MIME type"
     }
   },
   "scrollPage": {

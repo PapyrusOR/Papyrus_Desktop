@@ -105,7 +105,7 @@ jobs:
 
       - name: Create Empty Release
         if: steps.prepare.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.prepare.outputs.tag_name }}
           name: ${{ steps.prepare.outputs.tag_name }}
@@ -234,7 +234,7 @@ jobs:
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 75
     needs: [prepare-release]
     permissions:
       contents: write
@@ -254,12 +254,12 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
           node-version: '24.15.0'
           cache: 'npm'
@@ -392,7 +392,7 @@ jobs:
 
       - name: Upload Release Asset
         if: needs.prepare-release.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare-release.outputs.tag_name }}
           files: |
@@ -459,7 +459,7 @@ jobs:
             "${{ steps.release-notes.outputs.to_ref }}"
 
       - name: Update Release with Notes
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare-release.outputs.tag_name }}
           body_path: RELEASE_NOTES.md

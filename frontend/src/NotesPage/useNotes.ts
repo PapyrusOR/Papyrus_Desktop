@@ -22,7 +22,7 @@ export interface UseNotesReturn {
   
   // 操作方法
   setActiveFolder: (folder: string) => void;
-  saveNote: (params: UpdateNoteParams | CreateNoteParams, isCreate: boolean) => Promise<{ id: string } | undefined>;
+  saveNote: (params: UpdateNoteParams | CreateNoteParams, isCreate: boolean) => Promise<Note | undefined>;
   deleteNote: (id: string) => Promise<void>;
   refreshNotes: () => Promise<void>;
   importFromObsidian: (vaultPath: string) => Promise<{ imported: number; skipped: number }>;
@@ -45,7 +45,16 @@ const generateTags = (notes: Note[]): string[] => {
   return Array.from(tagSet);
 };
 
-
+const formatNote = (n: Awaited<ReturnType<typeof api.listNotes>>['notes'][number]): Note => ({
+  id: n.id,
+  title: n.title,
+  folder: n.folder,
+  preview: n.preview,
+  tags: n.tags,
+  updatedAtTimestamp: n.updated_at,
+  wordCount: n.word_count,
+  content: n.content,
+});
 
 export const useNotes = (): UseNotesReturn => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -61,16 +70,7 @@ export const useNotes = (): UseNotesReturn => {
       const response = await api.listNotes();
       if (response.success) {
         // 转换后端数据格式到前端格式
-        const formattedNotes: Note[] = response.notes.map(n => ({
-          id: n.id,
-          title: n.title,
-          folder: n.folder,
-          preview: n.preview,
-          tags: n.tags,
-          updatedAtTimestamp: n.updated_at,
-          wordCount: n.word_count,
-          content: n.content,
-        }));
+        const formattedNotes: Note[] = response.notes.map(formatNote);
         setNotes(formattedNotes);
       }
     } catch (err) {
@@ -119,7 +119,7 @@ export const useNotes = (): UseNotesReturn => {
     isCreate: boolean
   ) => {
     try {
-      let createdNote = null;
+      let savedNote: Note | undefined;
       if (isCreate) {
         const createParams = params as CreateNoteParams;
         const result = await api.createNote(
@@ -128,7 +128,7 @@ export const useNotes = (): UseNotesReturn => {
           createParams.content,
           createParams.tags
         );
-        createdNote = result.note;
+        savedNote = formatNote(result.note);
       } else {
         const updateParams = params as UpdateNoteParams;
         const result = await api.updateNote(updateParams.id, {
@@ -137,11 +137,11 @@ export const useNotes = (): UseNotesReturn => {
           content: updateParams.content,
           tags: updateParams.tags,
         });
-        createdNote = result.note;
+        savedNote = formatNote(result.note);
       }
       await refreshNotes();
       window.dispatchEvent(new CustomEvent('papyrus_notes_changed'));
-      return createdNote;
+      return savedNote;
     } catch (err) {
       const message = err instanceof Error ? err.message : '保存失败';
       throw new Error(message);

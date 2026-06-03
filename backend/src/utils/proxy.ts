@@ -1,6 +1,8 @@
 import { execSync } from 'node:child_process';
 import { fetch as undiciFetch, ProxyAgent } from 'undici';
 
+const GITHUB_DIRECT_FALLBACK_TIMEOUT_MS = 5000;
+
 function getWindowsProxy(): string | undefined {
   try {
     const enabled = execSync(
@@ -95,6 +97,8 @@ export function isProxyConnectionError(error: unknown): boolean {
   // Runtime-safe: undici wraps socket-level errors in `cause.code`
   const causeCode = (error as unknown as { cause?: { code?: string } }).cause?.code;
   return (
+    error.name === 'TimeoutError' ||
+    error.name === 'AbortError' ||
     causeCode === 'ECONNREFUSED' ||
     causeCode === 'ETIMEDOUT' ||
     causeCode === 'ECONNRESET' ||
@@ -104,19 +108,30 @@ export function isProxyConnectionError(error: unknown): boolean {
   );
 }
 
+function isGitHubUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname.toLowerCase();
+    return hostname.endsWith('github.com') || hostname.endsWith('githubusercontent.com');
+  } catch {
+    return false;
+  }
+}
+
+function withTimeoutSignal(init: RequestInit | undefined, timeoutMs: number): RequestInit {
+  if (init?.signal) {
+    return init;
+  }
+  return { ...init, signal: AbortSignal.timeout(timeoutMs) };
+}
+
 export async function fetchWithProxy(url: string, init?: RequestInit): Promise<Response> {
   const proxyUrl = getProxyUrl();
   if (!proxyUrl) {
     return global.fetch(url, init);
   }
 
-  try {
-    const parsedUrl = new URL(url);
-    const hostname = parsedUrl.hostname.toLowerCase();
-    if (!hostname.endsWith('github.com') && !hostname.endsWith('githubusercontent.com')) {
-      return global.fetch(url, init);
-    }
-  } catch {
+  if (!isGitHubUrl(url)) {
     return global.fetch(url, init);
   }
 
@@ -135,7 +150,7 @@ export async function fetchWithProxy(url: string, init?: RequestInit): Promise<R
       throw error;
     }
     try {
-      return await global.fetch(url, init);
+      return await global.fetch(url, withTimeoutSignal(init, GITHUB_DIRECT_FALLBACK_TIMEOUT_MS));
     } catch (directError) {
       const reason = directError instanceof Error ? directError.message : String(directError);
       throw new Error(`通过代理 ${proxyUrl} 连接失败，已尝试直连仍失败：${reason}`);

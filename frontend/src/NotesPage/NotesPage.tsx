@@ -131,6 +131,9 @@ const NotesPage = ({ initialNoteId, onInitialNoteIdUsed }: NotesPageProps) => {
     shouldReturnToList = true
   ) => {
     const result = await saveNote(params, isCreate);
+    if (result) {
+      setSelectedNote(result);
+    }
     if (shouldReturnToList) {
       setAnimationDirection('out');
       setTimeout(() => {

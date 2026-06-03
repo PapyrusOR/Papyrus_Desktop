@@ -19,7 +19,9 @@ export interface Scroll {
 
 export interface ScrollPageProps {
   initialTag?: string;
+  initialCardId?: string;
   onInitialTagUsed?: () => void;
+  onInitialCardIdUsed?: () => void;
 }
 
 export interface CollectionCardProps {

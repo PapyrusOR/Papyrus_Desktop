@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Typography, Input, Tag, Button, Breadcrumb, Message, Modal, Dropdown } from '@arco-design/web-react';
 import SmartTextArea, { type SmartTextAreaRef } from '../../components/SmartTextArea';
 import { useTranslation } from 'react-i18next';
@@ -72,6 +72,15 @@ export const NoteDetailView = ({
   // 创建模式状态和已创建笔记的 ID（用于创建后的自动保存）
   const [isCreateMode, setIsCreateMode] = useState(initialIsCreateMode);
   const [createdNoteId, setCreatedNoteId] = useState<string | null>(null);
+  const latestStateRef = useRef({
+    title: '',
+    content: '',
+    folder: '',
+    tags: [] as string[],
+    noteId: undefined as string | undefined,
+    createdNoteId: null as string | null,
+    isCreateMode: initialIsCreateMode,
+  });
 
   // 插入标题
   const insertHeading = (level: number) => {
@@ -94,14 +103,14 @@ export const NoteDetailView = ({
       const newLockedState = e.detail.locked;
       setIsGloballyLocked(newLockedState);
       // 如果全局锁定且当前可编辑（非创建模式），自动保存
-      if (newLockedState && !isCreateMode) {
+      if (newLockedState && !latestStateRef.current.isCreateMode) {
         void handleSave(false);
       }
     };
 
     window.addEventListener('papyrus_edit_lock_changed', handleLockChange as EventListener);
     return () => window.removeEventListener('papyrus_edit_lock_changed', handleLockChange as EventListener);
-  }, [isCreateMode]);
+  }, []);
 
   // 初始化表单 - 编辑模式
   useEffect(() => {
@@ -110,6 +119,7 @@ export const NoteDetailView = ({
       setContent(note.content || note.preview);
       setFolder(note.folder);
       setTags(note.tags);
+      isDirty.current = false;
     }
   }, [note]);
 
@@ -119,6 +129,7 @@ export const NoteDetailView = ({
       setContent('');
       setFolder(allFolders[0] || '默认文件夹');
       setTags([]);
+      isDirty.current = false;
     }
   }, [isCreateMode, allFolders, note]);
 
@@ -127,36 +138,51 @@ export const NoteDetailView = ({
     isDirty.current = true;
   }, [title, content, folder, tags]);
 
-  const handleSave = async (showMessage = true, shouldReturnToList = true) => {
-    if (!title.trim()) {
+  useEffect(() => {
+    latestStateRef.current = {
+      title,
+      content,
+      folder,
+      tags,
+      noteId: note?.id,
+      createdNoteId,
+      isCreateMode,
+    };
+  }, [content, createdNoteId, folder, isCreateMode, note?.id, tags, title]);
+
+  const handleSave = useCallback(async (showMessage = true, shouldReturnToList = true) => {
+    const latest = latestStateRef.current;
+    if (!latest.title.trim()) {
       Message.warning('请输入标题');
       return false;
     }
 
     try {
-      if (isCreateMode) {
+      if (latest.isCreateMode) {
         // 创建新笔记
         const createdNote = await onSave({
-          title: title.trim(),
-          folder: folder.trim() || '默认文件夹',
-          content: content.trim(),
-          tags,
+          title: latest.title.trim(),
+          folder: latest.folder.trim() || '默认文件夹',
+          content: latest.content.trim(),
+          tags: latest.tags,
         }, true, shouldReturnToList);
         // 创建成功后，切换到编辑模式并记录笔记 ID
         if (createdNote?.id) {
           setCreatedNoteId(createdNote.id);
           setIsCreateMode(false);
+          latestStateRef.current.createdNoteId = createdNote.id;
+          latestStateRef.current.isCreateMode = false;
         }
       } else {
         // 更新已存在的笔记（可能是创建后继续编辑，或直接编辑现有笔记）
-        const targetNoteId = createdNoteId || note?.id;
+        const targetNoteId = latest.createdNoteId || latest.noteId;
         if (targetNoteId) {
           await onSave({
             id: targetNoteId,
-            title: title.trim(),
-            folder: folder.trim(),
-            content: content.trim(),
-            tags,
+            title: latest.title.trim(),
+            folder: latest.folder.trim(),
+            content: latest.content.trim(),
+            tags: latest.tags,
           }, false, shouldReturnToList);
         }
       }
@@ -169,7 +195,7 @@ export const NoteDetailView = ({
       Message.error(err instanceof Error ? err.message : '保存失败');
       return false;
     }
-  };
+  }, [onSave]);
 
   // 编辑状态由全局锁定和创建模式推导：创建模式始终可编辑，否则由全局锁定控制
   const isEditable = isCreateMode || !isGloballyLocked;

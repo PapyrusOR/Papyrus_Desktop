@@ -66,6 +66,8 @@ const App = () => {
   const dragStartWidth = useRef<number>(0);
   const [initialNoteId, setInitialNoteId] = useState<string | undefined>(undefined);
   const [initialScrollTag, setInitialScrollTag] = useState<string | undefined>(undefined);
+  const [initialCardId, setInitialCardId] = useState<string | undefined>(undefined);
+  const [initialFileId, setInitialFileId] = useState<string | undefined>(undefined);
   const mainContentRef = useRef<HTMLDivElement>(null);
   const prevPageIndexRef = useRef<number>(0);
   const [animationDirection, setAnimationDirection] = useState<'up' | 'down' | null>(null);
@@ -90,9 +92,33 @@ const App = () => {
       setActivePage(newPage);
       return;
     }
-    setActivePage(newPage);
+
+    const currentIndex = PAGE_ORDER.indexOf(activePage);
+    if (newPage === activePage || currentIndex === -1) {
+      setActivePage(newPage);
+      prevPageIndexRef.current = newIndex;
+      return;
+    }
+
+    const direction = newIndex > currentIndex ? 'up' : 'down';
+    setPrevPage(activePage);
+    setNextPage(newPage);
+    setAnimationDirection(direction);
+    setIsTransitioning(true);
     prevPageIndexRef.current = newIndex;
-  }, [isTransitioning, t]);
+
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+    transitionTimeoutRef.current = setTimeout(() => {
+      setPrevPage(null);
+      setActivePage(newPage);
+      setNextPage(null);
+      setIsTransitioning(false);
+      setAnimationDirection(null);
+      transitionTimeoutRef.current = null;
+    }, 500);
+  }, [activePage, isTransitioning, t]);
 
   // 处理搜索结果点击
   const handleSearchResult = useCallback((result: SearchResult) => {
@@ -103,9 +129,15 @@ const App = () => {
       Message.success(t('app.openNote', { title: result.title }));
     } else if (result.type === 'card') {
       addRecentItem({ id: result.id, type: 'card', title: result.title });
+      setInitialCardId(result.id);
       handlePageChange('scroll');
       setInitialScrollTag(result.tags?.[0]);
       Message.success(t('app.navigateToReview'));
+    } else if (result.type === 'file') {
+      addRecentItem({ id: result.id, type: 'file', title: result.title });
+      setInitialFileId(result.id);
+      handlePageChange('files');
+      Message.success(t('app.openFile', { title: result.title }));
     }
   }, [handlePageChange, t]);
 
@@ -196,10 +228,17 @@ const App = () => {
   const renderPage = () => {
     const pages: Record<string, ReactNode> = {
       start: <StartPage onDoneChange={setTodayDone} onNavigate={handlePageChange} onStartStudy={handleStartStudy} onNewCard={() => handleNewAction('newCard')} />,
-      scroll: <ScrollPage initialTag={initialScrollTag} onInitialTagUsed={() => setInitialScrollTag(undefined)} />,
+      scroll: (
+        <ScrollPage
+          initialTag={initialScrollTag}
+          initialCardId={initialCardId}
+          onInitialTagUsed={() => setInitialScrollTag(undefined)}
+          onInitialCardIdUsed={() => setInitialCardId(undefined)}
+        />
+      ),
       notes: <NotesPage initialNoteId={initialNoteId} onInitialNoteIdUsed={() => setInitialNoteId(undefined)} />,
+      files: <FilesPage initialFileId={initialFileId} onInitialFileIdUsed={() => setInitialFileId(undefined)} />,
       charts: <ChartsPage />,
-      files: <FilesPage />,
       extensions: <ExtensionsPage />,
       settings: <SettingsPage />,
     };
@@ -325,7 +364,7 @@ const App = () => {
           tabIndex={-1}
           className="tw-relative tw-flex-1 tw-flex tw-overflow-hidden tw-outline-none"
           role="main"
-          aria-label={`${pageTitles[activePage] || t('app.mainContent')}页面`}
+          aria-label={t('app.mainContentPage', { title: pageTitles[activePage] || t('app.mainContent') })}
         >
           {/* 页面内容 */}
           {renderPage()}
@@ -343,14 +382,14 @@ const App = () => {
           className="tw-relative tw-flex tw-flex-shrink-0 tw-overflow-hidden"
           style={{ width: chatOpen ? chatWidth + 4 : 0, transition: isDragging ? 'none' : 'width 0.3s cubic-bezier(0.4,0,0.2,1)' }}
           role="complementary"
-          aria-label="AI 助手聊天面板"
+          aria-label={t('app.chatPanel')}
         >
           <div
             className="tw-flex-shrink-0 tw-w-1 tw-cursor-ew-resize hover:tw-bg-arco-border-2 tw-transition-colors tw-duration-200"
             onMouseDown={onChatDragStart}
             role="separator"
             aria-orientation="vertical"
-            aria-label="调整聊天面板宽度"
+            aria-label={t('app.resizeChatPanel')}
             tabIndex={0}
           />
           {chatOpen && (
@@ -379,7 +418,7 @@ const App = () => {
             MozAppearance: 'none',
           }}
           onClick={() => setChatOpen(!chatOpen)}
-          aria-label={chatOpen ? '收起聊天面板' : '展开聊天面板'}
+          aria-label={chatOpen ? t('app.collapseChatPanel') : t('app.expandChatPanel')}
         >
           <IconLeft style={{ transform: chatOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
         </button>

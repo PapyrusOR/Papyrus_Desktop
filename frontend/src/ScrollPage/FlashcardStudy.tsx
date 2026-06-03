@@ -13,9 +13,10 @@ interface FlashcardStudyProps {
   onExit: () => void;
   demo?: boolean;
   filterTag?: string;
+  targetCardId?: string;
 }
 
-export default function FlashcardStudy({ onExit, demo = false, filterTag }: FlashcardStudyProps) {
+export default function FlashcardStudy({ onExit, demo = false, filterTag, targetCardId }: FlashcardStudyProps) {
   const {
     studyState,
     currentCard,
@@ -30,7 +31,7 @@ export default function FlashcardStudy({ onExit, demo = false, filterTag }: Flas
     revealAnswer,
     toggleDemo,
     resetStudy,
-  } = useFlashcardStudy({ demo, filterTag, onExit });
+  } = useFlashcardStudy({ demo, filterTag, targetCardId, onExit });
 
   const containerRef = useRef<HTMLDivElement>(null);
 
