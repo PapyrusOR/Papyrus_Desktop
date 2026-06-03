@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Typography } from '@arco-design/web-react';
 import { IconPlus } from '@arco-design/web-react/icon';
+import { useTranslation } from 'react-i18next';
 import { PRIMARY_COLOR, CARD_HEIGHT } from '../constants';
 
 interface AddCardProps {
@@ -8,6 +9,7 @@ interface AddCardProps {
 }
 
 export const AddCard = ({ onClick }: AddCardProps) => {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -49,7 +51,7 @@ export const AddCard = ({ onClick }: AddCardProps) => {
         type={hovered ? 'primary' : 'secondary'} 
         style={{ fontSize: '14px' }}
       >
-        新建笔记
+        {t('noteDetail.newNote')}
       </Typography.Text>
     </div>
   );

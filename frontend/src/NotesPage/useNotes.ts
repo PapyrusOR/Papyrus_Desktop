@@ -1,7 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { api } from '../api';
 import { useWebSocket } from '../hooks/useWebSocket';
+import i18n from '../i18n';
 import type { Note, Folder, CreateNoteParams, UpdateNoteParams } from './types';
+
+const ALL_NOTES_KEY = '__all_notes__';
 
 
 export interface UseNotesReturn {
@@ -31,7 +34,7 @@ export interface UseNotesReturn {
 // 生成文件夹列表
 const generateFolders = (notes: Note[]): Folder[] => {
   const folderMap = new Map<string, number>();
-  folderMap.set('全部笔记', notes.length);
+  folderMap.set(ALL_NOTES_KEY, notes.length);
   notes.forEach(note => {
     folderMap.set(note.folder, (folderMap.get(note.folder) || 0) + 1);
   });
@@ -50,7 +53,7 @@ const formatNote = (n: Awaited<ReturnType<typeof api.listNotes>>['notes'][number
   title: n.title,
   folder: n.folder,
   preview: n.preview,
-  tags: n.tags,
+  tags: n.tags ?? [],
   updatedAtTimestamp: n.updated_at,
   wordCount: n.word_count,
   content: n.content,
@@ -60,7 +63,7 @@ export const useNotes = (): UseNotesReturn => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeFolder, setActiveFolder] = useState('全部笔记');
+  const [activeFolder, setActiveFolder] = useState(ALL_NOTES_KEY);
 
   // 从 API 加载笔记
   const refreshNotes = useCallback(async () => {
@@ -75,7 +78,7 @@ export const useNotes = (): UseNotesReturn => {
       }
     } catch (err) {
       console.error('[useNotes] Error loading notes:', err);
-      setError(err instanceof Error ? err.message : '加载失败');
+      setError(err instanceof Error ? err.message : i18n.t('common.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +101,7 @@ export const useNotes = (): UseNotesReturn => {
   const allTags = useMemo(() => generateTags(notes), [notes]);
 
   const filteredNotes = useMemo(() => {
-    if (activeFolder === '全部笔记') return notes;
+    if (activeFolder === ALL_NOTES_KEY) return notes;
     return notes.filter(n => n.folder === activeFolder);
   }, [notes, activeFolder]);
 
@@ -143,7 +146,7 @@ export const useNotes = (): UseNotesReturn => {
       window.dispatchEvent(new CustomEvent('papyrus_notes_changed'));
       return savedNote;
     } catch (err) {
-      const message = err instanceof Error ? err.message : '保存失败';
+      const message = err instanceof Error ? err.message : i18n.t('common.saveFailed');
       throw new Error(message);
     }
   }, [refreshNotes]);
@@ -155,7 +158,7 @@ export const useNotes = (): UseNotesReturn => {
       await refreshNotes();
       window.dispatchEvent(new CustomEvent('papyrus_notes_changed'));
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : '删除笔记失败');
+      throw new Error(err instanceof Error ? err.message : i18n.t('common.deleteNoteFailed'));
     }
   }, [refreshNotes]);
 

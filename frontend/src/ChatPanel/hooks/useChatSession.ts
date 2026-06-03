@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Message as ArcoMessage } from '@arco-design/web-react';
+import i18n from '../../i18n';
 import type { ChatSession, Message } from '../types';
 import { api } from '../../api';
 import {
@@ -52,7 +53,7 @@ export function useChatSession(
       }
     } catch (err) {
       console.error('Failed to create session:', err);
-      ArcoMessage.error('创建会话失败');
+      ArcoMessage.error(i18n.t('chatSession.createFailed'));
     }
   }, []);
 
@@ -69,11 +70,11 @@ export function useChatSession(
             setCurrentSessionId(created.session.id);
           }
         }
-        ArcoMessage.success(`已清空 ${data.deletedCount} 个会话`);
+        ArcoMessage.success(i18n.t('chatSession.cleared', { count: data.deletedCount }));
       }
     } catch (err) {
       console.error('Failed to clear sessions:', err);
-      ArcoMessage.error('清空会话失败');
+      ArcoMessage.error(i18n.t('chatSession.clearFailed'));
     }
   }, []);
 
@@ -83,7 +84,7 @@ export function useChatSession(
       setCurrentSessionId(sessionId);
     } catch (err) {
       console.error('Failed to switch session:', err);
-      ArcoMessage.error('切换会话失败');
+      ArcoMessage.error(i18n.t('chatSession.switchFailed'));
     }
   }, []);
 

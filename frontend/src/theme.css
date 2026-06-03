@@ -88,11 +88,33 @@ body[arco-theme='dark'] {
 
 /* 全局过渡动画 - 可选
    用 :where() 把选择器特异性强制降为 (0,0,0)，作为"默认值"提供颜色过渡。
-   组件自定义的 transition（如 .start-scenery-image 的 mask-stop 动画）能直接覆盖。
-   :where() 不影响 !important / 媒体查询，所以 a11y.css 的无障碍钩子仍然胜出。 */
+   组件自定义的 transition 能直接覆盖。
+   限定在常用 UI 元素上，避免影响 transform/opacity 动画。 */
 @media (prefers-reduced-motion: no-preference) {
   :where(html:not(.aaa-no-animation) body),
-  :where(html:not(.aaa-no-animation) body *) {
+  :where(html:not(.aaa-no-animation) body div),
+  :where(html:not(.aaa-no-animation) body span),
+  :where(html:not(.aaa-no-animation) body button),
+  :where(html:not(.aaa-no-animation) body a),
+  :where(html:not(.aaa-no-animation) body input),
+  :where(html:not(.aaa-no-animation) body textarea),
+  :where(html:not(.aaa-no-animation) body section),
+  :where(html:not(.aaa-no-animation) body article),
+  :where(html:not(.aaa-no-animation) body aside),
+  :where(html:not(.aaa-no-animation) body nav),
+  :where(html:not(.aaa-no-animation) body header),
+  :where(html:not(.aaa-no-animation) body footer),
+  :where(html:not(.aaa-no-animation) body main),
+  :where(html:not(.aaa-no-animation) body ul),
+  :where(html:not(.aaa-no-animation) body ol),
+  :where(html:not(.aaa-no-animation) body li),
+  :where(html:not(.aaa-no-animation) body p),
+  :where(html:not(.aaa-no-animation) body h1),
+  :where(html:not(.aaa-no-animation) body h2),
+  :where(html:not(.aaa-no-animation) body h3),
+  :where(html:not(.aaa-no-animation) body h4),
+  :where(html:not(.aaa-no-animation) body h5),
+  :where(html:not(.aaa-no-animation) body h6) {
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 }

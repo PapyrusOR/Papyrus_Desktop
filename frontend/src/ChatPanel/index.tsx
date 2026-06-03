@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Message as ArcoMessage } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
 import { ChatHistory } from '../components/ChatHistory';
 import { useModelSelector } from '../hooks/useModelSelector';
 import type { ChatPanelProps, Message, UserProfile } from './types';
@@ -21,6 +22,7 @@ import {
 import '../ChatPanel.css';
 
 const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [mode, setMode] = useState('agent');
@@ -194,7 +196,7 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
 
   const handleModeChange = (newMode: string) => {
     if (newMode === 'agent' && !agentModeEnabled) {
-      ArcoMessage.warning('请在设置中启用 Agent 模式');
+      ArcoMessage.warning(t('chatPanel.enableAgentMode'));
       return;
     }
     setMode(newMode);

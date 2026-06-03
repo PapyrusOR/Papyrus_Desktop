@@ -106,7 +106,7 @@ export const NoteCard = ({ note, onClick, selectable, selected, onToggleSelect }
         marginTop: '16px' 
       }}>
         <Typography.Text type='secondary' style={{ fontSize: '12px' }}>
-          {note.wordCount} 字
+          {note.wordCount} {t('common.wordsUnit')}
         </Typography.Text>
       </div>
     </div>

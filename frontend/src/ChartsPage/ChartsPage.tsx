@@ -4,6 +4,7 @@ import { IconFire, IconClockCircle, IconCheckCircle, IconCalendar } from '@arco-
 import { api, type Card as CardType } from '../api';
 import { useCommonCardStyle, CommonCard, PageLayout } from '../components';
 import { PRIMARY_COLOR, SUCCESS_COLOR } from '../theme-constants';
+import i18n from '../i18n';
 
 function useAnimatedNumber(targetValue: number, duration: number = 800, delay: number = 100, dataReady: boolean = false): number {
   const [displayValue, setDisplayValue] = useState(0);
@@ -206,7 +207,7 @@ const SimpleProgressCard = ({ title, progress, count, dataReady }: { title: stri
             padding: '4px 8px',
             fontSize: '11px',
           }}>
-            {animatedCount} 待复习
+            {animatedCount} {i18n.t('chartsPage.dueForReview')}
           </span>
         )}
       </div>
@@ -219,7 +220,7 @@ const SimpleProgressCard = ({ title, progress, count, dataReady }: { title: stri
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-text-3)' }}>
-        <span>进度 {animatedProgress}%</span>
+        <span>{i18n.t('chartsPage.progress')} {animatedProgress}%</span>
       </div>
     </CommonCard>
   );
@@ -229,7 +230,15 @@ const SimpleProgressCard = ({ title, progress, count, dataReady }: { title: stri
 const WeekChart = ({ cards }: { cards: CardType[] }) => {
   // 简单的数据展示
   const weekData = useMemo(() => {
-    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const days = [
+      i18n.t('weekdays.mon'),
+      i18n.t('weekdays.tue'),
+      i18n.t('weekdays.wed'),
+      i18n.t('weekdays.thu'),
+      i18n.t('weekdays.fri'),
+      i18n.t('weekdays.sat'),
+      i18n.t('weekdays.sun'),
+    ];
     
     return days.map((day) => {
       // 模拟基于卡片数量的数据
@@ -254,7 +263,7 @@ const WeekChart = ({ cards }: { cards: CardType[] }) => {
         return (
           <Tooltip 
             key={index} 
-            content={`${item.date}: 新学 ${item.learned} 张, 复习 ${item.reviewed} 张`}
+            content={`${item.date}: ${i18n.t('chartsPage.newLearned')} ${item.learned} ${i18n.t('common.cardsUnit')}, ${i18n.t('chartsPage.reviewed')} ${item.reviewed} ${i18n.t('common.cardsUnit')}`}
             position='top'
           >
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', maxWidth: '80px' }}>
@@ -308,7 +317,7 @@ const Heatmap = ({ data }: { data: HeatmapItem[] }) => {
       const iso = `${yyyy}-${mm}-${dd}`;
       const item = dataMap.get(iso);
       allDays.push({
-        date: cursor.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
+        date: cursor.toLocaleDateString(i18n.language || 'zh-CN', { month: 'short', day: 'numeric' }),
         count: item?.count ?? 0,
         level: item?.level ?? 0,
       });
@@ -339,7 +348,7 @@ const Heatmap = ({ data }: { data: HeatmapItem[] }) => {
           {week.map((day, dayIndex) => (
             <Tooltip
               key={dayIndex}
-              content={`${day.date}: 学习 ${day.count} 张卡片`}
+              content={`${day.date}: ${i18n.t('chartsPage.studied')} ${day.count} ${i18n.t('common.cardsUnit')}`}
               position='top'
               mini
             >
@@ -461,47 +470,47 @@ const ChartsPage = () => {
 
   if (firstLoadComplete && cards.length === 0) {
     return (
-      <PageLayout title='数据' pageKey='charts'>
-        <Empty description="暂无数据，请先添加卡片" />
+      <PageLayout title={i18n.t('chartsPage.title')} pageKey='charts'>
+        <Empty description={i18n.t('chartsPage.emptyData')} />
       </PageLayout>
     );
   }
 
   const pageStats = [
-    { label: '连续学习', value: animatedStreakDays, suffix: '天' },
-    { label: '已掌握', value: `${animatedMasteredCards}/${animatedTotalCards}` },
-    { label: '总进度', value: `${overallProgress}%` },
-    { label: '今日已复习', value: animatedTodayCards, suffix: `/${stats.dailyTarget}` },
-    { label: '今日目标', value: `${animatedTodayProgress}%` },
+    { label: i18n.t('chartsPage.streakStudy'), value: animatedStreakDays, suffix: i18n.t('common.daysUnit') },
+    { label: i18n.t('chartsPage.mastered'), value: `${animatedMasteredCards}/${animatedTotalCards}` },
+    { label: i18n.t('chartsPage.totalProgress'), value: `${overallProgress}%` },
+    { label: i18n.t('chartsPage.todayReviewed'), value: animatedTodayCards, suffix: `/${stats.dailyTarget}` },
+    { label: i18n.t('chartsPage.todayGoal'), value: `${animatedTodayProgress}%` },
   ];
 
   return (
     <PageLayout 
-      title='数据' 
+      title={i18n.t('chartsPage.title')} 
       pageKey='charts'
       stats={pageStats}
       statsLoading={!firstLoadComplete}
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-        <StatCard title='新卡片' value={animatedNewCards} suffix='张' icon={<IconClockCircle />} />
-        <StatCard title='学习中' value={animatedLearningCards} suffix='张' icon={<IconCalendar />} />
-        <StatCard title='复习中' value={animatedReviewCards} suffix='张' icon={<IconFire />} />
-        <StatCard title='待复习' value={animatedDueCards} suffix='张' icon={<IconCheckCircle />} />
+        <StatCard title={i18n.t('chartsPage.newCards')} value={animatedNewCards} suffix={i18n.t('common.cardsUnit')} icon={<IconClockCircle />} />
+        <StatCard title={i18n.t('chartsPage.learning')} value={animatedLearningCards} suffix={i18n.t('common.cardsUnit')} icon={<IconCalendar />} />
+        <StatCard title={i18n.t('chartsPage.reviewing')} value={animatedReviewCards} suffix={i18n.t('common.cardsUnit')} icon={<IconFire />} />
+        <StatCard title={i18n.t('chartsPage.dueCards')} value={animatedDueCards} suffix={i18n.t('common.cardsUnit')} icon={<IconCheckCircle />} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
         <Card style={{ borderRadius: '16px', border: '1px solid var(--color-text-3)', height: '280px' }}>
           <Typography.Text bold style={{ fontSize: '15px', display: 'block', marginBottom: '16px' }}>
-            本周学习趋势
+            {i18n.t('chartsPage.weeklyTrend')}
           </Typography.Text>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', fontSize: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <div style={{ width: '8px', height: '8px', background: PRIMARY_COLOR, borderRadius: '2px' }} />
-              <Typography.Text type='secondary'>新学</Typography.Text>
+              <Typography.Text type='secondary'>{i18n.t('chartsPage.newLearned')}</Typography.Text>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <div style={{ width: '8px', height: '8px', background: `${PRIMARY_COLOR}40`, borderRadius: '2px' }} />
-              <Typography.Text type='secondary'>复习</Typography.Text>
+              <Typography.Text type='secondary'>{i18n.t('chartsPage.reviewed')}</Typography.Text>
             </div>
           </div>
           <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end' }}>
@@ -512,17 +521,17 @@ const ChartsPage = () => {
         <Card style={{ borderRadius: '16px', border: '1px solid var(--color-text-3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <Typography.Text bold style={{ fontSize: '15px' }}>
-              过去一年学习记录
+              {i18n.t('chartsPage.pastYearRecord')}
             </Typography.Text>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <Typography.Text type='secondary'>少</Typography.Text>
+              <Typography.Text type='secondary'>{i18n.t('common.less')}</Typography.Text>
               <div style={{ display: 'flex', gap: '2px' }}>
                 <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: 'var(--color-fill-2)' }} />
                 <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: '#1F4D2A' }} />
                 <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: '#2E7D32' }} />
                 <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: '#4CAF50' }} />
               </div>
-              <Typography.Text type='secondary'>多</Typography.Text>
+              <Typography.Text type='secondary'>{i18n.t('common.more')}</Typography.Text>
             </div>
           </div>
           <div style={{ overflowX: 'auto', paddingBottom: '8px' }}>
@@ -532,23 +541,23 @@ const ChartsPage = () => {
       </div>
 
       <Typography.Title heading={2} style={{ fontWeight: 400, fontSize: '20px', margin: '0 0 24px', color: 'var(--color-text-3)' }}>
-        学习进度
+        {i18n.t('chartsPage.studyProgress')}
       </Typography.Title>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
         <SimpleProgressCard 
-          title='新卡片' 
+          title={i18n.t('chartsPage.newCards')} 
           progress={cardGroups.new.length > 0 ? 100 : 0} 
           count={cardGroups.new.filter(c => (c.next_review || 0) <= Date.now() / 1000).length}
           dataReady={firstLoadComplete}
         />
         <SimpleProgressCard 
-          title='学习中' 
+          title={i18n.t('chartsPage.learning')} 
           progress={Math.round((cardGroups.learning.length / Math.max(cards.length, 1)) * 100)} 
           count={cardGroups.learning.filter(c => (c.next_review || 0) <= Date.now() / 1000).length}
           dataReady={firstLoadComplete}
         />
         <SimpleProgressCard 
-          title='复习中' 
+          title={i18n.t('chartsPage.reviewing')} 
           progress={Math.round((cardGroups.review.length / Math.max(cards.length, 1)) * 100)} 
           count={cardGroups.review.filter(c => (c.next_review || 0) <= Date.now() / 1000).length}
           dataReady={firstLoadComplete}

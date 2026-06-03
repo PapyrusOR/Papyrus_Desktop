@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import {
   Button,
   Typography,
@@ -114,7 +115,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('zh-CN', {
+      return date.toLocaleDateString(i18n.language || 'zh-CN', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',

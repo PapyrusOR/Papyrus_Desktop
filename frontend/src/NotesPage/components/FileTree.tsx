@@ -10,6 +10,7 @@ import {
 } from '@arco-design/web-react/icon';
 import type { Note } from '../types';
 import { PRIMARY_COLOR } from '../constants';
+import i18n from '../../i18n';
 
 interface TreeNode {
   id: string;
@@ -233,11 +234,11 @@ export const FileTree = ({
             marginBottom: '16px',
           }}
         >
-          文件树
+          {i18n.t('fileTree.title')}
         </Typography.Text>
         <Input
           prefix={<IconSearch style={{ color: 'var(--color-text-3)' }} />}
-          placeholder='搜索笔记...'
+          placeholder={i18n.t('fileTree.searchPlaceholder')}
           value={search}
           onChange={setSearch}
           size='small'

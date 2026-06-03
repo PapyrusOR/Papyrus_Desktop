@@ -90,9 +90,9 @@ export const NoteDetailView = ({
   
   // 下拉菜单项
   const headingMenuItems = [
-    { key: 'h1', label: '一级标题', icon: <IconH1 />, onClick: () => insertHeading(1) },
-    { key: 'h2', label: '二级标题', icon: <IconH2 />, onClick: () => insertHeading(2) },
-    { key: 'h3', label: '三级标题', icon: <IconH3 />, onClick: () => insertHeading(3) },
+    { key: 'h1', label: t('noteDetail.heading1'), icon: <IconH1 />, onClick: () => insertHeading(1) },
+    { key: 'h2', label: t('noteDetail.heading2'), icon: <IconH2 />, onClick: () => insertHeading(2) },
+    { key: 'h3', label: t('noteDetail.heading3'), icon: <IconH3 />, onClick: () => insertHeading(3) },
   ];
 
   // 锁定状态 - 监听全局编辑锁定
@@ -112,22 +112,22 @@ export const NoteDetailView = ({
     return () => window.removeEventListener('papyrus_edit_lock_changed', handleLockChange as EventListener);
   }, []);
 
-  // 初始化表单 - 编辑模式
+  // 初始化表单 - 编辑模式（只在 note.id 变化时执行，避免父组件重新渲染覆盖用户输入）
   useEffect(() => {
-    if (note) {
+    if (note?.id) {
       setTitle(note.title);
-      setContent(note.content || note.preview);
+      setContent(note.content ?? note.preview ?? '');
       setFolder(note.folder);
-      setTags(note.tags);
+      setTags(note.tags ?? []);
       isDirty.current = false;
     }
-  }, [note]);
+  }, [note?.id]);
 
   // 创建模式初始化 - 只在进入创建模式时执行
   useEffect(() => {
     if (isCreateMode && !note) {
       setContent('');
-      setFolder(allFolders[0] || '默认文件夹');
+      setFolder(allFolders[0] || t('noteDetail.defaultFolderName'));
       setTags([]);
       isDirty.current = false;
     }
@@ -153,7 +153,7 @@ export const NoteDetailView = ({
   const handleSave = useCallback(async (showMessage = true, shouldReturnToList = true) => {
     const latest = latestStateRef.current;
     if (!latest.title.trim()) {
-      Message.warning('请输入标题');
+      Message.warning(t('noteDetail.enterTitle'));
       return false;
     }
 
@@ -162,7 +162,7 @@ export const NoteDetailView = ({
         // 创建新笔记
         const createdNote = await onSave({
           title: latest.title.trim(),
-          folder: latest.folder.trim() || '默认文件夹',
+          folder: latest.folder.trim() || t('noteDetail.defaultFolderName'),
           content: latest.content.trim(),
           tags: latest.tags,
         }, true, shouldReturnToList);
@@ -187,12 +187,12 @@ export const NoteDetailView = ({
         }
       }
       if (showMessage) {
-        Message.success('保存成功');
+        Message.success(t('noteDetail.saveSuccess'));
       }
       isDirty.current = false;
       return true;
     } catch (err) {
-      Message.error(err instanceof Error ? err.message : '保存失败');
+      Message.error(err instanceof Error ? err.message : t('noteDetail.saveFailed'));
       return false;
     }
   }, [onSave]);
@@ -237,14 +237,14 @@ export const NoteDetailView = ({
   const handleDelete = () => {
     if (note && onDelete) {
       Modal.confirm({
-        title: '确认删除',
-        content: `确定要删除笔记 "${note.title}" 吗？`,
+        title: t('noteDetail.confirmDeleteTitle'),
+        content: t('noteDetail.confirmDeleteContent', { title: note.title }),
         onOk: async () => {
           try {
             await onDelete(note.id);
-            Message.success('删除成功');
+            Message.success(t('noteDetail.deleteSuccess'));
           } catch {
-            Message.error('删除失败');
+            Message.error(t('noteDetail.deleteFailed'));
           }
         },
       });
@@ -346,7 +346,7 @@ export const NoteDetailView = ({
           icon={<IconLeft />}
           onClick={handleBackWithSave}
         >
-          返回
+          {t('noteDetail.back')}
         </Button>
 
         {/* 面包屑 - 居中 */}
@@ -357,10 +357,10 @@ export const NoteDetailView = ({
               style={{ cursor: 'pointer' }}
               onClick={handleBackWithSave}
             >
-              笔记库
+              {t('noteDetail.notebook')}
             </BreadcrumbItem>
-            <BreadcrumbItem key="folder">{folder || note?.folder || '默认'}</BreadcrumbItem>
-            <BreadcrumbItem key="title">{title || note?.title || '新笔记'}</BreadcrumbItem>
+            <BreadcrumbItem key="folder">{folder || note?.folder || t('noteDetail.defaultFolder')}</BreadcrumbItem>
+            <BreadcrumbItem key="title">{title || note?.title || t('noteDetail.newNote')}</BreadcrumbItem>
           </Breadcrumb>
         </div>
 
@@ -421,14 +421,14 @@ export const NoteDetailView = ({
                 icon={<IconLink />}
                 onClick={() => setShowRelationsPanel(!showRelationsPanel)}
               >
-                关联
+                {t('noteDetail.relations')}
               </Button>
               <Button
                 type='secondary'
                 icon={<IconMindMapping />}
                 onClick={() => setShowGraphDrawer(true)}
               >
-                图谱
+                {t('noteDetail.graph')}
               </Button>
             </>
           )}
@@ -456,7 +456,7 @@ export const NoteDetailView = ({
               marginBottom: '16px',
             }}
           >
-            大纲
+            {t('noteDetail.outline')}
           </Typography.Text>
           {outline.length > 0 ? (
             outline.map((item, index) => (
@@ -483,7 +483,7 @@ export const NoteDetailView = ({
             ))
           ) : (
             <Typography.Text type='secondary' style={{ fontSize: '12px' }}>
-              使用 # ## ### 创建标题
+              {t('noteDetail.outlineHint')}
             </Typography.Text>
           )}
         </div>
@@ -541,7 +541,7 @@ export const NoteDetailView = ({
                     value={newTag}
                     onChange={setNewTag}
                     onPressEnter={handleAddTag}
-                    placeholder='+ 标签'
+                    placeholder={t('noteDetail.tagPlaceholder')}
                     style={{ width: '80px' }}
                     size='small'
                     className='notes-meta-input'
@@ -575,7 +575,7 @@ export const NoteDetailView = ({
               className='no-border-input'
               value={title}
               onChange={setTitle}
-              placeholder='输入标题...'
+              placeholder={t('noteDetail.titlePlaceholder')}
               style={{
                 fontSize: '32px',
                 fontWeight: 500,
@@ -601,7 +601,7 @@ export const NoteDetailView = ({
               ref={textAreaRef}
               value={content}
               onChange={setContent}
-              placeholder='# 开始写作...'
+              placeholder={t('noteDetail.contentPlaceholder')}
               enableCompletion={true}
               autoSize={{ minRows: 20, maxRows: 100 }}
               style={{
@@ -654,7 +654,7 @@ export const NoteDetailView = ({
 
       {/* 关联图谱弹窗 */}
       <Modal
-        title="关联图谱"
+        title={t('noteDetail.relationsGraph')}
         visible={showGraphDrawer}
         onCancel={() => setShowGraphDrawer(false)}
         footer={null}

@@ -9,11 +9,12 @@ interface SearchBoxProps {
   onResultClick?: (result: SearchResult) => void;
   onNavigateToNote?: (noteId: string) => void;
   onNavigateToCard?: () => void;
+  onNavigateToFile?: (fileId: string) => void;
 }
 
 const { Text } = Typography;
 
-const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: SearchBoxProps) => {
+const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard, onNavigateToFile }: SearchBoxProps) => {
   const { t } = useTranslation();
   const { getShortcutDisplay } = useShortcuts();
   const [query, setQuery] = useState('');
@@ -77,6 +78,8 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard }: Search
       onNavigateToNote(result.id);
     } else if (result.type === 'card' && onNavigateToCard) {
       onNavigateToCard();
+    } else if (result.type === 'file' && onNavigateToFile) {
+      onNavigateToFile(result.id);
     }
   };
 

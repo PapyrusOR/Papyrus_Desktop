@@ -1,7 +1,9 @@
 import { Typography, Button, Tag, Radio, Empty, Tooltip, Message, Modal, Input, Breadcrumb } from '@arco-design/web-react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconFolderAdd, IconUpload, IconFolder, IconImage, IconFileVideo, IconMusic, IconFile, IconDownload, IconDelete } from '@arco-design/web-react/icon';
 import { api, getFileUrl, getThumbnailUrl } from '../api';
+import i18n from '../i18n';
 import type { FileItemData } from '../api';
 import { PageLayout } from '../components';
 import { PRIMARY_COLOR } from '../theme-constants';
@@ -38,11 +40,11 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleDateString('zh-CN');
+  return new Date(timestamp * 1000).toLocaleDateString(i18n.language || 'zh-CN');
 }
 
 // 网格文件卡片
-const GridFileCard = ({ file, onClick }: { file: FileItemData; onClick?: (f: FileItemData) => void }) => {
+const GridFileCard = ({ file, onClick, formatItemCount }: { file: FileItemData; onClick?: (f: FileItemData) => void; formatItemCount: (count: number) => string }) => {
   const isImage = file.type === 'image' && !file.is_folder;
 
   return (
@@ -70,7 +72,7 @@ const GridFileCard = ({ file, onClick }: { file: FileItemData; onClick?: (f: Fil
             {file.name}
           </Typography.Text>
           <Typography.Text type='secondary' className="files-grid-card-meta">
-            {file.is_folder ? `${file.itemCount ?? 0} 项` : formatSize(file.size)} · {formatDate(file.updated_at)}
+            {file.is_folder ? formatItemCount(file.itemCount ?? 0) : formatSize(file.size)} · {formatDate(file.updated_at)}
           </Typography.Text>
         </div>
       </div>
@@ -79,7 +81,7 @@ const GridFileCard = ({ file, onClick }: { file: FileItemData; onClick?: (f: Fil
 };
 
 // 列表文件行
-const ListFileRow = ({ file, onClick, onDownload, onDelete }: { file: FileItemData; onClick?: (f: FileItemData) => void; onDownload?: (f: FileItemData) => void; onDelete?: (id: string) => void }) => {
+const ListFileRow = ({ file, onClick, onDownload, onDelete, formatItemCount }: { file: FileItemData; onClick?: (f: FileItemData) => void; onDownload?: (f: FileItemData) => void; onDelete?: (id: string) => void; formatItemCount: (count: number) => string }) => {
   return (
     <div
       className="files-list-row"
@@ -92,7 +94,7 @@ const ListFileRow = ({ file, onClick, onDownload, onDelete }: { file: FileItemDa
         </Typography.Text>
       </div>
       <Typography.Text type='secondary' className="files-list-size">
-        {file.is_folder ? `${file.itemCount ?? 0} 项` : formatSize(file.size)}
+        {file.is_folder ? formatItemCount(file.itemCount ?? 0) : formatSize(file.size)}
       </Typography.Text>
       <Typography.Text type='secondary' className="files-list-date">
         {formatDate(file.updated_at)}
@@ -140,6 +142,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [allFiles, setAllFiles] = useState<FileItemData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,7 +152,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
 
   // 文件夹导航状态
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-  const [folderStack, setFolderStack] = useState<Array<{ id: string | null; name: string }>>([{ id: null, name: '文件库' }]);
+  const [folderStack, setFolderStack] = useState<Array<{ id: string | null; name: string }>>([{ id: null, name: t('filesPage.rootFolderName') ?? '文件库' }]);
   const [folderNavDirection, setFolderNavDirection] = useState<'forward' | 'backward'>('forward');
 
   // 筛选状态
@@ -161,7 +164,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
   useEffect(() => {
     api.listFiles()
       .then(res => setAllFiles(res.files))
-      .catch(() => Message.error('加载文件列表失败'))
+      .catch(() => Message.error(t('filesPage.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -182,17 +185,17 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
   const handleCreateFolder = async () => {
     const trimmed = folderName.trim();
     if (!trimmed) {
-      Message.warning('请输入文件夹名称');
+      Message.warning(t('filesPage.folderNamePlaceholder'));
       return;
     }
     try {
       await api.createFolder(trimmed, currentFolder ?? undefined);
       const listRes = await api.listFiles();
       setAllFiles(listRes.files);
-      Message.success(`已创建文件夹 "${trimmed}"`);
+      Message.success(t('filesPage.folderCreated', { name: trimmed }));
       setFolderModalVisible(false);
     } catch {
-      Message.error('创建文件夹失败');
+      Message.error(t('filesPage.createFolderFailed'));
     }
   };
 
@@ -273,15 +276,15 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
     const file = allFiles.find(f => f.id === fileId);
     if (!file) return;
     Modal.confirm({
-      title: '删除确认',
-      content: `确定要删除 "${file.name}" 吗？`,
+      title: t('filesPage.deleteConfirmTitle'),
+      content: t('filesPage.deleteConfirmContent', { name: file.name }),
       onOk: async () => {
         try {
           await api.deleteFile(fileId);
           setAllFiles(prev => prev.filter(f => f.id !== fileId));
-          Message.success('文件已删除');
+          Message.success(t('filesPage.deleteSuccess'));
         } catch {
-          Message.error('删除失败');
+          Message.error(t('filesPage.deleteFailed'));
         }
       },
     });
@@ -323,8 +326,8 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
     }
   }, []);
 
-  const buildFolderStack = useCallback((folderId: string | null, files: FileItemData[]) => {
-    const stack: Array<{ id: string | null; name: string }> = [{ id: null, name: '文件库' }];
+  const buildFolderStack = useCallback((folderId: string | null, files: FileItemData[], rootName: string) => {
+    const stack: Array<{ id: string | null; name: string }> = [{ id: null, name: rootName }];
     if (!folderId) {
       return stack;
     }
@@ -356,15 +359,16 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
       return;
     }
 
+    const rootName = t('filesPage.rootFolderName');
     if (target.is_folder) {
       setFolderNavDirection('forward');
       setCurrentFolder(target.id);
-      setFolderStack(buildFolderStack(target.id, allFiles));
+      setFolderStack(buildFolderStack(target.id, allFiles, rootName));
       setActiveFilter('全部');
     } else {
       setFolderNavDirection('forward');
       setCurrentFolder(target.parent_id);
-      setFolderStack(buildFolderStack(target.parent_id, allFiles));
+      setFolderStack(buildFolderStack(target.parent_id, allFiles, rootName));
       setActiveFilter('全部');
       handleFileClick(target);
     }
@@ -399,7 +403,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
         style={{ height: '40px', padding: '0 20px', fontSize: '14px' }}
         onClick={handleNewFolder}
       >
-        新建文件夹
+        {t('filesPage.newFolder')}
       </Button>
       <Button
         shape='round'
@@ -409,7 +413,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
         style={{ height: '40px', padding: '0 20px', fontSize: '14px', backgroundColor: PRIMARY_COLOR }}
         onClick={handleUploadClick}
       >
-        上传文件
+        {t('filesPage.uploadFile')}
       </Button>
       <input
         ref={fileInputRef}
@@ -417,24 +421,24 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
         multiple
         style={{ display: 'none' }}
         onChange={handleFileChange}
-        aria-label="选择上传文件"
+        aria-label={t('filesPage.selectUploadFile')}
       />
     </>
   );
 
   const pageStats = [
-    { label: '文件', value: currentFolderStats.totalFiles },
-    { label: '文件夹', value: currentFolderStats.totalFolders },
-    { label: '占用空间', value: currentFolderStats.totalSize },
+    { label: t('filesPage.file'), value: currentFolderStats.totalFiles },
+    { label: t('filesPage.folder'), value: currentFolderStats.totalFolders },
+    { label: t('filesPage.size'), value: currentFolderStats.totalSize },
   ];
 
   const extraStatsContent = (
-    <Radio.Group type='button' value={viewMode} onChange={setViewMode} options={[{ label: '网格', value: 'grid' }, { label: '列表', value: 'list' }]} />
+    <Radio.Group type='button' value={viewMode} onChange={setViewMode} options={[{ label: t('filesPage.grid'), value: 'grid' }, { label: t('filesPage.list'), value: 'list' }]} />
   );
 
   return (
     <PageLayout 
-      title='文件库' 
+      title={t('filesPage.rootFolderName')}
       pageKey='files'
       actions={actions}
       stats={pageStats}
@@ -473,15 +477,15 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
       )}
 
       {loading ? (
-        <Empty description='加载中...' className="files-empty-padded" />
+        <Empty description={t('filesPage.loading')} className="files-empty-padded" />
       ) : currentFiles.length === 0 ? (
         <div key={currentFolder ?? 'root'} className={`files-content-enter files-content-enter-${folderNavDirection}`}>
-          <Empty description={activeFilter !== '全部' ? '暂无符合条件的文件' : currentFolder ? '该文件夹为空' : '暂无文件'} className="files-empty-padded" />
+          <Empty description={activeFilter !== '全部' ? t('filesPage.noFilterResults') : currentFolder ? t('filesPage.emptyFolder') : t('filesPage.noFiles')} className="files-empty-padded" />
         </div>
       ) : viewMode === 'grid' ? (
         <div key={currentFolder ?? 'root'} className={`files-content-enter files-content-enter-${folderNavDirection}`}>
           <div className="files-grid">
-            {currentFiles.map(file => <GridFileCard key={file.id} file={file} onClick={handleFileClick} />)}
+            {currentFiles.map(file => <GridFileCard key={file.id} file={file} onClick={handleFileClick} formatItemCount={(count) => t('filesPage.itemCount', { count })} />)} 
           </div>
         </div>
       ) : (
@@ -489,12 +493,12 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
           <div className="files-list-table">
             <div className="files-list-header">
               <div className="files-list-header-icon" />
-              <div className="files-list-header-name">名称</div>
-              <div className="files-list-header-size">大小</div>
-              <div className="files-list-header-date">修改时间</div>
+              <div className="files-list-header-name">{t('filesPage.name')}</div>
+              <div className="files-list-header-size">{t('filesPage.size')}</div>
+              <div className="files-list-header-date">{t('filesPage.modifiedAt')}</div>
               <div className="files-list-header-actions" />
             </div>
-            {currentFiles.map(file => <ListFileRow key={file.id} file={file} onClick={handleFileClick} onDownload={handleDownloadFile} onDelete={handleDeleteFile} />)}
+            {currentFiles.map(file => <ListFileRow key={file.id} file={file} onClick={handleFileClick} onDownload={handleDownloadFile} onDelete={handleDeleteFile} formatItemCount={(count) => t('filesPage.itemCount', { count })} />)} 
           </div>
         </div>
       )}
@@ -502,7 +506,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
       <div className="files-empty-spacing" />
 
       <Modal
-        title="新建文件夹"
+        title={t('filesPage.newFolderTitle')}
         visible={folderModalVisible}
         onOk={handleCreateFolder}
         onCancel={() => setFolderModalVisible(false)}
@@ -510,7 +514,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
         focusLock
       >
         <Input
-          placeholder="请输入文件夹名称"
+          placeholder={t('filesPage.folderNamePlaceholder')}
           value={folderName}
           onChange={setFolderName}
           onPressEnter={handleCreateFolder}

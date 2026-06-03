@@ -4,6 +4,7 @@ import { IconSettings, IconDelete, IconCheckCircleFill, IconDownload, IconStarFi
 import { useCommonCardStyle, CommonCard, PageLayout } from '../components';
 import { PRIMARY_COLOR, SUCCESS_COLOR } from '../theme-constants';
 import { api } from '../api';
+import i18n from '../i18n';
 import './ExtensionsPage.css';
 
 interface Extension {
@@ -144,7 +145,7 @@ const ExtensionsPage = () => {
         }
       }
     } catch (error) {
-      Message.error('加载扩展列表失败');
+      Message.error(i18n.t('extensions.loadFailed'));
       console.error('Failed to load extensions:', error);
     } finally {
       setLoading(false);
@@ -196,10 +197,10 @@ const ExtensionsPage = () => {
         }));
         Message.success(data.message);
       } else {
-        Message.error(data.error || '操作失败');
+        Message.error(data.error || i18n.t('extensions.operationFailed'));
       }
     } catch (error) {
-      Message.error('操作失败');
+      Message.error(i18n.t('extensions.operationFailed'));
       console.error('Failed to toggle extension:', error);
     }
   };
@@ -220,12 +221,12 @@ const ExtensionsPage = () => {
           total: prev.total - 1,
           enabled: prev.enabled - (ext.isEnabled ? 1 : 0),
         }));
-        Message.success('扩展已卸载');
+        Message.success(i18n.t('extensions.uninstallSuccess'));
       } else {
-        Message.error(data.error || '卸载失败');
+        Message.error(data.error || i18n.t('extensions.uninstallFailed'));
       }
     } catch (error) {
-      Message.error('卸载失败');
+      Message.error(i18n.t('extensions.uninstallFailed'));
       console.error('Failed to uninstall extension:', error);
     }
   };
@@ -242,14 +243,14 @@ const ExtensionsPage = () => {
       const parsedConfig = JSON.parse(configText) as Record<string, unknown>;
       const response = await api.updateExtensionConfig(selectedExtension.id, parsedConfig);
       if (response.success) {
-        Message.success('配置已保存');
+        Message.success(i18n.t('extensions.configSaved'));
         setExtensions(prev => prev.map(ext =>
           ext.id === selectedExtension.id ? { ...ext, config: parsedConfig } : ext
         ));
         setConfigVisible(false);
       }
     } catch (error) {
-      Message.error('配置必须是合法 JSON');
+      Message.error(i18n.t('extensions.invalidJson'));
       console.error('Failed to save extension config:', error);
     }
   };
@@ -276,7 +277,7 @@ const ExtensionsPage = () => {
         setActiveTab('installed');
       }
     } catch (error) {
-      Message.error(error instanceof Error ? error.message : '本地扩展安装失败');
+      Message.error(error instanceof Error ? error.message : i18n.t('extensions.localInstallFailed'));
       console.error('Failed to install local extension:', error);
     } finally {
       setInstalling(false);
@@ -293,14 +294,14 @@ const ExtensionsPage = () => {
       const data = await response.json();
       if (data.success) {
         if (data.updateCount > 0) {
-          Message.success(`发现 ${data.updateCount} 个可更新的扩展`);
+          Message.success(i18n.t('extensions.updatesFound', { count: data.updateCount }));
         } else {
-          Message.info('所有扩展已是最新版本');
+          Message.info(i18n.t('extensions.allUpToDate'));
         }
         loadExtensions();
       }
     } catch (error) {
-      Message.error('检查更新失败');
+      Message.error(i18n.t('extensions.checkUpdateFailed'));
       console.error('Failed to check updates:', error);
     } finally {
       setCheckingUpdates(false);

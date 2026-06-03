@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Message } from '@arco-design/web-react';
+import i18n from '../i18n';
 
 export interface FileChangeEvent {
   type: 'file_change';
@@ -94,7 +95,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     
     setStatus('disconnected');
     if (showToast) {
-      Message.info('实时同步已断开');
+      Message.info(i18n.t('webSocket.disconnected'));
     }
     onDisconnect?.();
   }, [clearReconnectTimer, onDisconnect, showToast]);
@@ -121,7 +122,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         reconnectAttemptsRef.current = 0;
         setStatus('connected');
         if (showToast) {
-          Message.success('已连接到实时同步服务');
+          Message.success(i18n.t('webSocket.connected'));
         }
         onConnect?.();
         
@@ -163,7 +164,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       ws.onerror = () => {
         setStatus('error');
         if (showToast) {
-          Message.error('实时同步连接失败');
+          Message.error(i18n.t('webSocket.connectionFailed'));
         }
       };
 

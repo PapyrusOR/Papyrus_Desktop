@@ -20,18 +20,19 @@ import {
 } from '@arco-design/web-react/icon';
 import type { RelatedNote, SearchableNote, RelationType } from './types';
 import { BASE, getAuthToken } from '../../../api';
+import i18n from '../../../i18n';
 
 const TabPane = Tabs.TabPane;
 const Option = Select.Option;
 
 // 关联类型配置
 const RELATION_CONFIG: Record<RelationType, { label: string; color: string }> = {
-  reference: { label: '引用', color: 'arcoblue' },
-  related: { label: '相关', color: 'green' },
-  child: { label: '子主题', color: 'orange' },
-  parent: { label: '父主题', color: 'purple' },
-  sequence: { label: '顺序', color: 'cyan' },
-  parallel: { label: '并行', color: 'magenta' },
+  reference: { label: i18n.t('relationGraph.reference'), color: 'arcoblue' },
+  related: { label: i18n.t('relationGraph.related'), color: 'green' },
+  child: { label: i18n.t('relationGraph.child'), color: 'orange' },
+  parent: { label: i18n.t('relationGraph.parent'), color: 'purple' },
+  sequence: { label: i18n.t('relationGraph.sequence'), color: 'cyan' },
+  parallel: { label: i18n.t('relationGraph.parallel'), color: 'magenta' },
 };
 
 interface RelationsPanelProps {
@@ -81,7 +82,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
         });
       }
     } catch {
-      Message.error('加载关联失败');
+      Message.error(i18n.t('noteRelations.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -135,7 +136,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
   // 创建关联
   const handleCreateRelation = async () => {
     if (!selectedNote) {
-      Message.warning('请选择目标笔记');
+      Message.warning(i18n.t('noteRelations.selectTarget'));
       return;
     }
 
@@ -156,7 +157,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
       
       const data = await response.json();
       if (data.success) {
-        Message.success('关联创建成功');
+        Message.success(i18n.t('noteRelations.createSuccess'));
         setAddModalVisible(false);
         setSelectedNote(null);
         setSearchQuery('');
@@ -164,10 +165,10 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
         setNewRelationDesc('');
         loadRelations();
       } else {
-        Message.error(data.error || '关联已存在或创建失败');
+        Message.error(data.error || i18n.t('noteRelations.createExistsOrFailed'));
       }
     } catch {
-      Message.error('关联创建失败');
+      Message.error(i18n.t('noteRelations.createFailed'));
     }
   };
 
@@ -191,23 +192,23 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
       
       const data = await response.json();
       if (data.success) {
-        Message.success('关联更新成功');
+        Message.success(i18n.t('noteRelations.updateSuccess'));
         setEditModalVisible(false);
         setEditingRelation(null);
         loadRelations();
       } else {
-        Message.error(data.error || '关联更新失败');
+        Message.error(data.error || i18n.t('noteRelations.updateFailed'));
       }
     } catch {
-      Message.error('关联更新失败');
+      Message.error(i18n.t('noteRelations.updateFailed'));
     }
   };
 
   // 删除关联
   const handleDeleteRelation = async (relationId: string) => {
     Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个关联吗？',
+      title: i18n.t('noteRelations.confirmDeleteTitle'),
+      content: i18n.t('noteRelations.confirmDeleteContent'),
       onOk: async () => {
         try {
           const token = await getAuthToken();
@@ -220,13 +221,13 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
           
           const data = await response.json();
           if (data.success) {
-            Message.success('关联已删除');
+            Message.success(i18n.t('noteRelations.deleteSuccess'));
             loadRelations();
           } else {
-            Message.error(data.error || '删除失败');
+            Message.error(data.error || i18n.t('noteRelations.deleteFailed'));
           }
         } catch {
-          Message.error('删除失败');
+          Message.error(i18n.t('noteRelations.deleteFailed'));
         }
       },
     });
@@ -301,7 +302,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
         </div>
 
         <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-          <Tooltip content="编辑">
+          <Tooltip content={i18n.t('common.edit')}>
             <Button
               type="text"
               size="small"
@@ -309,7 +310,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
               onClick={() => openEditModal(relation)}
             />
           </Tooltip>
-          <Tooltip content="删除">
+          <Tooltip content={i18n.t('common.delete')}>
             <Button
               type="text"
               size="small"
@@ -335,14 +336,14 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
           alignItems: 'center',
         }}
       >
-        <div style={{ fontSize: '16px', fontWeight: 500 }}>关联笔记</div>
+        <div style={{ fontSize: '16px', fontWeight: 500 }}>{i18n.t('noteRelations.relationsTitle')}</div>
         <Button
           type="primary"
           size="small"
           icon={<IconPlus />}
           onClick={() => setAddModalVisible(true)}
         >
-          添加关联
+          {i18n.t('noteRelations.addRelation')}
         </Button>
       </div>
 
@@ -352,7 +353,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
         onChange={setActiveTab}
         style={{ flex: 1, overflow: 'hidden' }}
       >
-        <TabPane key="outgoing" title={`出链 (${relations.outgoing.length})`}>
+        <TabPane key="outgoing" title={`${i18n.t('noteRelations.outgoing')} (${relations.outgoing.length})`}>
           <div style={{ overflow: 'auto', height: 'calc(100% - 40px)' }}>
             {loading ? (
               <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -361,12 +362,12 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
             ) : relations.outgoing.length > 0 ? (
               relations.outgoing.map(r => renderRelationItem(r))
             ) : (
-              <Empty description="暂无出链关联" style={{ marginTop: '40px' }} />
+              <Empty description={i18n.t('noteRelations.noOutgoing')} style={{ marginTop: '40px' }} />
             )}
           </div>
         </TabPane>
         
-        <TabPane key="incoming" title={`入链 (${relations.incoming.length})`}>
+        <TabPane key="incoming" title={`${i18n.t('noteRelations.incoming')} (${relations.incoming.length})`}>
           <div style={{ overflow: 'auto', height: 'calc(100% - 40px)' }}>
             {loading ? (
               <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -375,7 +376,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
             ) : relations.incoming.length > 0 ? (
               relations.incoming.map(r => renderRelationItem(r))
             ) : (
-              <Empty description="暂无入链关联" style={{ marginTop: '40px' }} />
+              <Empty description={i18n.t('noteRelations.noIncoming')} style={{ marginTop: '40px' }} />
             )}
           </div>
         </TabPane>
@@ -383,7 +384,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
 
       {/* 添加关联弹窗 */}
       <Modal
-        title="添加关联"
+        title={i18n.t('noteRelations.addRelationTitle')}
         visible={addModalVisible}
         onOk={handleCreateRelation}
         onCancel={() => {
@@ -393,13 +394,13 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
           setSearchResults([]);
           setSearchError(false);
         }}
-        okText="创建"
-        cancelText="取消"
+        okText={i18n.t('common.create')}
+        cancelText={i18n.t('common.cancel')}
       >
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ marginBottom: '8px', fontSize: '14px' }}>搜索笔记</div>
+          <div style={{ marginBottom: '8px', fontSize: '14px' }}>{i18n.t('noteRelations.searchNote')}</div>
           <Input.Search
-            placeholder="输入关键词搜索..."
+            placeholder={i18n.t('noteRelations.searchPlaceholder')}
             value={searchQuery}
             onChange={setSearchQuery}
             onSearch={handleSearch}
@@ -410,7 +411,7 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
           
           {searchError && (
             <div style={{ color: 'var(--color-danger)', fontSize: '13px', marginBottom: '12px' }}>
-              搜索失败，请稍后重试
+              {i18n.t('noteRelations.searchFailed')}
             </div>
           )}
 
@@ -451,14 +452,14 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
         {selectedNote && (
           <>
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>已选择</div>
+              <div style={{ marginBottom: '8px', fontSize: '14px' }}>{i18n.t('noteRelations.selected')}</div>
               <Tag color="arcoblue" closable onClose={() => setSelectedNote(null)}>
                 {selectedNote.title}
               </Tag>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>关联类型</div>
+              <div style={{ marginBottom: '8px', fontSize: '14px' }}>{i18n.t('noteRelations.relationType')}</div>
               <Select value={newRelationType} onChange={setNewRelationType} style={{ width: '100%' }}>
                 {Object.entries(RELATION_CONFIG).map(([key, config]) => (
                   <Option key={key} value={key}>{config.label}</Option>
@@ -467,9 +468,9 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
             </div>
 
             <div>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>描述（可选）</div>
+              <div style={{ marginBottom: '8px', fontSize: '14px' }}>{i18n.t('noteRelations.descriptionOptional')}</div>
               <Input.TextArea
-                placeholder="添加关联描述..."
+                placeholder={i18n.t('noteRelations.descPlaceholder')}
                 value={newRelationDesc}
                 onChange={setNewRelationDesc}
                 rows={3}
@@ -481,27 +482,27 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
 
       {/* 编辑关联弹窗 */}
       <Modal
-        title="编辑关联"
+        title={i18n.t('noteRelations.editRelationTitle')}
         visible={editModalVisible}
         onOk={handleUpdateRelation}
         onCancel={() => {
           setEditModalVisible(false);
           setEditingRelation(null);
         }}
-        okText="保存"
-        cancelText="取消"
+        okText={i18n.t('common.save')}
+        cancelText={i18n.t('common.cancel')}
       >
         {editingRelation && (
           <>
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>目标笔记</div>
+              <div style={{ marginBottom: '8px', fontSize: '14px' }}>{i18n.t('noteRelations.targetNote')}</div>
               <div style={{ padding: '8px 12px', background: 'var(--color-fill-2)', borderRadius: '4px' }}>
                 {editingRelation.title}
               </div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>关联类型</div>
+              <div style={{ marginBottom: '8px', fontSize: '14px' }}>{i18n.t('noteRelations.relationType')}</div>
               <Select value={editRelationType} onChange={setEditRelationType} style={{ width: '100%' }}>
                 {Object.entries(RELATION_CONFIG).map(([key, config]) => (
                   <Option key={key} value={key}>{config.label}</Option>
@@ -510,9 +511,9 @@ export const RelationsPanel: React.FC<RelationsPanelProps> = ({
             </div>
 
             <div>
-              <div style={{ marginBottom: '8px', fontSize: '14px' }}>描述</div>
+              <div style={{ marginBottom: '8px', fontSize: '14px' }}>{i18n.t('noteRelations.description')}</div>
               <Input.TextArea
-                placeholder="添加关联描述..."
+                placeholder={i18n.t('noteRelations.descPlaceholder')}
                 value={editRelationDesc}
                 onChange={setEditRelationDesc}
                 rows={3}

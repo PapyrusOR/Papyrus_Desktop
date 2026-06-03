@@ -1,5 +1,6 @@
 import { IconFolder } from '@arco-design/web-react/icon';
 import { PRIMARY_COLOR } from '../constants';
+import i18n from '../../i18n';
 
 interface FolderTabProps {
   folder: string;
@@ -55,7 +56,7 @@ export const FolderTab = ({ folder, count, isActive, onClick }: FolderTabProps) 
         marginTop: '4px',
         whiteSpace: 'nowrap',
       }}>
-        {count} 篇
+        {count} {i18n.t('common.notesUnit')}
       </div>
     </div>
   </div>

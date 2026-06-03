@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify';
 import mammoth from 'mammoth/mammoth.browser';
 import { getFileUrl } from '../api';
 import type { FileItemData } from '../api';
+import i18n from '../i18n';
 
 interface FilePreviewModalProps {
   file: FileItemData | null;
@@ -83,7 +84,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
         .catch(() => {
           if (cancelled) return;
           setTextError(true);
-          Message.error('文件内容加载失败');
+          Message.error(i18n.t('filePreview.loadFailed'));
         })
         .finally(() => {
           if (!cancelled) setTextLoading(false);
@@ -103,7 +104,7 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
         .catch(() => {
           if (cancelled) return;
           setDocxError(true);
-          Message.error('DOCX 解析失败');
+          Message.error(i18n.t('filePreview.docxParseFailed'));
         })
         .finally(() => {
           if (!cancelled) setDocxLoading(false);
@@ -123,10 +124,10 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
       return (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
           <div style={{ fontSize: '16px', color: 'var(--color-text-2)', marginBottom: '16px' }}>
-            该文件类型暂不支持预览
+            {i18n.t('filePreview.unsupportedPreview')}
           </div>
           <Button type="primary" icon={<IconDownload />} href={downloadUrl} target="_blank">
-            下载文件
+            {i18n.t('filePreview.downloadFile')}
           </Button>
         </div>
       );
@@ -136,17 +137,17 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
       if (!mediaError) {
         setMediaError(true);
         setMediaErrorType(type);
-        Message.error(`${type}加载失败`);
+        Message.error(i18n.t('filePreview.loadFailedWithType', { type }));
       }
     };
 
     const renderMediaError = () => (
       <div style={{ textAlign: 'center', padding: '48px 0' }}>
         <div style={{ fontSize: '16px', color: 'var(--color-text-2)', marginBottom: '16px' }}>
-          {mediaErrorType}加载失败
+          {i18n.t('filePreview.loadFailedWithType', { type: mediaErrorType })}
         </div>
         <Button type="primary" icon={<IconDownload />} href={downloadUrl} target="_blank">
-          下载文件
+          {i18n.t('filePreview.downloadFile')}
         </Button>
       </div>
     );

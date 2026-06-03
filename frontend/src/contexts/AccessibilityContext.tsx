@@ -208,7 +208,17 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ ch
   // 初始化：从 localStorage 加载设置
   useEffect(() => {
     const stored = loadSettings();
-    const merged = mergeSettings(stored);
+    let merged = mergeSettings(stored);
+
+    // 如果系统没有要求减少动画，但 localStorage 中 noAnimation 为 true，
+    // 可能是旧脏数据或意外开启，自动重置为 false 以恢复动画
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReducedMotion && merged.noAnimation) {
+      console.warn('[Accessibility] noAnimation was true but system does not prefer reduced motion. Resetting to false to restore animations.');
+      merged = { ...merged, noAnimation: false };
+      saveSettings(merged);
+    }
+
     setSettings(merged);
     applySettingsToDOM(merged);
     setIsLoading(false);

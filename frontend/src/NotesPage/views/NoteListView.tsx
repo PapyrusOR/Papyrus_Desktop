@@ -6,6 +6,7 @@ import { NoteCard, FolderTab, AddCard } from '../components';
 import { PRIMARY_COLOR, UNIFIED_BTN_STYLE } from '../constants';
 import { api } from '../../api';
 import { PageLayout } from '../../components';
+import i18n from '../../i18n';
 
 interface NoteListViewProps {
   folders: Folder[];
@@ -78,17 +79,17 @@ export const NoteListView = ({
   const handleBatchDelete = useCallback(() => {
     if (selectedIds.size === 0) return;
     Modal.confirm({
-      title: '批量删除',
-      content: `确定要删除选中的 ${selectedIds.size} 篇笔记吗？此操作不可撤销。`,
+      title: i18n.t('noteList.batchDeleteTitle'),
+      content: i18n.t('noteList.batchDeleteContent', { count: selectedIds.size }),
       onOk: async () => {
         try {
           const res = await api.batchDeleteNotes([...selectedIds]);
-          Message.success(`已删除 ${res.deleted} 篇笔记`);
+          Message.success(i18n.t('noteList.batchDeleteSuccess', { count: res.deleted }));
           setSelectedIds(new Set());
           setSelecting(false);
           onNotesDeleted();
         } catch {
-          Message.error('批量删除失败');
+          Message.error(i18n.t('noteList.batchDeleteFailed'));
         }
       },
     });
@@ -100,7 +101,7 @@ export const NoteListView = ({
         onClick={() => setSelecting(true)}
         style={UNIFIED_BTN_STYLE}
       >
-        批量选择
+        {i18n.t('noteList.batchSelect')}
       </Button>
       <Button
         type='primary'
@@ -108,21 +109,21 @@ export const NoteListView = ({
         onClick={onCreateClick}
         style={{ ...UNIFIED_BTN_STYLE, backgroundColor: PRIMARY_COLOR }}
       >
-        新建笔记
+        {i18n.t('noteList.newNote')}
       </Button>
     </>
   );
 
   const pageStats = [
-    { label: '笔记数', value: notes.length },
-    { label: '总字数', value: totalWords > 1000 ? `${(totalWords / 1000).toFixed(1)}k` : totalWords },
-    { label: '今日更新', value: todayNotes },
-    { label: '标签', value: allTags.length },
+    { label: i18n.t('noteList.noteCount'), value: notes.length },
+    { label: i18n.t('noteList.totalWords'), value: totalWords > 1000 ? `${(totalWords / 1000).toFixed(1)}k` : totalWords },
+    { label: i18n.t('noteList.todayUpdated'), value: todayNotes },
+    { label: i18n.t('noteList.tags'), value: allTags.length },
   ];
 
   return (
     <PageLayout
-      title='笔记库'
+      title={i18n.t('noteList.title')}
       pageKey='notes'
       actions={selecting ? (
         <>
@@ -131,7 +132,7 @@ export const NoteListView = ({
             onClick={toggleSelectAll}
             style={UNIFIED_BTN_STYLE}
           >
-            {isAllSelected ? '取消全选' : '全选'}
+            {isAllSelected ? i18n.t('noteList.deselectAll') : i18n.t('noteList.selectAll')}
           </Button>
           <Button
             type='primary'
@@ -141,14 +142,14 @@ export const NoteListView = ({
             disabled={selectedIds.size === 0}
             style={{ ...UNIFIED_BTN_STYLE }}
           >
-            删除选中 ({selectedIds.size})
+            {i18n.t('noteList.deleteSelected', { count: selectedIds.size })}
           </Button>
           <Button
             icon={<IconClose />}
             onClick={cancelSelect}
             style={UNIFIED_BTN_STYLE}
           >
-            取消
+            {i18n.t('common.cancel')}
           </Button>
         </>
       ) : actions}

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Drawer, List, Input, Tooltip, Popconfirm, Message as ArcoMessage, Empty } from '@arco-design/web-react';
 import { IconPlus, IconEdit, IconDelete, IconHistory } from '@arco-design/web-react/icon';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import type { ChatSession } from '../api';
+import i18n from '../i18n';
 import './ChatHistory.css';
 
 interface ChatHistoryProps {
@@ -28,6 +30,7 @@ export const ChatHistory = ({
   onCreateSession,
   onClearAll,
 }: ChatHistoryProps) => {
+  const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [renamingTitles, setRenamingTitles] = useState<Record<string, string>>({});
@@ -78,12 +81,12 @@ export const ChatHistory = ({
       const res = await api.renameChatSession(sessionId, trimmedTitle);
       if (res.success) {
         setRenamingTitles((prev) => ({ ...prev, [sessionId]: trimmedTitle }));
-        ArcoMessage.success('重命名成功');
+        ArcoMessage.success(i18n.t('chatHistory.renameSuccess'));
         await onRefresh();
       }
     } catch (error) {
       console.error('Failed to rename session:', error);
-      ArcoMessage.error('重命名失败');
+      ArcoMessage.error(i18n.t('chatHistory.renameFailed'));
     } finally {
       setEditingId(null);
     }
@@ -95,7 +98,7 @@ export const ChatHistory = ({
     try {
       const res = await api.deleteChatSession(sessionId);
       if (res.success) {
-        ArcoMessage.success('删除会话成功');
+        ArcoMessage.success(i18n.t('chatHistory.deleteSuccess'));
         if (sessionId === currentSessionId && res.activeSessionId) {
           await onSwitchSession(res.activeSessionId);
         }
@@ -103,7 +106,7 @@ export const ChatHistory = ({
       }
     } catch (error) {
       console.error('Failed to delete session:', error);
-      ArcoMessage.error('删除会话失败');
+      ArcoMessage.error(t('chatHistory.deleteFailed'));
     }
   };
 
@@ -113,16 +116,16 @@ export const ChatHistory = ({
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const day = 24 * 60 * 60 * 1000;
+    const locale = i18n.language || 'zh-CN';
 
     if (diff < day && date.getDate() === now.getDate()) {
-      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     } else if (diff < 2 * day) {
-      return '昨天';
+      return t('chatHistory.yesterday');
     } else if (diff < 7 * day) {
-      const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-      return days[date.getDay()] ?? '';
+      return date.toLocaleDateString(locale, { weekday: 'short' });
     } else {
-      return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
     }
   };
 

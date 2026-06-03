@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Message } from '@arco-design/web-react';
 import { api, type Card, type NextDueRes } from '../../api';
+import i18n from '../../i18n';
 import {
   DEMO_CARDS,
   type StudyState,
@@ -79,7 +80,7 @@ export function useFlashcardStudy({
           return;
         }
         if (targetCard) {
-          Message.info('该卡片尚未到复习时间，已切换到当前待复习卡片');
+          Message.info(i18n.t('flashcardStudy.notDue'));
         }
       }
 
@@ -92,7 +93,7 @@ export function useFlashcardStudy({
       }
     } catch (err) {
       console.error('加载卡片失败:', err);
-      const msg = err instanceof Error ? err.message : '加载卡片失败';
+      const msg = err instanceof Error ? err.message : i18n.t('flashcardStudy.loadCardsFailed');
       Message.error(msg);
       setStudyState('empty');
     }
@@ -127,7 +128,7 @@ export function useFlashcardStudy({
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (stats.studied > 0) {
         e.preventDefault();
-        e.returnValue = '正在复习中，确定要离开吗？';
+        e.returnValue = i18n.t('flashcardStudy.confirmLeave');
         return e.returnValue;
       }
     };
@@ -195,7 +196,7 @@ export function useFlashcardStudy({
       }
     } catch (err) {
       console.error('评分失败:', err);
-      const msg = err instanceof Error ? err.message : '评分失败';
+      const msg = err instanceof Error ? err.message : i18n.t('flashcardStudy.rateFailed');
       Message.error(msg);
       setStudyState('answer');
     }

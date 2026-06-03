@@ -3,6 +3,7 @@ import { Button, Spin, Message, Slider } from '@arco-design/web-react';
 import { IconZoomIn, IconZoomOut, IconRefresh } from '@arco-design/web-react/icon';
 import type { GraphNode, GraphLink, RelationType } from './types';
 import { BASE, getAuthToken } from '../../../api';
+import i18n from '../../../i18n';
 
 interface RelationGraphProps {
   noteId: string;
@@ -72,10 +73,10 @@ export const RelationGraph: React.FC<RelationGraphProps> = ({
         simulationRef.current = { nodes, links: result.links, animationId: null };
         startSimulation();
       } else {
-        Message.error(result.error || '加载图谱失败');
+        Message.error(result.error || i18n.t('relationGraph.loadFailed'));
       }
     } catch {
-      Message.error('加载图谱失败');
+      Message.error(i18n.t('relationGraph.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -343,7 +344,7 @@ export const RelationGraph: React.FC<RelationGraphProps> = ({
 
       {/* 深度控制 */}
       <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', zIndex: 10, background: 'var(--color-bg-1)', padding: '8px 12px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>关联深度:</span>
+        <span style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>{i18n.t('relationGraph.depth')}</span>
         <Slider value={currentDepth} min={1} max={2} step={1} style={{ flex: 1 }} onChange={(val) => setCurrentDepth(val as number)} />
         <span style={{ fontSize: '13px', minWidth: '20px' }}>{currentDepth}</span>
       </div>
@@ -369,12 +370,12 @@ export const RelationGraph: React.FC<RelationGraphProps> = ({
 
       {/* 图例 */}
       <div style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 10, background: 'var(--color-bg-1)', padding: '12px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '8px' }}>关联类型</div>
+        <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '8px' }}>{i18n.t('relationGraph.relationTypes')}</div>
         {(Object.keys(RELATION_COLORS) as RelationType[]).map(type => (
           <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
             <div style={{ width: '12px', height: '2px', background: RELATION_COLORS[type] }} />
             <span style={{ fontSize: '11px', color: 'var(--color-text-2)' }}>
-              {{ reference: '引用', related: '相关', child: '子主题', parent: '父主题', sequence: '顺序', parallel: '并行' }[type]}
+              {i18n.t(`relationGraph.${type}`)}
             </span>
           </div>
         ))}

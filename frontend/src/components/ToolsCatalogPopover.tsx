@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Tag, Typography, Space, Spin } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 
 interface ToolInfo {
@@ -9,17 +10,19 @@ interface ToolInfo {
   description: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  cards: '卡片',
-  notes: '笔记',
-  relations: '关联',
-  files: '文件库',
-  data: '数据',
-  extensions: '扩展',
-  settings: '设置',
-};
+const useCategoryLabels = (t: (key: string) => string): Record<string, string> => ({
+  cards: t('toolsCatalog.categories.cards'),
+  notes: t('toolsCatalog.categories.notes'),
+  relations: t('toolsCatalog.categories.relations'),
+  files: t('toolsCatalog.categories.files'),
+  data: t('toolsCatalog.categories.data'),
+  extensions: t('toolsCatalog.categories.extensions'),
+  settings: t('toolsCatalog.categories.settings'),
+});
 
 export const ToolsCatalogPopover: React.FC = () => {
+  const { t } = useTranslation();
+  const CATEGORY_LABELS = useCategoryLabels(t);
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +57,7 @@ export const ToolsCatalogPopover: React.FC = () => {
   return (
     <div style={{ padding: 12, maxWidth: 380, maxHeight: 400, overflow: 'auto' }}>
       <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
-        Agent 模式下可用的工具
+        {t('toolsCatalog.title')}
       </Typography.Text>
       <Space direction="vertical" size="small" style={{ width: '100%' }}>
         {Array.from(grouped.entries()).map(([category, items]) => (
@@ -68,7 +71,7 @@ export const ToolsCatalogPopover: React.FC = () => {
             {items.map(tool => (
               <div key={tool.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '2px 0' }}>
                 <Tag size="small" color={tool.side_effect === 'write' ? 'orangered' : 'green'}>
-                  {tool.side_effect === 'write' ? '写' : '读'}
+                  {tool.side_effect === 'write' ? t('toolsCatalog.write') : t('toolsCatalog.read')}
                 </Tag>
                 <Tag size="small" color="arcoblue">{tool.name}</Tag>
                 <Typography.Text style={{ fontSize: 12, flex: 1, minWidth: 0 }} type="secondary">

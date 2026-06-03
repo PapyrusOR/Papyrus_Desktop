@@ -1,5 +1,6 @@
 import { useRef, useCallback } from 'react';
 import { Message as ArcoMessage } from '@arco-design/web-react';
+import i18n from '../../i18n';
 import type { Message, SSEEvent, SelectedFile } from '../types';
 import type { ModelOption } from '../../utils/modelSelector';
 import { authFetch } from '../utils';
@@ -242,7 +243,7 @@ export function useChatActions({
     if (!trimmedText && selectedFiles.length === 0) return;
 
     if (!selectedModel) {
-      ArcoMessage.error('请先选择 AI 模型');
+      ArcoMessage.error(i18n.t('chatActions.selectModelFirst'));
       return;
     }
 

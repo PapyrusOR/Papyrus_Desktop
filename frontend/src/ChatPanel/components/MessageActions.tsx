@@ -9,6 +9,7 @@ import {
 } from '@arco-design/web-react/icon';
 import type { Message } from '../types';
 import { api } from '../../api';
+import i18n from '../../i18n';
 import { stripMdTitle } from '../utils';
 
 export interface MessageActionsProps {
@@ -45,8 +46,8 @@ export function MessageActions({
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content).then(
-      () => ArcoMessage.success('已复制'),
-      () => ArcoMessage.error('复制失败'),
+      () => ArcoMessage.success(i18n.t('chatMessageActions.copied')),
+      () => ArcoMessage.error(i18n.t('chatMessageActions.copyFailed')),
     );
   };
 
@@ -61,8 +62,8 @@ export function MessageActions({
     const noteContent = userMsg ? `> **用户：** ${userMsg.content}\n\n${message.content}` : message.content;
     const title = stripMdTitle(message.content).slice(0, 30) || '未命名 AI 回复';
     api.createNote(title, 'AI 对话', noteContent, ['ai-chat']).then(
-      () => ArcoMessage.success('已保存到笔记'),
-      () => ArcoMessage.error('保存失败'),
+      () => ArcoMessage.success(i18n.t('chatMessageActions.savedToNotes')),
+      () => ArcoMessage.error(i18n.t('chatMessageActions.saveFailed')),
     );
   };
 

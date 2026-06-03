@@ -147,6 +147,8 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
         onPageChange?.('notes');
       } else if (result.type === 'card') {
         onPageChange?.('scroll');
+      } else if (result.type === 'file') {
+        onPageChange?.('files');
       }
     }
   };
@@ -477,6 +479,7 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
               onPageChange?.('notes', noteId);
             }}
             onNavigateToCard={() => onPageChange?.('scroll')}
+            onNavigateToFile={() => onPageChange?.('files')}
           />
         </div>
 

@@ -46,7 +46,7 @@ const NotesPage = ({ initialNoteId, onInitialNoteIdUsed }: NotesPageProps) => {
 
   // 获取所有文件夹名称
   const allFolders = useMemo(() => 
-    folders.filter(f => f.name !== t('notesPage.allNotes')).map(f => f.name),
+    folders.filter(f => f.name !== '__all_notes__').map(f => f.name),
     [folders, t]
   );
 
