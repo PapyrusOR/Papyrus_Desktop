@@ -45,7 +45,7 @@ describe('ai-db-sync', () => {
     const cfg = new AIConfig(tempDir);
     cfg.config.current_provider = 'custom';
     syncDBToAIConfig(cfg);
-    expect(cfg.config.current_provider).toBe('liyuan-deepseek');
+    expect(cfg.config.current_provider).toBe('custom');
   });
 
   it('syncDBToAIConfig leaves current_provider unchanged when valid and force=false', () => {

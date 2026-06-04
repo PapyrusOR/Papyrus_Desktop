@@ -92,7 +92,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
     }
   };
 
-  const ALLOWED_EXTERNAL_DOMAINS = ['github.com', 'githubusercontent.com', 'papyrus.liyuanstudio.com'];
+  const ALLOWED_EXTERNAL_DOMAINS = ['github.com', 'githubusercontent.com'];
 
   const isAllowedExternalUrl = (url: string): boolean => {
     try {

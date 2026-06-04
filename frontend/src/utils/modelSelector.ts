@@ -15,7 +15,6 @@ export const PORT_OPTIONS = [
   { label: 'OpenAI-Response', value: 'openai-response' },
   { label: 'Anthropic', value: 'anthropic' },
   { label: 'Gemini', value: 'gemini' },
-  { label: 'LiYuan For DeepSeek', value: 'liyuan-deepseek' },
   { label: 'Ollama', value: 'ollama' },
 ];
 

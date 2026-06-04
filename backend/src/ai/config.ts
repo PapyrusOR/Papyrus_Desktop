@@ -101,8 +101,8 @@ export class AIConfig {
     const defaultLogDir = path.join(paths.dataDir, 'logs');
     return {
       providers: {},
-      current_provider: 'liyuan-deepseek',
-      current_model: 'deepseek-v4-pro',
+      current_provider: '',
+      current_model: '',
       parameters: {
         temperature: 0.7,
         top_p: 0.9,

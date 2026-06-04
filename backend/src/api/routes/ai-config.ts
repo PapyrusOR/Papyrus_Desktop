@@ -101,7 +101,7 @@ export default async function aiConfigRoutes(fastify: FastifyInstance): Promise<
           return;
         }
         try {
-          // 对于 liyuan-deepseek 和其他 keyless providers，尝试连接 base URL
+          // 对于 keyless providers，尝试连接 base URL
           // 不同的 provider 可能有不同的健康检查端点，这里我们做一个简单的 GET 请求
           const resp = await fetch(baseUrl, { 
             method: 'GET', 

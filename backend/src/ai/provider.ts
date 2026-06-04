@@ -74,7 +74,6 @@ export function getProviderModality(providerName: string): ProviderModality {
     'gemini',
     'deepseek',
     'moonshot',
-    'liyuan-deepseek',
     'siliconflow',
     'custom',
   ]);
@@ -88,7 +87,6 @@ export function modelSupportsReasoning(providerName: string, model: string): Rea
     providerName === 'openai' ||
     providerName === 'deepseek' ||
     providerName === 'moonshot' ||
-    providerName === 'liyuan-deepseek' ||
     providerName === 'siliconflow'
   ) {
     if (/^o[1-9]|^gpt-5|r1|reasoner|thinking/i.test(lower)) return 'reasoning_effort';
@@ -951,10 +949,7 @@ export class AIManager {
         if (!apiKey && headers['authorization']) {
           delete headers['authorization'];
         }
-        if (providerName === 'liyuan-deepseek') {
-          headers['X-Papyrus-Client-Id'] = getClientId();
-          headers['User-Agent'] = 'PapyrusDesktop/2.0';
-        }
+
         delete headers['content-length'];
         return fetchWithProxy(reqUrl, { ...reqInit, headers } as unknown as RequestInit) as unknown as ReturnType<Fetch>;
       }) as Fetch,

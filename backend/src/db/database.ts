@@ -390,31 +390,6 @@ function deduplicateData(database: DatabaseSync): void {
 
 function seedDefaults(database: DatabaseSync): void {
   const now = Date.now();
-  const pid = 'p-liyuan-deepseek';
-
-  const existing = database.prepare('SELECT id FROM providers WHERE type = ?').get('liyuan-deepseek') as { id: string } | undefined;
-  if (!existing) {
-    database.prepare(
-      `INSERT INTO providers (id, type, name, base_url, enabled, is_default, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(pid, 'liyuan-deepseek', 'LiYuan For DeepSeek', 'https://papyrus.liyuanstudio.com/v1', 1, 1, now, now);
-  }
-
-  const modelIds = ['deepseek-v4-flash', 'deepseek-v4-pro'];
-  const modelNames = ['DeepSeek V4 Flash', 'DeepSeek V4 Pro'];
-  for (let i = 0; i < modelIds.length; i++) {
-    const modelId = modelIds[i];
-    const modelName = modelNames[i];
-    if (!modelId || !modelName) continue;
-    const modelExists = database.prepare('SELECT id FROM provider_models WHERE provider_id = ? AND model_id = ?').get(pid, modelId) as { id: string } | undefined;
-    if (!modelExists) {
-      database.prepare(
-        `INSERT INTO provider_models (id, provider_id, name, model_id, port, enabled)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).run(`${pid}-${modelId}`, pid, modelName, modelId, 'openai-compat', 1);
-    }
-  }
-
   const extensionCount = (database.prepare('SELECT COUNT(*) as c FROM extensions WHERE is_builtin = 1').get() as { c: number }).c;
   if (extensionCount === 0) {
     const builtinExtensions = [
@@ -902,7 +877,6 @@ function inferProviderType(baseUrl: string | undefined, fallbackType: string | u
   if (fallbackType && fallbackType !== 'custom') return fallbackType;
   const url = (baseUrl ?? '').toLowerCase();
   if (url.includes('deepseek.com')) return 'deepseek';
-  if (url.includes('liyuanstudio')) return 'liyuan-deepseek';
   if (url.includes('openai.com')) return 'openai';
   if (url.includes('anthropic.com')) return 'anthropic';
   if (url.includes('google') || url.includes('gemini')) return 'gemini';

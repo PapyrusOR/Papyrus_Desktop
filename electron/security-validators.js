@@ -5,7 +5,6 @@ const EXTERNAL_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 const EXTERNAL_DOMAINS = [
   'github.com',
   'githubusercontent.com',
-  'papyrus.liyuanstudio.com',
   'openai.com',
   'anthropic.com',
   'google.com',
