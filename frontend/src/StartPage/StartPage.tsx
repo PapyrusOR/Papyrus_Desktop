@@ -71,9 +71,8 @@ function useStartPageData(t: (key: string) => string): StartPageData & { refresh
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [remoteSolarTerm, nextScenery, nextDueRes, streakRes] = await Promise.all([
+      const [remoteSolarTerm, nextDueRes, streakRes] = await Promise.all([
         fetchSolarTerm(today),
-        fetchSceneryContent(),
         api.nextDue(),
         api.streak(),
       ]);
@@ -82,13 +81,17 @@ function useStartPageData(t: (key: string) => string): StartPageData & { refresh
         setSolarTerm(remoteSolarTerm);
       }
 
-      setScenery(nextScenery);
-
       const dueCount = nextDueRes.success ? (nextDueRes.due_count ?? 0) : 0;
       const totalCount = nextDueRes.success ? (nextDueRes.total_count ?? 0) : 0;
       const streakDays = streakRes.success ? (streakRes.current_streak ?? 0) : 0;
       const todayProgress = streakRes.success ? (streakRes.progress_percent ?? 0) : 0;
       setStats({ cardsDue: dueCount, totalCards: totalCount, streakDays, todayProgress });
+
+      if (dueCount === 0) {
+        setScenery(await fetchSceneryContent());
+      } else {
+        setScenery(null);
+      }
     } catch (err) {
       setScenery(null);
       const msg = err instanceof Error ? err.message : '获取数据失败';
@@ -452,7 +455,7 @@ const StartPage = ({ onDoneChange, onNavigate, onStartStudy, onNewCard }: StartP
             dateLabel={data.dateLabel}
             solarTerm={data.solarTerm}
             loading={data.loading}
-            scenery={data.scenery}
+            scenery={null}
             onStartStudy={() => onStartStudy?.()}
           />
         )}
