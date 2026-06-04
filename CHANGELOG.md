@@ -9,6 +9,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-beta.11] - 2026-05-13
+
+### 🐛 Bug Fixes
+- **Frontend**: 修复 16 项 UI bug，优化国际化支持
+- **Backend**: 补全 updateNote 异步调用 await，修复 checkpointDb 导入
+- **Build**: 添加 asarUnpack 以正确解包后端文件
+- **Tests**: 修复 clearAllData 事务包装，恢复集成测试，移除废弃的 ChatPanel.tsx
+
+### 💡 Improvements
+- **UI**: 更新图标资源并重构前端代码结构
+- **UI**: 优化输入框和选择框的焦点样式
+- **UI**: 优化笔记页面布局和功能，改进 Markdown 渲染
+- **Relations**: 优化关联关系功能与文件导航体验
+- **Build**: 修改 Electron 构建配置，优化构建配置和 CI 工作流
+- **CI**: 为 node_modules 添加缓存并优化依赖安装流程
+- **CI**: 优化后端依赖处理流程
+- **Cleanup**: 清理大量废弃测试文件与临时文档
+
+---
+
+## [v2.0.0-beta.10] - 2026-05-05
+
+### 🎉 New Features
+- **Proxy**: 改善代理弹性，统一品牌为 Papyrus Desktop
+- **Chat**: 重新生成按钮可覆盖当前回答
+
+### 💡 Improvements
+- **UI**: 悬停预览等细节统一更换为 Papyrus Desktop
+
+---
+
+## [v2.0.0-beta.9] - 2026-05-05
+
+### 🐛 Bug Fixes
+- **Bump tool**: 使用 `refs/tags/` 前缀避免分支/tag 名称冲突
+
+---
+
+## [v2.0.0-beta.8] - 2026-05-05
+
+### 🎉 New Features
+- **Update**: 添加系统代理自动检测
+- **Bump tool**: 自动化版本提升工具
+
+### 💡 Improvements
+- **About**: 更新 about 页面应用名
+
+---
+
+## [v2.0.0-beta.7] - 2026-05-05
+
+### 🎉 New Features
+- **Desktop**: 统一应用品牌为 Papyrus Desktop
+- **Proxy**: 代理服务器匿名认证，发送 PapyrusDesktop User-Agent
+- **AI**: 默认使用 liyuan-deepseek 并支持 V4PRO
+
+### 🐛 Bug Fixes
+- **Chat**: 修复无法切换模型和发送消息的问题
+- **CI**: 修复工作流分支名和测试失败问题
+
+---
+
+## [v2.0.0-beta.6] - 2026-04-29
+
+### 🎉 New Features
+- **CI**: 启用 v2.0.0beta.6 分支推送时自动 draft release
+- **CI**: 自动生成 release notes
+
+### 🐛 Bug Fixes
+- **i18n**: 修复组件外部 hook 作用域的 t 函数传递
+
+---
+
+## [v2.0.0-beta.5] - 2026-04-29
+
+### 🔧 Refactor
+- **Build**: 移除 Windows 安装包文件名中的版本号
+
+### 🐛 Bug Fixes
+- **CI**: 强化后端依赖验证
+- **Build**: 修复 asarUnpack 配置和 electron-builder 文件配置语法
+
+---
+
 ## [v2.0.0beta.4] - 2026-04-27
 
 ### 🐛 Bug Fixes
@@ -106,7 +190,14 @@ When creating a new release:
 
 ---
 
-[Unreleased]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0beta.4...HEAD
+[Unreleased]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0-beta.11...HEAD
+[v2.0.0-beta.11]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0-beta.10...v2.0.0-beta.11
+[v2.0.0-beta.10]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0-beta.9...v2.0.0-beta.10
+[v2.0.0-beta.9]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0-beta.8...v2.0.0-beta.9
+[v2.0.0-beta.8]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0-beta.7...v2.0.0-beta.8
+[v2.0.0-beta.7]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0-beta.6...v2.0.0-beta.7
+[v2.0.0-beta.6]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0-beta.5...v2.0.0-beta.6
+[v2.0.0-beta.5]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v2.0.0beta.4...v2.0.0-beta.5
 [v2.0.0beta.4]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v1.2.2...v2.0.0beta.4
 [v1.2.2]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v1.2.1...v1.2.2
 [v1.2.1]: https://github.com/PapyrusOR/Papyrus_Desktop/compare/v1.2.0...v1.2.1

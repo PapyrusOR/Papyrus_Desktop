@@ -1,24 +1,33 @@
 # Papyrus 版本信息
 
-## 当前版本：v2.0.0-beta.2
+## 当前版本：v2.0.0-beta.11
 
 ### 🎉 主要更新
 
-#### v1.2.2 更新内容
-- **修复 API Key 编码错误**：解决 'latin-1' codec 无法编码中文字符的问题
-- **配置验证机制**：在保存前检查 API Key 和 Base URL，阻止包含非法字符的配置
-- **三层防护**：配置验证层、UI 提示层、请求兜底层
-- **改进错误提示**：明确指出哪个提供商的哪个字段包含非法字符
+#### v2.0.0-beta.11 更新内容
+- **前端重构**: 更新图标资源并重构前端代码结构
+- **笔记优化**: 优化笔记页面布局和功能，改进 Markdown 渲染
+- **UI 改进**: 优化输入框和选择框焦点样式
+- **构建优化**: 修改 Electron 构建配置，优化 CI 工作流
+- **Bug 修复**: 修复 16 项 bug，优化国际化支持
+- **清理**: 清理大量废弃测试文件与临时文档
 
-#### v1.2.1-beta+macOS.arm64 更新内容
-- **修复构建工作流**：解决跨平台路径问题
-- **优化打包配置**：支持 Windows 和 macOS 自动构建
-- **改进 CI/CD**：自动化发布流程
+#### v2.0.0-beta.10 更新内容
+- **代理改善**: 改善代理弹性，统一品牌为 Papyrus Desktop
+- **聊天增强**: 重新生成按钮可覆盖当前回答
 
-#### v1.2.1-beta 更新内容
-- **修复 AI 设置保存问题**：切换提供商时自动验证并调整模型兼容性
-- **改进错误提示**：保存失败时显示具体原因
-- **增强稳定性**：防止提供商和模型不匹配导致的问题
+#### v2.0.0-beta.7~beta.9 更新内容
+- **品牌统一**: 统一应用品牌为 Papyrus Desktop
+- **系统代理**: 添加系统代理自动检测
+- **Bump 工具**: 自动化版本提升工具
+
+#### v2.0.0-beta.5~beta.6 更新内容
+- **CI 强化**: 强化后端依赖验证，修复 asarUnpack 配置
+- **Release**: 启用分支推送时自动 draft release
+
+#### v2.0.0-beta.4 更新内容
+- **聊天修复**: 修复聊天框模型同步与前后端 API 协议对齐
+- **AI 配置**: 修复 AIConfig 解析和 SSE 格式对齐
 
 ---
 
@@ -28,19 +37,16 @@
 
 | 组件 | 版本 |
 |------|------|
-| Python | 3.14+ |
-| Node.js | 24.14+ (前端开发) |
-| npm | 11.9+ |
+| Node.js | 24+ |
+| npm | 11+ |
 
-### 基础功能（无需额外依赖）
+### 基础功能
 - SM-2 算法
 - 卡片学习
 - 数据管理
 
-### AI 功能（需要安装依赖）
-```bash
-pip install -r requirements.txt
-```
+### AI 功能
+无需额外依赖，在应用中配置 API Key 即可使用。
 
 ---
 
@@ -49,36 +55,30 @@ pip install -r requirements.txt
 ### 1. 安装依赖
 
 ```bash
-# Python 依赖
-pip install -r requirements.txt
-
-# 前端依赖（如需开发前端）
-cd frontend
 npm install
 ```
+
+postinstall 会自动级联安装 frontend/ 和 backend/ 的依赖。
 
 ### 2. 启动程序
 
 **开发模式（推荐）**
 ```bash
-# 终端 1：启动后端
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
-
-# 终端 2：启动前端
-cd frontend
 npm run dev
+```
+
+这会并发启动后端 (Fastify, tsx watch) 和前端 (Vite)。
+
+**或通过 Electron 启动**
+```bash
+npm run electron:dev
 ```
 
 访问 http://localhost:5173 查看应用。
 
-**或通过主入口启动**
-```bash
-python src/Papyrus.pyw
-```
-
 ### 3. 配置 AI（可选）
 1. 访问设置页面
-2. 在 "API配置" 标签页输入 API Key
+2. 在 "AI 配置" 标签页输入 API Key
 3. 在 "模型管理" 标签页选择模型
 4. 保存设置
 
@@ -101,7 +101,8 @@ python src/Papyrus.pyw
   "next_review": 1234567890,
   "interval": 0,
   "ef": 2.5,
-  "repetitions": 0
+  "repetitions": 0,
+  "tags": ["tag1"]
 }
 ```
 
@@ -124,42 +125,32 @@ python src/Papyrus.pyw
 
 ```
 Papyrus/
-├── src/
-│   ├── papyrus/             # 主程序包
-│   │   ├── core/            # 核心逻辑
-│   │   │   ├── cards.py     # 卡片操作
-│   │   │   └── ...
-│   │   ├── data/            # 数据存储
-│   │   ├── logic/           # 算法
-│   │   │   └── sm2.py       # SM-2 算法
-│   │   └── integrations/    # 第三方集成
-│   ├── papyrus_api/         # FastAPI 后端
-│   │   └── main.py
-│   └── ai/                  # AI 模块
-│       ├── config.py        # 配置管理
-│       ├── provider.py      # AI 提供商接口
-│       ├── sidebar_v3.py    # AI 侧边栏 UI
-│       └── tools.py         # 工具调用系统
+├── backend/                 # Node.js + Fastify 后端
+│   ├── src/
+│   │   ├── api/             # Fastify 路由
+│   │   ├── core/            # 核心业务逻辑
+│   │   ├── ai/              # AI 功能模块
+│   │   ├── db/              # JSON 数据持久化
+│   │   └── utils/           # 工具函数
+│   └── package.json
 ├── frontend/                # React + TypeScript 前端
 │   ├── src/
 │   │   ├── StartPage/       # 开始页面
 │   │   ├── ScrollPage/      # 卷轴复习
 │   │   ├── NotesPage/       # 笔记管理
-│   │   ├── SettingsPage/    # 设置（含无障碍）
+│   │   ├── SettingsPage/    # 设置
 │   │   └── ...
 │   └── package.json
-├── data/
-│   ├── Papyrusdata.json     # 学习数据
-│   └── ai_config.json       # AI 配置
-└── backup/                  # 自动备份
+└── electron/                # Electron 主进程
 ```
 
 ### 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 后端 | Python 3.14, FastAPI, Uvicorn |
-| 前端 | React 19, TypeScript, Arco Design, Vite |
+| 后端 | Node.js 24, TypeScript 5, Fastify 5 |
+| 前端 | React 19, TypeScript 5, Arco Design, Vite 8, Tailwind CSS |
+| 桌面 | Electron 41, electron-builder |
 | 算法 | SM-2 间隔重复 |
 | 存储 | JSON 文件 |
 
@@ -167,14 +158,14 @@ Papyrus/
 
 ## 🌐 API 服务
 
-### 启动 FastAPI
+### 启动后端
 ```bash
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
+cd backend && npm run dev
 ```
 
 ### 端点
 - Health: http://127.0.0.1:8000/api/health
-- Docs: http://127.0.0.1:8000/docs
+- API: http://127.0.0.1:8000/api/*
 
 ---
 
@@ -194,7 +185,7 @@ python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
 
 - [ ] 语音输入/输出（TTS/STT）
 - [ ] 图片识别（拍照题目）
-- [ ] 知识图谱可视化
+- [ ] 知识图谱可视化增强
 - [ ] 学习进度统计面板
 - [ ] 社区卡片分享
 - [ ] 移动端支持
@@ -204,13 +195,13 @@ python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 📝 更新日志
 
-详细的版本历史请查看 [CHANGELOG.md](CHANGELOG.md)
+详细的版本历史请查看 [CHANGELOG.md](../../CHANGELOG.md)
 
 ---
 
 ## 💬 反馈与支持
 
-- 问题反馈：[GitHub Issues](https://github.com/Alpaca233114514/Papyrus/issues)
+- 问题反馈：[GitHub Issues](https://github.com/PapyrusOR/Papyrus_Desktop/issues)
 - 功能建议：欢迎提交 Pull Request
 
 ---
@@ -221,4 +212,4 @@ MIT License
 
 ---
 
-**Papyrus v1.2.2** - 让学习更智能，让记忆更科学。
+**Papyrus v2.0.0-beta.11** - 让学习更智能，让记忆更科学。

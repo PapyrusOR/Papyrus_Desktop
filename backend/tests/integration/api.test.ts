@@ -850,6 +850,46 @@ describe('API Integration Tests', () => {
     expect(body.message).toContain('auto crash');
   });
 
+  it('POST /api/tools/submit should persist failed auto-execute validation result for auditability', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/tools/config',
+      payload: { mode: 'auto', auto_execute_tools: [] },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/tools/submit',
+      payload: { tool_name: 'create_card', params: { question: '', answer: '' } },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.success).toBe(true);
+    expect(body.result.success).toBe(false);
+    expect(body.result.error).toContain('question');
+    expect(body.call.status).toBe('success');
+    expect(body.call.result.success).toBe(false);
+    expect(body.call.result.error).toContain('question');
+  });
+
+  it('POST /api/tools/parse should preserve reasoning when tool JSON is invalid', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/tools/parse',
+      payload: {
+        response: '<think>check malformed tool</think>\n```json\nnot-json\n```',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.success).toBe(true);
+    expect(body.data.reasoning).toBe('check malformed tool');
+    expect(body.data.tool_call).toBeNull();
+    expect(body.data.content).toBe('```json\nnot-json\n```');
+  });
+
   it('GET /api/notes/:noteId/history should return versions', async () => {
     const create = await app.inject({
       method: 'POST',
@@ -1037,6 +1077,30 @@ describe('API Integration Tests', () => {
       expect(body.files[0].size).toBe(9);
     });
 
+    it('POST /api/files/upload should return saved files and per-file errors for mixed payloads', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/files/upload',
+        payload: {
+          files: [
+            { name: 'valid.txt', content: Buffer.from('valid').toString('base64'), mimeType: 'text/plain' },
+            { name: '', content: Buffer.from('missing name').toString('base64'), mimeType: 'text/plain' },
+          ],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.count).toBe(1);
+      expect(body.files).toEqual([
+        expect.objectContaining({ name: 'valid.txt', size: 5 }),
+      ]);
+      expect(body.errors).toEqual([
+        { name: '(未命名)', error: '缺少名称或内容' },
+      ]);
+    });
+
     it('POST /api/files/upload should reject empty file list', async () => {
       const response = await app.inject({
         method: 'POST',
@@ -1121,6 +1185,27 @@ describe('API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(404);
+    });
+
+    it('GET /api/files/:id/thumbnail should reject non-image files', async () => {
+      const upload = await app.inject({
+        method: 'POST',
+        url: '/api/files/upload',
+        payload: {
+          files: [{ name: 'not-image.txt', content: Buffer.from('plain').toString('base64'), mimeType: 'text/plain' }],
+        },
+      });
+      const fileId = JSON.parse(upload.body).files[0].id;
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/files/${fileId}/thumbnail`,
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('图片');
     });
 
     it('DELETE /api/files/:id should delete a file', async () => {
@@ -2419,6 +2504,42 @@ describe('API Integration Tests', () => {
       expect(privateOllamaResponse.statusCode).toBe(200);
       expect(privateOllamaResponse.body).toContain('SSRF');
     });
+
+    it('POST /api/completion should end the SSE stream when upstream fetch throws', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/providers',
+        payload: {
+          id: 'provider-ollama-throw-completion',
+          type: 'ollama',
+          name: 'Ollama Throw Completion',
+          baseUrl: 'https://ollama-throw.example.com',
+          enabled: true,
+          isDefault: true,
+          models: [{ id: 'model-ollama-throw', name: 'llama3', modelId: 'llama3', enabled: true }],
+        },
+      });
+
+      const { aiConfig } = await import('../../src/api/routes/ai.js');
+      aiConfig.config.current_provider = 'ollama';
+      aiConfig.config.current_model = 'llama3';
+      const savedFetch = global.fetch;
+      try {
+        global.fetch = () => Promise.reject(new Error('network down'));
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/completion',
+          payload: { prefix: 'throw please' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body).toContain('"error":"network down"');
+        expect(response.body).toContain('"done":true');
+      } finally {
+        global.fetch = savedFetch;
+      }
+    });
   });
 });
 
@@ -2458,5 +2579,23 @@ describe('Search Edge Cases', () => {
   it('GET /api/search returns empty when offset exceeds total', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/search?query=unlikelyxyzabc&offset=1000' });
     expect(JSON.parse(res.body).results).toEqual([]);
+  });
+
+  it('GET /api/search clamps negative offset to zero', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: { q: 'Negative offset card', a: 'Search body' },
+    });
+
+    const res = await app.inject({ method: 'GET', url: '/api/search?query=negative&offset=-10&limit=1' });
+    const body = JSON.parse(res.body);
+    expect(res.statusCode).toBe(200);
+    expect(body.offset).toBe(0);
+    expect(body.results[0]).toMatchObject({
+      type: 'card',
+      title: 'Negative offset card',
+      matched_field: 'question',
+    });
   });
 });

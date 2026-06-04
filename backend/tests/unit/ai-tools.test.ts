@@ -13,6 +13,14 @@ interface CardToolsInstance {
   executeTool(tool: string, params: Record<string, unknown>): { success: boolean; error?: string; new?: { q: string }; stats?: { total_cards: number }; results?: Array<{ question: string }>; card?: { q: string } };
   parseToolCall(text: string): { tool: string } | null;
   getToolsForOpenAI(): Array<{ type: string; function: { name: string; description: string; parameters: { type: string; required: string[]; properties: Record<string, unknown> } } }>;
+  getCatalog(): Array<{ name: string; category: string; side_effect: 'read' | 'write'; description: string }>;
+  getDescriptor(toolName: string): { name: string; sideEffect: 'read' | 'write' } | null;
+  hasTool(toolName: string): boolean;
+}
+
+interface TestLogger {
+  events: Array<{ eventType: string; data: unknown; level: string }>;
+  logEvent(eventType: string, data?: unknown, level?: string): void;
 }
 
 const testDir = path.join(os.tmpdir(), `papyrus-ai-tools-test-${Date.now()}`);
@@ -117,6 +125,25 @@ describe('CardTools', () => {
     expect(result.error).toBeTruthy();
   });
 
+  it('should log unknown tool attempts with warning level', () => {
+    const logger: TestLogger = {
+      events: [],
+      logEvent(eventType: string, data: unknown = null, level = 'INFO') {
+        this.events.push({ eventType, data, level });
+      },
+    };
+    const loggedTools = new CardToolsCtor(logger as never);
+
+    const result = loggedTools.executeTool('unknown_tool', {});
+
+    expect(result.success).toBe(false);
+    expect(logger.events).toContainEqual({
+      eventType: 'tool.unknown',
+      data: { tool: 'unknown_tool' },
+      level: 'WARNING',
+    });
+  });
+
   it('should update a card', () => {
     const createResult = tools.executeTool('create_card', { question: 'Old Q', answer: 'Old A' });
     const cardId = (createResult as Record<string, unknown>).card as Record<string, string>;
@@ -185,6 +212,46 @@ describe('CardTools', () => {
   it('should reject search_cards with non-string keyword', () => {
     const result = tools.executeTool('search_cards', { keyword: 123 });
     expect(result.success).toBe(false);
+  });
+
+  it('should log validation failures returned by a tool runner', () => {
+    const logger: TestLogger = {
+      events: [],
+      logEvent(eventType: string, data: unknown = null, level = 'INFO') {
+        this.events.push({ eventType, data, level });
+      },
+    };
+    const loggedTools = new CardToolsCtor(logger as never);
+
+    const result = loggedTools.executeTool('create_card', { question: '', answer: '' });
+
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toContain('question');
+    expect(logger.events.find((event) => event.eventType === 'tool.execute_start')?.data).toEqual({
+      tool: 'create_card',
+      params: { question: '', answer: '' },
+    });
+    const okEvent = logger.events.find((event) => event.eventType === 'tool.execute_ok');
+    expect(okEvent?.level).toBe('INFO');
+    expect(okEvent?.data).toMatchObject({
+      tool: 'create_card',
+      result_type: 'error',
+    });
+  });
+
+  it('should expose descriptor and catalog side effects used by approval flow', () => {
+    expect(tools.hasTool('get_settings')).toBe(true);
+    expect(tools.hasTool('missing_tool')).toBe(false);
+    expect(tools.getDescriptor('get_settings')?.sideEffect).toBe('read');
+    expect(tools.getDescriptor('update_settings')?.sideEffect).toBe('write');
+    expect(tools.getDescriptor('missing_tool')).toBeNull();
+
+    const catalog = tools.getCatalog();
+    const updateSettings = catalog.find((entry) => entry.name === 'update_settings');
+    expect(updateSettings).toMatchObject({
+      category: 'settings',
+      side_effect: 'write',
+    });
   });
 
   it('should parse tool call from AI response', () => {

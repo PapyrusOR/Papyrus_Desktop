@@ -6,21 +6,24 @@
 
 | 组件 | 版本要求 |
 |------|----------|
-| Python | 3.14+ |
-| Node.js | 24.14+ (前端开发) |
-| npm | 11.9+ |
+| Node.js | 24+ |
+| npm | 11+ |
 
 ### 步骤 1：安装依赖
 
-**Python 依赖**
+在项目根目录执行：
+
 ```bash
-pip install -r requirements.txt
+npm install
 ```
 
-**前端依赖（如需开发/修改前端）**
+postinstall 会自动级联安装 `frontend/` 和 `backend/` 的依赖。
+
+如需单独安装：
+
 ```bash
-cd frontend
-npm install
+cd frontend && npm install
+cd ../backend && npm install
 ```
 
 ---
@@ -30,20 +33,29 @@ npm install
 **方式 1：同时启动前后端（推荐开发）**
 
 ```bash
-# 终端 1：启动后端 API
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
-
-# 终端 2：启动前端（在另一个终端）
-cd frontend
 npm run dev
 ```
 
+这会并发启动：
+- 后端 (Fastify, tsx watch): http://127.0.0.1:8000
+- 前端 (Vite): http://localhost:5173
+
 访问 http://localhost:5173 查看应用。
 
-**方式 2：通过主入口启动**
+**方式 2：带 Electron 桌面壳**
 
 ```bash
-python src/Papyrus.pyw
+npm run electron:dev
+```
+
+**方式 3：分别启动（调试）**
+
+```bash
+# 终端 1：启动后端
+cd backend && npm run dev
+
+# 终端 2：启动前端
+cd frontend && npm run dev
 ```
 
 ---
@@ -59,16 +71,18 @@ python src/Papyrus.pyw
 
 ### 批量导入
 
-1. 准备 TXT 文件，格式：`题目===答案`
+1. 准备 UTF-8 `.txt` 文件，格式：`问题 === 答案`
 2. 在卷轴页面点击导入按钮
 3. 选择文件并确认
+
+> 卡片组之间用 `===` 分隔，组间空一行提高可读性。
 
 ### 复习卡片
 
 - **Space**: 显示答案
-- **1**: 忘记（1天后复习）
+- **1**: 忘记（卡片很快返回）
 - **2**: 模糊（正常间隔）
-- **3**: 秒杀（快速增长）
+- **3**: 秒杀（间隔线性增长）
 
 ---
 
@@ -78,8 +92,8 @@ python src/Papyrus.pyw
 
 1. 获取 API Key：https://platform.openai.com/api-keys
 2. 进入设置页面 → AI 配置
-3. 在 "API配置" → "OPENAI" 中输入 API Key
-4. 在 "模型管理" 中选择模型（如 gpt-3.5-turbo）
+3. 选择提供商并输入 API Key
+4. 在模型管理中选择模型（如 gpt-4o）
 5. 保存设置
 
 ### 方式 2：使用 Ollama（免费本地）
@@ -89,7 +103,7 @@ python src/Papyrus.pyw
    ```bash
    ollama pull qwen:0.5b  # 小模型，快速
    # 或
-   ollama pull llama2     # 更强大
+   ollama pull llama3     # 更强大
    ```
 3. 在 Papyrus 中：
    - 提供商选择：ollama
@@ -138,7 +152,7 @@ AI：[显示统计信息]
 
 ### 调整 AI 参数
 
-在设置 → 参数标签页：
+在设置 → AI 配置：
 
 - **Temperature**（创造性）
   - 0.3：精确、保守
@@ -152,7 +166,7 @@ AI：[显示统计信息]
 
 ### 管理模型
 
-在设置 → 模型管理标签页：
+在设置 → 模型管理：
 
 - **➕ 添加**：手动添加模型名称
 - **✏️ 编辑**：修改模型名称
@@ -161,7 +175,7 @@ AI：[显示统计信息]
 
 ### 无障碍设置
 
-在设置 → 无障碍标签页：
+在设置 → 无障碍：
 
 - **减少动画**：减弱界面动画
 - **高对比度**：增强文字对比度
@@ -193,12 +207,13 @@ AI：[显示统计信息]
 
 ### AI 功能不可用
 
-**问题**：聊天面板显示占位信息
+**问题**：聊天面板无法使用
 
 **解决**：
-1. 检查是否安装依赖：`pip list | findstr requests` (Windows) 或 `pip list | grep requests` (Linux/Mac)
-2. 重启程序
-3. 查看控制台错误信息
+1. 检查后端是否运行：`curl http://127.0.0.1:8000/api/health`
+2. 检查 AI 配置是否完整（提供商、模型、API Key）
+3. 查看后端日志：`$HOME/PapyrusData/logs/`
+4. 重启前后端服务
 
 ### API 调用失败
 
@@ -219,27 +234,32 @@ AI：[显示统计信息]
 2. 检查端口：默认 11434
 3. 确认模型已下载：`ollama list`
 
----
+### 后端启动失败
 
-## 🌐 FastAPI（可选：给前端提供接口）
-
-启动 FastAPI：
+**解决**：
 ```bash
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
+cd backend
+rm -rf node_modules
+npm install
+npm run dev
 ```
 
-前端将通过 `/api/*` 与后端通信：
-- Health: http://127.0.0.1:8000/api/health
-- Docs: http://127.0.0.1:8000/docs
+### 前端启动失败
 
-详见 [API_FASTAPI.md](API_FASTAPI.md)
+**解决**：
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+```
 
 ---
 
 ## 📚 更多资源
 
 - [完整文档](../README.md)
-- [更新日志](CHANGELOG.md)
+- [更新日志](../../CHANGELOG.md)
 - [版本信息](VERSION.md)
 - [AI 功能详解](../AI_TOOLS_DEMO.md)
 
@@ -247,10 +267,10 @@ python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 💡 小贴士
 
-1. **数据备份**：程序每小时自动备份，也可手动备份
+1. **数据备份**：程序自动备份，也可手动导出
 2. **快捷键**：全程键盘操作，提高效率
 3. **本地优先**：使用 Ollama 可完全离线使用
-4. **隐私保护**：API Key 隐藏显示，数据本地存储
+4. **隐私保护**：API Key 加密存储，数据本地存储
 
 ---
 

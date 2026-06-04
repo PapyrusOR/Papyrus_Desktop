@@ -2,9 +2,9 @@
 
 ## 项目概览
 
-> 最后更新: 2026-03-31
+> 最后更新: 2026-06-04
 
-Papyrus 是一个现代化的桌面学习应用，采用 **Python FastAPI 后端 + React TypeScript 前端** 架构。
+Papyrus 是一款现代化的桌面学习应用，采用 **Node.js + Fastify 后端 + React 19 TypeScript 前端 + Electron 41 桌面壳** 架构。
 
 ---
 
@@ -12,164 +12,96 @@ Papyrus 是一个现代化的桌面学习应用，采用 **Python FastAPI 后端
 
 ```text
 Papyrus/
-├── src/                           # Python 后端源码
-│   ├── Papyrus.py                 # 兼容入口（shim）
-│   ├── Papyrus.pyw                # 兼容入口（无控制台）
-│   │
-│   ├── papyrus/                   # 主程序包
-│   │   ├── app.py                 # 应用入口，启动 FastAPI
-│   │   ├── paths.py               # 路径常量
-│   │   ├── resources.py           # 资源路径处理
-│   │   ├── core/                  # 核心逻辑
-│   │   │   ├── __init__.py
-│   │   │   └── cards.py           # 卡片操作（UI-agnostic）
-│   │   ├── data/                  # 数据存储
-│   │   │   ├── __init__.py
-│   │   │   ├── storage.py         # 卡片数据存取
-│   │   │   └── notes_storage.py   # 笔记数据存取
-│   │   ├── logic/                 # 算法实现
-│   │   │   ├── __init__.py
-│   │   │   └── sm2.py             # SM-2 间隔重复算法
-│   │   ├── ui/                    # UI 组件（遗留）
-│   │   │   ├── __init__.py
-│   │   │   ├── ai_placeholder.py
-│   │   │   └── main_ui.py
-│   │   └── integrations/          # 第三方集成
-│   │       ├── __init__.py
-│   │       ├── ai.py              # AI 集成
-│   │       ├── logging.py         # 日志集成
-│   │       ├── mcp.py             # MCP 集成
-│   │       └── obsidian.py        # Obsidian Vault 导入
-│   │
-│   ├── papyrus_api/               # FastAPI 后端
-│   │   ├── __init__.py
-│   │   └── main.py                # FastAPI 应用主文件
-│   │
-│   ├── ai/                        # AI 功能模块
-│   │   ├── __init__.py
-│   │   ├── config.py              # AI 配置管理
-│   │   ├── provider.py            # AI 提供商接口
-│   │   ├── sidebar_v3.py          # AI 侧边栏 UI（遗留）
-│   │   └── tools.py               # AI 工具调用
-│   │
-│   ├── mcp/                       # MCP 服务
-│   │   ├── __init__.py
-│   │   └── server.py
-│   │
-│   └── logger.py                  # 日志模块
-│
-├── frontend/                      # React + TypeScript 前端
+├── backend/                       # Node.js + TypeScript 后端 (Fastify)
+│   ├── src/
+│   │   ├── api/                   # Fastify 路由 & 服务器入口
+│   │   │   ├── server.ts          # 服务入口，注册所有路由
+│   │   │   └── routes/            # 20+ 路由模块
+│   │   ├── core/                  # 核心业务逻辑（UI 无关）
+│   │   │   ├── cards.ts           # 卡片 CRUD
+│   │   │   ├── notes.ts           # 笔记管理
+│   │   │   ├── sm2.ts             # SM-2 间隔重复算法
+│   │   │   ├── versioning.ts      # 版本历史
+│   │   │   ├── crypto.ts          # AES-GCM 加密
+│   │   │   ├── relations.ts       # 关系管理
+│   │   │   └── files.ts           # 文件操作
+│   │   ├── ai/                    # AI Agent 系统
+│   │   │   ├── config.ts          # AI 配置管理
+│   │   │   ├── provider.ts        # AI 提供商接口
+│   │   │   ├── tool-manager.ts    # 工具调用管理
+│   │   │   ├── llm-cache.ts       # LLM 响应缓存
+│   │   │   ├── tools.ts           # 工具调用入口
+│   │   │   └── tools/             # 工具定义与实现
+│   │   │       ├── registry.ts    # 工具注册表
+│   │   │       ├── parser.ts      # AI 响应解析
+│   │   │       ├── cards.ts       # 卡片工具
+│   │   │       ├── notes.ts       # 笔记工具
+│   │   │       ├── files.ts       # 文件工具
+│   │   │       ├── data.ts        # 数据查询工具
+│   │   │       ├── relations.ts   # 关系工具
+│   │   │       ├── settings.ts    # 设置工具
+│   │   │       └── extensions.ts  # 扩展工具
+│   │   ├── db/                    # JSON 数据持久化
+│   │   │   └── database.ts        # 数据库操作
+│   │   ├── integrations/          # 外部集成
+│   │   │   └── file-watcher.ts    # 文件监听（Obsidian Vault）
+│   │   ├── mcp/                   # MCP 服务端点
+│   │   │   └── server.ts          # MCP 服务器
+│   │   └── utils/                 # 工具函数
+│   │       ├── auth.ts            # 认证
+│   │       ├── logger.ts          # 日志
+│   │       ├── paths.ts           # 路径常量
+│   │       ├── proxy.ts           # 代理配置
+│   │       └── client-id.ts       # 客户端标识
+│   ├── tests/                     # 测试（unit/ + integration/）
 │   ├── package.json
-│   ├── vite.config.js
-│   ├── tsconfig.json
-│   ├── index.html
-│   │
-│   └── src/
-│       ├── main.tsx               # 应用入口
-│       ├── App.tsx                # 根组件
-│       ├── api.ts                 # API 接口
-│       ├── a11y.css               # ✅ 无障碍全局样式
-│       │
-│       ├── components/            # 公共组件
-│       │   └── SceneryBackground.tsx
-│       │
-│       ├── icons/                 # 图标组件
-│       │   ├── IconAccessibility.tsx    # ✅ 无障碍图标
-│       │   ├── IconAgentMode.tsx
-│       │   ├── IconCharts.tsx
-│       │   ├── IconScroll.tsx
-│       │   └── svgs/              # SVG 源文件
-│       │       └── accessibility.svg    # ✅ 无障碍图标源文件
-│       │
-│       ├── hooks/                 # 自定义 Hooks
-│       │   └── useScenery.ts
-│       │
-│       ├── StartPage/             # 开始页面
-│       │   ├── StartPage.tsx
-│       │   ├── RecentNotes.tsx
-│       │   ├── RecentScrolls.tsx
-│       │   ├── ReviewQueue.tsx
-│       │   └── StartPage.css
-│       │
-│       ├── ScrollPage/            # 卷轴页面
-│       │   ├── ScrollPage.tsx
-│       │   ├── FlashcardStudy.tsx
-│       │   └── ScrollPage.css
-│       │
-│       ├── NotesPage/             # 笔记页面
-│       │   ├── NotesPage.tsx
-│       │   ├── components/
-│       │   ├── views/
-│       │   └── NotesPage.css
-│       │
-│       ├── SettingsPage/          # 设置页面
-│       │   ├── SettingsPage.tsx   # ✅ 包含无障碍设置
-│       │   └── SettingsPage.css
-│       │
-│       ├── ChartsPage/            # 统计页面
-│       │   └── ChartsPage.tsx
-│       │
-│       ├── FilesPage/             # 文件页面
-│       │   └── FilesPage.tsx
-│       │
-│       ├── ExtensionsPage/        # 扩展页面
-│       │   └── ExtensionsPage.tsx
-│       │
-│       ├── Sidebar.tsx            # 侧边栏
-│       ├── Sidebar.css
-│       ├── TitleBar.tsx           # 标题栏
-│       ├── TitleBar.css
-│       ├── SearchBox.tsx          # 搜索组件
-│       ├── ChatPanel.tsx          # 聊天面板
-│       ├── ChatPanel.css
-│       └── StatusBar.tsx          # 状态栏
+│   └── tsconfig.json
 │
-├── docs/                          # 文档
-│   ├── README.md                  # 文档导航
-│   ├── PROJECT_STRUCTURE.md       # 本文件
-│   ├── FILE_INDEX.md              # 全文件索引
-│   ├── PRD.md                     # 产品需求文档
-│   ├── AI_README.md               # AI 功能说明
-│   ├── AI_TOOLS_DEMO.md           # AI 工具演示
-│   ├── API.md                     # API 文档
-│   ├── ELECTRON_V41_SETUP.md      # Electron v41 配置
-│   ├── EXTENSIONS.md              # 扩展系统
-│   ├── COMPLETION_DEMO.md         # 补全功能演示
-│   │
-│   └── guides/                    # 使用指南
-│       ├── QUICKSTART.md          # 快速启动
-│       ├── VERSION.md             # 版本信息
-│       ├── CHANGELOG.md           # 更新日志
-│       ├── ENVIRONMENT_REQUIREMENTS.md  # 环境要求
-│       ├── ACCESSIBILITY_GUIDE.md # ✅ 无障碍开发指南
-│       ├── A11Y_IMPLEMENTATION.md # ✅ 无障碍实施记录
-│       ├── A11Y_SETTINGS.md       # ✅ 无障碍设置说明
-│       ├── UI_TOKENS.md           # UI 设计变量
-│       ├── INPUT_FEATURES.md      # 输入功能说明
-│       ├── SCENERY_DESIGN_GUIDE.md # 窗景设计指南
-│       ├── API_FASTAPI.md         # FastAPI 说明
-│       └── COMPLETION_DEMO.md     # 补全演示
+├── frontend/                      # React 19 + TypeScript 前端 (Vite)
+│   ├── src/
+│   │   ├── StartPage/             # 首页（今日概览、复习队列、节气主题）
+│   │   ├── ScrollPage/            # 卷轴复习页（闪卡学习）
+│   │   ├── NotesPage/             # 笔记管理（关系图、文件夹树）
+│   │   ├── ChartsPage/            # 统计图表
+│   │   ├── FilesPage/             # 文件库
+│   │   ├── ExtensionsPage/        # 扩展管理
+│   │   ├── SettingsPage/          # 设置（AI配置、无障碍、外观、快捷键）
+│   │   ├── ChatPanel/             # AI 聊天面板
+│   │   ├── components/            # 公共组件
+│   │   ├── hooks/                 # 自定义 Hooks
+│   │   ├── contexts/              # React Context
+│   │   ├── i18n/                  # 国际化配置
+│   │   ├── icons/                 # 图标系统（30+ AI 模型/提供商 Logo）
+│   │   ├── locales/               # 语言包（zh-CN, en-US, zh-TW, ja-JP）
+│   │   ├── types/                 # 类型定义
+│   │   └── utils/                 # 工具函数
+│   ├── package.json
+│   └── vite.config.js
 │
-├── data/                          # 用户数据（不进 Git）
-│   ├── Papyrusdata.json           # 卡片数据
-│   ├── ai_config.json             # AI 配置
-│   └── notes.json                 # 笔记数据
+├── electron/                      # Electron 主进程
+│   ├── main.js                    # 主进程入口
+│   ├── preload.js                 # 预加载脚本
+│   ├── diagnostic-window.js       # 诊断窗口
+│   └── diagnostic-preload.js      # 诊断预加载
 │
-├── backup/                        # 用户备份（不进 Git）
+├── e2e/                           # Playwright E2E 测试
 │
-├── assets/                        # 资源文件
-│   └── icon.ico                   # 应用图标
+├── scripts/                       # 构建/发布脚本
+│   ├── build-electron.js          # 统一构建脚本
+│   ├── bump-version.js            # 版本号管理
+│   ├── extract-changelog.js       # 更新日志提取
+│   └── ...
 │
-├── tests/                         # 测试代码
+├── docs/                          # 项目文档
 │
-├── tools/                         # 工具脚本
+├── examples/                      # 扩展开发模板
+│   └── extension-template/
 │
-├── logs/                          # 日志文件
+├── assets/                        # 应用图标（.ico, .icns, .png, .svg）
 │
-├── run.pyw                        # 启动器
-├── PapyrusAPI.spec                # PyInstaller 配置
-├── requirements.txt               # Python 依赖
-└── pyproject.toml                 # Python 项目配置
+├── build/                         # Electron 构建资源
+│
+└── tools/                         # 开发工具（图标生成）
 ```
 
 ---
@@ -177,21 +109,20 @@ Papyrus/
 ## 前端架构
 
 ### 技术栈
-- **框架**: React 19 + TypeScript
-- **UI 库**: Arco Design
-- **构建工具**: Vite
-- **样式**: CSS + CSS 变量
+- **框架**: React 19.2.4 + TypeScript 5
+- **UI 库**: Arco Design (web-react) 2.66.14
+- **构建工具**: Vite 8
+- **样式**: Tailwind CSS 3.4（类名带 `tw-` 前缀）
 
 ### 无障碍（a11y）文件
 
 | 文件 | 说明 |
 |------|------|
-| `frontend/src/a11y.css` | 全局无障碍样式，包含焦点样式、Skip Link、减少动画等 |
-| `frontend/src/icons/IconAccessibility.tsx` | 无障碍图标组件 |
-| `frontend/src/icons/svgs/accessibility.svg` | 无障碍图标 SVG 源文件 |
+| `frontend/src/contexts/AccessibilityContext.tsx` | 无障碍上下文 |
+| `frontend/src/components/ScreenReaderAnnouncer.tsx` | 屏幕阅读器播报 |
 | `docs/guides/ACCESSIBILITY_GUIDE.md` | 无障碍开发指南 |
-| `docs/guides/A11Y_IMPLEMENTATION.md` | 无障碍改进实施记录 |
-| `docs/guides/A11Y_SETTINGS.md` | 无障碍设置使用说明 |
+| `docs/guides/A11Y_IMPLEMENTATION.md` | 无障碍实施记录 |
+| `docs/guides/A11Y_SETTINGS.md` | 无障碍设置说明 |
 
 ### 核心组件
 
@@ -202,8 +133,8 @@ Papyrus/
 | `TitleBar.tsx` | 顶部标题栏 |
 | `SearchBox.tsx` | 全局搜索 |
 | `ChatPanel.tsx` | AI 聊天面板 |
-| `SettingsPage.tsx` | 设置页面（含无障碍设置） |
-| `StartPage.tsx` | 开始页面（今日概览） |
+| `SettingsPage.tsx` | 设置页面 |
+| `StartPage.tsx` | 开始页面 |
 | `ScrollPage.tsx` | 卷轴复习页面 |
 | `NotesPage.tsx` | 笔记管理页面 |
 
@@ -212,21 +143,24 @@ Papyrus/
 ## 后端架构
 
 ### 技术栈
-- **框架**: FastAPI
-- **服务器**: Uvicorn
-- **存储**: JSON 文件
+- **框架**: Fastify 5
+- **语言**: TypeScript 5（ES Module，导入带 `.js` 后缀）
+- **存储**: JSON 文件（本地持久化）
 - **算法**: SM-2 间隔重复
+- **测试**: Jest + ts-jest
 
 ### 核心模块
 
 | 模块 | 功能 |
 |------|------|
-| `papyrus.core.cards` | 卡片 CRUD 操作 |
-| `papyrus.logic.sm2` | SM-2 算法实现 |
-| `papyrus.data.storage` | 数据持久化 |
-| `papyrus.integrations.obsidian` | Obsidian 导入 |
-| `ai.config` | AI 配置管理 |
-| `ai.provider` | AI 提供商接口 |
+| `core/cards.ts` | 卡片 CRUD 操作 |
+| `core/notes.ts` | 笔记管理 |
+| `core/sm2.ts` | SM-2 算法实现 |
+| `core/versioning.ts` | 版本历史与回滚 |
+| `core/crypto.ts` | AES-GCM 加密 |
+| `core/relations.ts` | 关系管理 |
+| `core/files.ts` | 文件操作 |
+| `db/database.ts` | JSON 数据持久化 |
 
 ### API 端点
 
@@ -234,12 +168,21 @@ Papyrus/
 |------|------|------|
 | `/api/health` | GET | 健康检查 |
 | `/api/cards` | GET/POST | 卡片列表/创建 |
-| `/api/cards/{id}` | DELETE | 删除卡片 |
+| `/api/cards/:id` | GET/PATCH/DELETE | 卡片操作 |
 | `/api/review/next` | GET | 获取下一张待复习卡片 |
-| `/api/review/{id}/rate` | POST | 评分卡片 |
+| `/api/review/:id/rate` | POST | 评分卡片 |
 | `/api/notes` | GET/POST | 笔记列表/创建 |
-| `/api/notes/{id}` | GET/PATCH/DELETE | 笔记操作 |
-| `/api/notes/import/obsidian` | POST | 从 Obsidian 导入 |
+| `/api/notes/:id` | GET/PATCH/DELETE | 笔记操作 |
+| `/api/notes/import/obsidian` | POST | Obsidian 导入 |
+| `/api/files` | GET/POST/DELETE | 文件管理 |
+| `/api/relations` | GET/POST/DELETE | 关系管理 |
+| `/api/extensions` | GET/POST/DELETE | 扩展管理 |
+| `/api/search` | GET | 全局搜索 |
+| `/api/ai-chat` | POST | AI 聊天 |
+| `/api/ai-config` | GET/PATCH | AI 配置 |
+| `/api/providers` | GET/POST/DELETE | AI 提供商管理 |
+| `/api/progress` | GET | 复习进度 |
+| `/api/mcp/*` | — | MCP 服务 |
 
 ---
 
@@ -249,17 +192,19 @@ Papyrus/
 - [快速启动](guides/QUICKSTART.md)
 - [无障碍设置](guides/A11Y_SETTINGS.md)
 - [版本信息](guides/VERSION.md)
-- [更新日志](guides/CHANGELOG.md)
+- [更新日志](../CHANGELOG.md)
 
 ### 开发指南
 - [环境要求](guides/ENVIRONMENT_REQUIREMENTS.md)
 - [UI 设计变量](guides/UI_TOKENS.md)
 - [无障碍开发指南](guides/ACCESSIBILITY_GUIDE.md)
 - [API 文档](API.md)
+- [CLI Manager 设计](CLI_MANAGER_DESIGN.md)
 
 ### AI 功能
 - [AI 功能说明](AI_README.md)
 - [AI 工具演示](AI_TOOLS_DEMO.md)
+- [工具调用审批设计](tool_call_approval.md)
 
 ---
 
@@ -267,45 +212,46 @@ Papyrus/
 
 ### 开发模式
 
-**启动后端**
+**一键启动前后端**
 ```bash
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
+npm run dev
 ```
 
-**启动前端**
+**分别启动**
 ```bash
-cd frontend
-npm run dev
+# 终端 1 - 后端
+cd backend && npm run dev
+
+# 终端 2 - 前端
+cd frontend && npm run dev
 ```
 
 访问 http://localhost:5173
 
-### 构建生产版本
-
-**构建前端**
+**带 Electron 壳**
 ```bash
-cd frontend
-npm run build
+npm run electron:dev
 ```
 
-**打包完整应用**
+### 构建生产版本
+
 ```bash
-pyinstaller PapyrusAPI.spec
+npm run build:frontend   # 构建前端
+npm run build:backend    # 构建后端
+npm run electron:build   # 全平台构建
 ```
 
 ---
 
 ## 最近更新
 
-### 2026-03-26 无障碍改进
-- ✅ 新增全局无障碍样式 (`a11y.css`)
-- ✅ 新增无障碍设置面板
-- ✅ 完善 ARIA 属性支持
-- ✅ 优化键盘导航
-- ✅ 达到 WCAG 2.1 AAA 级对比度标准
-
-### 2026-03 架构升级
-- ✅ FastAPI 后端
-- ✅ React 19 前端
-- ✅ 全新 UI 设计
-- ✅ Obsidian 导入支持
+### 2026-05 Node.js/Fastify 后端重写完成
+- ✅ Node.js 24 + TypeScript 5 + Fastify 5 后端
+- ✅ React 19 + Vite 8 + Arco Design 前端
+- ✅ Electron 41 桌面封装
+- ✅ 20+ API 路由
+- ✅ AI Agent 工具系统（7 类工具）
+- ✅ 30+ AI 提供商支持
+- ✅ MCP 服务端点
+- ✅ Jest 后端测试 + Playwright E2E 测试
+- ✅ 国际化（4 种语言）

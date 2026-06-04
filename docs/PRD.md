@@ -1,8 +1,8 @@
 # Papyrus 产品需求文档 (PRD)
 
-> 版本: v2.0.0-beta.1  
-> 最后更新: 2026-03-29  
-> 状态: 开发中
+> 版本: v2.0.0-beta.11
+> 最后更新: 2026-06-04
+> 状态: Beta 开发中
 
 ---
 
@@ -25,9 +25,9 @@
 
 1. **极简交互**: 全流程键盘驱动，无需触碰鼠标
 2. **智能调度**: 基于 SM-2 算法的间隔重复
-3. **AI 辅助**: 支持多种 AI 提供商的智能学习助手
+3. **AI 辅助**: 支持 30+ AI 提供商的智能学习助手
 4. **数据自主**: 本地存储，隐私安全
-5. **无障碍优先**: 达到 WCAG 2.1 AAA 级标准
+5. **无障碍优先**: 达到 WCAG 2.1 AA/AAA 级标准
 
 ---
 
@@ -41,10 +41,11 @@
 |------|------|--------|
 | 创建卡片 | 支持正面/背面双栏输入，添加标签 | P0 |
 | 编辑卡片 | 修改问题、答案和标签 | P0 |
-| 删除卡片 | 软删除或永久删除 | P0 |
+| 删除卡片 | 永久删除 | P0 |
 | 批量导入 | 从 TXT 文件导入（`问题 === 答案` 格式） | P1 |
 | 卡片搜索 | 全文搜索问题和答案 | P1 |
 | 标签管理 | 按标签过滤和分类 | P1 |
+| 版本历史 | 每步编辑自动保存内容哈希版本 | P1 |
 
 #### 2.1.2 复习系统
 
@@ -65,6 +66,7 @@
 | 文件夹管理 | 层级文件夹组织 | P0 |
 | Obsidian 导入 | 导入 Obsidian Vault | P1 |
 | 笔记关联 | 卡片与笔记双向关联 | P1 |
+| 关系图谱 | 笔记关系图可视化 | P1 |
 | 全文搜索 | 笔记内容搜索 | P1 |
 
 ### 2.2 AI 功能
@@ -73,16 +75,24 @@
 
 | 提供商 | 状态 | 配置方式 |
 |--------|------|----------|
-| OpenAI (GPT-4) | ✅ 已实现 | API Key |
-| Anthropic (Claude) | ✅ 已实现 | API Key |
+| OpenAI | ✅ 已实现 | API Key |
+| Anthropic | ✅ 已实现 | API Key |
 | Ollama (本地) | ✅ 已实现 | 本地服务 |
+| Deepseek | ✅ 已实现 | API Key |
+| Qwen | ✅ 已实现 | API Key |
+| Gemini | ✅ 已实现 | API Key |
+| Grok | ✅ 已实现 | API Key |
+| Moonshot | ✅ 已实现 | API Key |
+| Mistral | ✅ 已实现 | API Key |
+| OpenRouter | ✅ 已实现 | API Key |
+| 自定义 | ✅ 已实现 | Base URL + API Key |
 
 #### 2.2.2 AI 交互模式
 
 | 模式 | 描述 | 优先级 |
 |------|------|--------|
 | Chat 模式 | 纯对话问答 | P0 |
-| Agent 模式 | 支持工具调用（增删改卡片/笔记） | P0 |
+| Agent 模式 | 支持工具调用（增删改卡片/笔记/文件） | P0 |
 
 #### 2.2.3 AI 工具调用
 
@@ -91,15 +101,18 @@
 - `delete_card`: 删除卡片
 - `create_note`: 创建笔记
 - `search_notes`: 搜索笔记
+- `list_files`: 列出文件
+- `read_settings`: 读取设置
 - `import_from_obsidian`: 从 Obsidian 导入
 
 ### 2.3 数据管理
 
 | 功能 | 描述 | 优先级 |
 |------|------|--------|
-| 自动备份 | 定时备份到 backup/ 目录 | P1 |
+| 版本历史 | 每步编辑自动保存，支持回滚 | P1 |
 | 数据导出 | 导出为 JSON/TXT | P1 |
 | 数据导入 | 从 JSON/TXT 恢复 | P1 |
+| 文件管理 | 附件上传下载 | P1 |
 | 云端同步 | 未来规划（WebDAV/S3） | P2 |
 
 ### 2.4 无障碍功能
@@ -120,13 +133,16 @@
 
 | 层级 | 技术 | 版本 |
 |------|------|------|
-| 后端 | Python + FastAPI | 3.14+ |
-| 前端 | React + TypeScript | 19 |
-| UI 库 | Arco Design | - |
-| 构建 | Vite | - |
+| 后端 | Node.js + TypeScript + Fastify | 24+, 5, 5 |
+| 前端 | React + TypeScript | 19.2.4 |
+| UI 库 | Arco Design (web-react) | 2.66.14 |
+| 样式 | Tailwind CSS | 3.4 |
+| 构建 | Vite | 8 |
 | 桌面 | Electron | 41.1.0 |
 | 算法 | SM-2 | - |
-| 存储 | JSON + SQLite | - |
+| 存储 | JSON 文件 | - |
+| AI SDK | OpenAI SDK | 4.96 |
+| 校验 | Zod | 3.25 |
 
 ### 3.2 系统架构图
 
@@ -134,7 +150,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                    Electron 桌面应用                          │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │                   React 前端                           │  │
+│  │                   React 19 前端                          │  │
 │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐     │  │
 │  │  │ 开始页  │ │ 卷轴页  │ │ 笔记页  │ │ 设置页  │ ... │  │
 │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘     │  │
@@ -142,7 +158,7 @@
 │                          │                                  │
 │                          ▼                                  │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │               Python FastAPI 后端                      │  │
+│  │               Node.js Fastify 后端                      │  │
 │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐     │  │
 │  │  │ 卡片 API│ │ 复习 API│ │ 笔记 API│ │  AI API │ ... │  │
 │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘     │  │
@@ -157,7 +173,7 @@
 ### 3.3 数据流
 
 ```
-用户操作 → React 组件 → API 调用 → FastAPI 路由 → 核心逻辑 → 数据存储
+用户操作 → React 组件 → API 调用 → Fastify 路由 → 核心逻辑 → 数据存储
                ↑                                              │
                └──────────── 响应更新 ←────────────────────────┘
 ```
@@ -168,12 +184,21 @@
 |------|------|------|
 | `/api/health` | GET | 健康检查 |
 | `/api/cards` | GET/POST | 卡片列表/创建 |
-| `/api/cards/{id}` | DELETE | 删除卡片 |
+| `/api/cards/:id` | GET/PATCH/DELETE | 卡片操作 |
 | `/api/review/next` | GET | 获取下一张待复习卡片 |
-| `/api/review/{id}/rate` | POST | 评分卡片 |
+| `/api/review/:id/rate` | POST | 评分卡片 |
 | `/api/notes` | GET/POST | 笔记列表/创建 |
-| `/api/notes/{id}` | GET/PATCH/DELETE | 笔记操作 |
+| `/api/notes/:id` | GET/PATCH/DELETE | 笔记操作 |
 | `/api/notes/import/obsidian` | POST | Obsidian 导入 |
+| `/api/files` | GET/POST/DELETE | 文件管理 |
+| `/api/relations` | GET/POST/DELETE | 关系管理 |
+| `/api/extensions` | GET/POST/DELETE | 扩展管理 |
+| `/api/search` | GET | 全局搜索 |
+| `/api/ai-chat` | POST | AI 聊天 |
+| `/api/config/ai` | GET/PATCH | AI 配置 |
+| `/api/providers` | GET/POST/DELETE | 提供商管理 |
+| `/api/progress` | GET | 复习进度 |
+| `/api/mcp/*` | — | MCP 服务 |
 
 ---
 
@@ -258,15 +283,10 @@
 
 ### 4.5 UI 和美术设计
 
-> **⚠️ 待定 (TBD)**
-> 
-> 详细的美术设计规范将在后续版本中定义，包括：
-> - 配色方案（主色调、强调色、中性色）
-> - 字体规范（标题字体、正文字体）
-> - 组件设计规范（按钮、输入框、卡片）
-> - 图标系统设计
-> - 窗景/背景设计
-> - 动画和过渡效果规范
+- 配色方案与 Arco Design 主题同步，自动适配深色/浅色模式
+- Tailwind CSS 类名带 `tw-` 前缀
+- 窗景/背景设计支持二十四节气主题
+- 支持减少动画模式
 
 ---
 
@@ -307,12 +327,13 @@ interface Note {
 
 ```typescript
 interface AIConfig {
-  provider: 'openai' | 'anthropic' | 'ollama';
-  api_key?: string;     // API 密钥
+  provider: string;     // 提供商 ID
+  api_key?: string;     // API 密钥（加密存储）
   model: string;        // 模型名称
   temperature: number;  // 温度 (0-2)
   max_tokens: number;   // 最大 token 数
   base_url?: string;    // 自定义 API 地址
+  tool_approval: 'manual' | 'auto';  // 工具审批模式
 }
 ```
 
@@ -334,23 +355,27 @@ interface AIConfig {
 
 | 平台 | 支持版本 |
 |------|----------|
-| Windows | 10/11 |
+| Windows | 10/11 x64 |
 | macOS | 12+ (Apple Silicon) |
-| Linux | Ubuntu 20.04+ |
+| Linux | Ubuntu 20.04+ x64 |
 
 ### 6.3 安全要求
 
-- API Key 本地加密存储
+- API Key AES-GCM 加密存储
+- 写接口强制 auth token（Electron 模式）
+- SSRF 防护（AI base URL 校验）
+- 速率限制（5000 req/min/IP）
+- 路径遍历防护
 - 不使用外部 CDN
 - 支持离线使用
-- 定期安全审计
 
 ### 6.4 可访问性要求
 
-- 通过 WCAG 2.1 AAA 级测试
+- 通过 WCAG 2.1 AA 级测试，AAA 级对比度方案
 - 支持屏幕阅读器
 - 支持键盘完全操作
 - 高对比度模式
+- 减少动画模式
 
 ### 6.5 响应式设计要求
 
@@ -381,21 +406,27 @@ interface AIConfig {
 | v2.1 | 云端同步、移动端适配 | 规划中 |
 | v3.0 | 协作功能、API 开放平台 | 远期规划 |
 
-### 7.2 当前版本 (v2.0.0-beta.1)
+### 7.2 当前版本 (v2.0.0-beta.11)
 
 **已完成**:
-- ✅ FastAPI 后端
-- ✅ React 19 前端
+- ✅ Node.js + Fastify 后端（TypeScript，ES Module）
+- ✅ React 19 + Vite 8 + Arco Design 前端
 - ✅ SM-2 算法
-- ✅ AI 集成（OpenAI/Anthropic/Ollama）
+- ✅ AI 集成（30+ 提供商）
+- ✅ AI Agent 工具系统（7 类工具）
 - ✅ Obsidian 导入
-- ✅ 无障碍支持
+- ✅ 文件管理
+- ✅ 关系管理
+- ✅ 扩展系统
+- ✅ 版本历史与回滚
+- ✅ 无障碍支持（WCAG 2.1 AA/AAA）
+- ✅ 国际化（4 种语言）
 - ✅ Electron 桌面封装 (v41.1.0)
 - ✅ 窗口模式支持（小窗/全屏自适应）
+- ✅ Jest 后端测试 + Playwright E2E 测试
 
 **待完成**:
 - 🔄 云端同步
-- 🔄 扩展系统
 - 🔄 高级统计图表
 - 🔄 UI 美术设计完善
 
@@ -412,6 +443,7 @@ interface AIConfig {
 | MCP | Model Context Protocol，模型上下文协议 |
 | Vault | Obsidian 的笔记库概念 |
 | 心流 | Flow，心理学中的专注状态 |
+| ES Module | ECMAScript 模块系统 |
 
 ### 8.2 参考文档
 
@@ -422,8 +454,8 @@ interface AIConfig {
 
 ### 8.3 相关链接
 
-- 项目仓库: https://github.com/你的用户名/Papyrus
-- 问题反馈: https://github.com/你的用户名/Papyrus/issues
+- 项目仓库: https://github.com/PapyrusOR/Papyrus_Desktop
+- 问题反馈: https://github.com/PapyrusOR/Papyrus_Desktop/issues
 - 更新日志: [CHANGELOG.md](../CHANGELOG.md)
 
 ---
@@ -434,3 +466,4 @@ interface AIConfig {
 |------|------|----------|------|
 | v1.0 | 2026-03-29 | 初始版本 | - |
 | v1.1 | 2026-03-29 | 添加窗口模式支持、更新 Electron v41.1.0 | - |
+| v2.0 | 2026-06-04 | 重写为 Node.js/Fastify 架构，更新至 beta.11 | - |

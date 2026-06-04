@@ -2,73 +2,38 @@
 
 ## 目标
 
-本文用于统一说明 Papyrus 当前开发与运行所需的环境版本，区分：
-
-- Python 后端环境
-- Node / React 前端环境
-- 可选工具
+本文用于统一说明 Papyrus 当前开发与运行所需的环境版本。
 
 ---
 
-## 1. Python 后端环境
+## 1. Node.js 环境
 
 ### 必需版本
 
-- Python: `3.14.3`
-
-### Python 依赖锁定版本
-
-对应 `requirements.txt`：
-
-```text
-requests==2.32.5
-fastapi==0.135.1
-uvicorn==0.41.0
-```
-
-### 适用范围
-
-- AI 能力依赖 `requests`
-- 后端 API 依赖 `fastapi`
-- 本地开发启动服务依赖 `uvicorn`
+- Node.js: `24+`
+- npm: `11+`
 
 ### 安装方式
 
 ```bash
-python -m pip install -r requirements.txt
+# 使用官方安装包或 nvm
+nvm install 24
+nvm use 24
 ```
 
 ---
 
-## 2. Node / React 前端环境
+## 2. 前端环境
 
 ### 已确认版本
-
-- Node.js: `24.14.0`
-- npm: `11.9.0`
-
-### 前端核心依赖
 
 来自 `frontend/package.json`：
 
 - react: `19.2.4`
 - react-dom: `19.2.4`
-- @arco-design/web-react: `2.66.11`
-
-### 前端开发依赖
-
-- vite: `^5.4.0`
-- @vitejs/plugin-react: `^4.2.0`
+- @arco-design/web-react: `2.66.14`
+- vite: `^8.0.11`
 - typescript: `^5.6.0`
-- @types/react: `^19.0.0`
-- @types/react-dom: `^19.0.0`
-
-### 适用范围
-
-- React 负责前端页面渲染
-- Vite 负责本地开发与打包
-- TypeScript 负责类型检查
-- Arco Design React 负责 UI 组件
 
 ### 安装方式
 
@@ -94,60 +59,117 @@ npm run dev
 
 ---
 
-## 3. 可选工具
+## 3. 后端环境
 
-### uv
+### 已确认版本
 
-- 状态：当前环境未安装
-- 用途：可作为 Python 包与虚拟环境管理工具
-- 是否必需：否
+来自 `backend/package.json`：
 
-如果后续团队决定引入 `uv`，建议单独补充：
+- fastify: `^5.3.2`
+- typescript: `^5.6.0`
+- tsx: `^4.19.4`
+- jest: `^29.7.0`
+- openai: `^4.96.0`
+- zod: `^3.25.76`
 
-- `pyproject.toml`
-- `uv.lock`
-- 统一安装/同步命令
+### 安装方式
 
-在未引入前，默认仍以 `requirements.txt` 为准。
+```bash
+cd backend
+npm install
+```
+
+### 本地开发
+
+```bash
+cd backend
+npm run dev         # tsx watch src/api/server.ts
+```
+
+后端服务：
+
+- Fastify: `http://127.0.0.1:8000`
+- 可通过 `PAPYRUS_PORT` 环境变量覆盖端口
 
 ---
 
-## 4. 推荐启动顺序
+## 4. Electron 环境
 
-### 启动后端
+### 版本
+
+- electron: `^41.1.0`
+- electron-builder: `^26.8.1`
+
+### 开发模式
 
 ```bash
-python -m uvicorn src.papyrus_api.main:app --reload --host 127.0.0.1 --port 8000
+npm run electron:dev
 ```
 
-### 启动前端
+### 构建
 
 ```bash
-cd frontend
+npm run electron:build
+```
+
+---
+
+## 5. 推荐启动顺序
+
+### 一键启动前后端
+
+```bash
 npm run dev
 ```
 
+### 分别启动
+
+```bash
+# 终端 1 - 后端
+cd backend && npm run dev
+
+# 终端 2 - 前端
+cd frontend && npm run dev
+```
+
+### 带 Electron
+
+```bash
+npm run electron:dev
+```
+
 ---
 
-## 5. 版本基线总结
-
-### 后端
-
-- Python `3.14.3`
-- requests `2.32.5`
-- fastapi `0.135.1`
-- uvicorn `0.41.0`
+## 6. 版本基线总结
 
 ### 前端
 
-- Node.js `24.14.0`
-- npm `11.9.0`
+- Node.js `24+`
+- npm `11+`
 - react `19.2.4`
 - react-dom `19.2.4`
-- @arco-design/web-react `2.66.11`
-- vite `^5.4.0`
+- @arco-design/web-react `2.66.14`
+- vite `^8.0.11`
 - typescript `^5.6.0`
+- tailwindcss `^3.4.17`
 
-### 可选工具
+### 后端
 
-- uv：未安装，未纳入当前工程标准环境
+- Node.js `24+`
+- fastify `^5.3.2`
+- typescript `^5.6.0`
+- tsx `^4.19.4`
+- jest `^29.7.0`
+- openai `^4.96.0`
+- zod `^3.25.76`
+
+### 桌面
+
+- electron `^41.1.0`
+- electron-builder `^26.8.1`
+
+### 测试
+
+- Jest `^29.7.0`
+- ts-jest `^29.3.2`
+- Playwright `^1.59.1`
