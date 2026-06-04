@@ -12,6 +12,10 @@
     "chat": "Chat",
     "openChat": "Open Chat",
     "closeChat": "Close Chat",
+    "chatPanelLeft": "Chat panel on left",
+    "chatPanelRight": "Chat panel on right",
+    "switchChatPanelLeft": "Move chat panel to left",
+    "switchChatPanelRight": "Move chat panel to right",
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
     "switchToDark": "Switch to Dark Mode",
@@ -528,6 +532,7 @@
     "resizeChatPanel": "Resize chat panel",
     "collapseChatPanel": "Collapse chat panel",
     "expandChatPanel": "Expand chat panel",
+    "saveSidebarSettingsFailed": "Failed to save sidebar settings",
     "pageTitles": {
       "start": "Start",
       "scroll": "Review",

@@ -309,6 +309,12 @@ function initSchema(database: DatabaseSync): void {
       notes_created INTEGER DEFAULT 0,
       study_minutes INTEGER DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS ui_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at REAL NOT NULL
+    );
   `);
 
   seedDefaults(database);
@@ -1640,6 +1646,50 @@ export function clearAllData(): void {
   });
   const database = getDb();
   seedDefaults(database);
+}
+
+// ==================== UI Settings ====================
+
+export type ChatPanelSide = 'left' | 'right';
+
+export interface SidebarSettings {
+  chatPanelSide: ChatPanelSide;
+}
+
+const CHAT_PANEL_SIDE_KEY = 'chat_panel_side';
+const DEFAULT_CHAT_PANEL_SIDE: ChatPanelSide = 'right';
+
+function isChatPanelSide(value: string): value is ChatPanelSide {
+  return value === 'left' || value === 'right';
+}
+
+/**
+ * 读取侧边栏 UI 设置，当前只包含聊天栏打开方向。
+ * 原因：LA-16 要求该偏好跨刷新持久化，SQLite 已是应用主数据源。
+ * 未使用 localStorage：浏览器存储无法满足“后端通过 DB 持久化”的要求。
+ */
+export function getSidebarSettings(): SidebarSettings {
+  const database = getDb();
+  const row = database.prepare('SELECT value FROM ui_settings WHERE key = ?').get(CHAT_PANEL_SIDE_KEY) as { value: string } | undefined;
+  return {
+    chatPanelSide: row && isChatPanelSide(row.value) ? row.value : DEFAULT_CHAT_PANEL_SIDE,
+  };
+}
+
+/**
+ * 保存侧边栏 UI 设置，并限制聊天栏方向为受支持的枚举值。
+ * 原因：将校验放在 DB 写入边界，避免非法 UI 偏好污染持久化数据。
+ * 未使用宽松字符串：调用方错误应立即暴露为 400，而不是静默回退。
+ */
+export function saveSidebarSettings(settings: SidebarSettings): SidebarSettings {
+  if (!isChatPanelSide(settings.chatPanelSide)) {
+    throw new Error('Invalid chat panel side');
+  }
+  const database = getDb();
+  database.prepare(
+    'INSERT OR REPLACE INTO ui_settings (key, value, updated_at) VALUES (?, ?, ?)'
+  ).run(CHAT_PANEL_SIDE_KEY, settings.chatPanelSide, Date.now() / 1000);
+  return getSidebarSettings();
 }
 
 // ==================== Chat Sessions ====================

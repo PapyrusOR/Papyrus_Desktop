@@ -148,6 +148,7 @@ export async function initApp(): Promise<void> {
   const { default: relationsRoutes } = await import('./routes/relations.js');
   const { default: extensionsRoutes } = await import('./routes/extensions.js');
   const { default: cliRoutes } = await import('./routes/cli.js');
+  const { default: uiSettingsRoutes } = await import('./routes/ui-settings.js');
 
   app.register(cardsRoutes, { prefix: '/api/cards' });
   app.register(reviewRoutes, { prefix: '/api/review' });
@@ -167,6 +168,7 @@ export async function initApp(): Promise<void> {
   app.register(relationsRoutes, { prefix: '/api' });
   app.register(extensionsRoutes, { prefix: '/api/extensions' });
   app.register(cliRoutes, { prefix: '/api/cli' });
+  app.register(uiSettingsRoutes, { prefix: '/api/ui-settings' });
 }
 
 let mcpServer: MCPServer | null = null;

@@ -23,7 +23,7 @@ import ExtensionsPage from './ExtensionsPage/ExtensionsPage';
 import FilesPage from './FilesPage/FilesPage';
 import SettingsPage from './SettingsPage/SettingsPage';
 import SectionNavigation from './components/SectionNavigation';
-import type { SearchResult } from './api';
+import { api, type ChatPanelSide, type SearchResult } from './api';
 import { addRecentItem } from './utils/recentFiles';
 
 const PAGE_ORDER = ['start', 'scroll', 'notes', 'charts', 'files', 'extensions', 'settings'];
@@ -61,6 +61,7 @@ const App = () => {
   const [activePage, setActivePage] = useState('start');
   const [chatOpen, setChatOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(loadChatWidth);
+  const [chatSide, setChatSide] = useState<ChatPanelSide>('right');
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef<number>(0);
   const dragStartWidth = useRef<number>(0);
@@ -77,6 +78,33 @@ const App = () => {
   const pendingActionRef = useRef<'newNote' | 'newCard' | 'startStudy' | null>(null);
   const studyTagRef = useRef<string | undefined>(undefined);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getSidebarSettings()
+      .then((res) => {
+        if (!cancelled && res.success) {
+          setChatSide(res.settings.chatPanelSide);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load sidebar settings:', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleChatSideToggle = useCallback(() => {
+    const previousSide = chatSide;
+    const nextSide: ChatPanelSide = chatSide === 'left' ? 'right' : 'left';
+    setChatSide(nextSide);
+    api.saveSidebarSettings({ chatPanelSide: nextSide })
+      .catch((err) => {
+        setChatSide(previousSide);
+        Message.error(err instanceof Error ? err.message : t('app.saveSidebarSettingsFailed'));
+      });
+  }, [chatSide, t]);
 
   // 处理页面切换动画 - 串行执行，先退出再进入（新页面预加载但不显示）
   const handlePageChange = useCallback((newPage: string, noteId?: string) => {
@@ -196,7 +224,9 @@ const App = () => {
       document.documentElement.removeEventListener('mouseleave', onLeave);
     };
     const onMove = (ev: MouseEvent) => {
-      const delta = dragStartX.current - ev.clientX;
+      const delta = chatSide === 'left'
+        ? ev.clientX - dragStartX.current
+        : dragStartX.current - ev.clientX;
       const newWidth = Math.min(600, Math.max(280, dragStartWidth.current + delta));
       setChatWidth(newWidth);
       saveChatWidth(newWidth);
@@ -206,7 +236,7 @@ const App = () => {
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     document.documentElement.addEventListener('mouseleave', onLeave);
-  }, [chatWidth]);
+  }, [chatSide, chatWidth]);
 
   // 页面标题映射
   const pageTitles: Record<string, string> = {
@@ -315,6 +345,53 @@ const App = () => {
     );
   };
 
+  const sidebarWidth = sidebarCollapsed ? 48 : 160;
+  const chatDockWidth = chatOpen ? chatWidth + 4 : 0;
+  const chatHandleOffset = chatSide === 'left'
+    ? sidebarWidth + (chatOpen ? chatWidth : 0)
+    : (chatOpen ? chatWidth : 0);
+
+  const renderChatPanel = () => (
+    <div
+      className="tw-relative tw-flex tw-flex-shrink-0 tw-overflow-hidden"
+      style={{
+        width: chatDockWidth,
+        transition: isDragging ? 'none' : 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
+      }}
+      role="complementary"
+      aria-label={t('app.chatPanel')}
+    >
+      {chatSide === 'right' && (
+        <div
+          className="tw-flex-shrink-0 tw-w-1 tw-cursor-ew-resize hover:tw-bg-arco-border-2 tw-transition-colors tw-duration-200"
+          onMouseDown={onChatDragStart}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t('app.resizeChatPanel')}
+          tabIndex={0}
+        />
+      )}
+      {chatOpen && (
+        <ChatPanel
+          open={chatOpen}
+          width={chatWidth}
+          side={chatSide}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
+      {chatSide === 'left' && (
+        <div
+          className="tw-flex-shrink-0 tw-w-1 tw-cursor-ew-resize hover:tw-bg-arco-border-2 tw-transition-colors tw-duration-200"
+          onMouseDown={onChatDragStart}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t('app.resizeChatPanel')}
+          tabIndex={0}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="tw-relative tw-flex tw-flex-col tw-mx-auto tw-w-full tw-h-screen tw-overflow-hidden tw-bg-arco-bg-1">
       {/* Skip Link - 无障碍导航（AA 级） */}
@@ -331,7 +408,7 @@ const App = () => {
         <BackTop
           className="tw-absolute tw-bottom-12 tw-transition-[right] tw-duration-300 tw-ease-[ease]"
           visibleHeight={200}
-          style={{ right: chatOpen ? chatWidth + 48 : 48 }}
+          style={{ right: chatOpen && chatSide === 'right' ? chatWidth + 48 : 48 }}
           target={() => document.getElementById('start-page-scroll') ?? window as unknown as HTMLElement}
           aria-label={t('app.backToTop')}
         />
@@ -353,9 +430,13 @@ const App = () => {
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           chatOpen={chatOpen}
           onChatToggle={() => setChatOpen(!chatOpen)}
+          chatSide={chatSide}
+          onChatSideToggle={handleChatSideToggle}
           activePage={activePage}
           onPageChange={handlePageChange}
         />
+
+        {chatSide === 'left' && renderChatPanel()}
 
         {/* 主内容区域 */}
         <main
@@ -377,39 +458,18 @@ const App = () => {
           maxLevel={3}
         />
 
-        {/* 聊天面板 */}
-        <div
-          className="tw-relative tw-flex tw-flex-shrink-0 tw-overflow-hidden"
-          style={{ width: chatOpen ? chatWidth + 4 : 0, transition: isDragging ? 'none' : 'width 0.3s cubic-bezier(0.4,0,0.2,1)' }}
-          role="complementary"
-          aria-label={t('app.chatPanel')}
-        >
-          <div
-            className="tw-flex-shrink-0 tw-w-1 tw-cursor-ew-resize hover:tw-bg-arco-border-2 tw-transition-colors tw-duration-200"
-            onMouseDown={onChatDragStart}
-            role="separator"
-            aria-orientation="vertical"
-            aria-label={t('app.resizeChatPanel')}
-            tabIndex={0}
-          />
-          {chatOpen && (
-            <ChatPanel
-              open={chatOpen}
-              width={chatWidth}
-              onClose={() => setChatOpen(false)}
-            />
-          )}
-        </div>
+        {chatSide === 'right' && renderChatPanel()}
         <button
           className="tw-flex-shrink-0 tw-w-5 tw-h-16 tw-flex tw-items-center tw-justify-center tw-bg-arco-bg-1 tw-cursor-pointer tw-text-arco-text-3 hover:tw-bg-arco-fill-2 hover:tw-text-arco-text-1 tw-outline-none tw-shadow-none"
           style={{
-            borderRadius: '8px 0 0 8px',
+            borderRadius: chatSide === 'left' ? '0 8px 8px 0' : '8px 0 0 8px',
             position: 'fixed',
-            right: chatOpen ? chatWidth : 0,
+            left: chatSide === 'left' ? chatHandleOffset : undefined,
+            right: chatSide === 'right' ? chatHandleOffset : undefined,
             top: '50%',
             transform: 'translateY(-50%)',
             zIndex: 10,
-            transition: isDragging ? 'none' : 'right 0.3s cubic-bezier(0.4,0,0.2,1)',
+            transition: isDragging ? 'none' : `${chatSide === 'left' ? 'left' : 'right'} 0.3s cubic-bezier(0.4,0,0.2,1)`,
             margin: 0,
             padding: 0,
             border: 'none',
@@ -420,7 +480,14 @@ const App = () => {
           onClick={() => setChatOpen(!chatOpen)}
           aria-label={chatOpen ? t('app.collapseChatPanel') : t('app.expandChatPanel')}
         >
-          <IconLeft style={{ transform: chatOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+          <IconLeft
+            style={{
+              transform: chatSide === 'left'
+                ? (chatOpen ? 'rotate(0deg)' : 'rotate(180deg)')
+                : (chatOpen ? 'rotate(180deg)' : 'rotate(0deg)'),
+              transition: 'transform 0.2s',
+            }}
+          />
         </button>
       </div>
 

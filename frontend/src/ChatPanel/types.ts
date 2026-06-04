@@ -4,6 +4,7 @@ import type { UserProfile } from '../types/common';
 export interface ChatPanelProps {
   open: boolean;
   width?: number;
+  side?: 'left' | 'right';
   onClose?: () => void;
 }
 

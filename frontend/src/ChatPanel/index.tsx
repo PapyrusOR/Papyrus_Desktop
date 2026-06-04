@@ -21,7 +21,7 @@ import {
 } from './components';
 import '../ChatPanel.css';
 
-const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
+const ChatPanel = ({ open, width = 320, side = 'right', onClose }: ChatPanelProps) => {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -249,7 +249,7 @@ const ChatPanel = ({ open, width = 320, onClose }: ChatPanelProps) => {
   }, []);
 
   return (
-    <div className="chat-panel" style={{ width }}>
+    <div className={`chat-panel chat-panel-${side}`} style={{ width }}>
       <ChatHeader
         selectedModel={selectedModel}
         availableModels={availableModels}

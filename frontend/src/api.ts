@@ -216,6 +216,13 @@ export type LogsConfig = {
   max_log_files: number;
 };
 
+// ========== UI Settings Types ==========
+export type ChatPanelSide = 'left' | 'right';
+
+export type SidebarSettings = {
+  chatPanelSide: ChatPanelSide;
+};
+
 // ========== Update Types ==========
 export type VersionInfo = {
   current_version: string;
@@ -518,6 +525,15 @@ export const api = {
     }),
   openLogsDir: () =>
     request<{ success: boolean; path: string }>('/config/logs/open-dir', { method: 'POST' }),
+
+  // UI Settings
+  getSidebarSettings: () =>
+    request<{ success: boolean; settings: SidebarSettings }>('/ui-settings/sidebar'),
+  saveSidebarSettings: (settings: SidebarSettings) =>
+    request<{ success: boolean; settings: SidebarSettings }>('/ui-settings/sidebar', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
 
   // Files
   listFiles: () => request<ListFilesRes>('/files'),

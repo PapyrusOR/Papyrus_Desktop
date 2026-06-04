@@ -4,6 +4,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { IconNav, IconPlayArrow, IconCommon, IconFolder, IconMindMapping, IconSettings, IconLock, IconUnlock, IconMoon, IconSun, IconRobot } from '@arco-design/web-react/icon';
 import IconCharts from './icons/IconCharts';
 import IconScroll from './icons/IconScroll';
+import type { ChatPanelSide } from './api';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -11,11 +12,37 @@ interface SidebarProps {
   onToggle: () => void;
   chatOpen: boolean;
   onChatToggle: () => void;
+  chatSide: ChatPanelSide;
+  onChatSideToggle: () => void;
   activePage: string;
   onPageChange: (key: string) => void;
 }
 
-const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPageChange }: SidebarProps) => {
+const ChatSideIcon = ({ side }: { side: ChatPanelSide }) => (
+  <svg
+    className={`sidebar-chat-side-icon sidebar-chat-side-icon-${side}`}
+    width="24"
+    height="24"
+    viewBox="0 0 48 48"
+    fill="none"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path
+      d="M42 10a2 2 0 00-2-2H8a2 2 0 00-2 2v28a2 2 0 002 2h32a2 2 0 002-2V10z"
+      stroke="currentColor"
+      strokeWidth="2"
+    />
+    <path
+      className="sidebar-chat-side-icon-divider"
+      d="M19 40V8"
+      stroke="currentColor"
+      strokeWidth="2"
+    />
+  </svg>
+);
+
+const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, chatSide, onChatSideToggle, activePage, onPageChange }: SidebarProps) => {
   const { t } = useTranslation();
 
   const items = [
@@ -92,6 +119,23 @@ const Sidebar = ({ collapsed, onToggle, chatOpen, onChatToggle, activePage, onPa
         );
       })}
       <div className="tw-flex-1" />
+      <Tooltip
+        content={chatSide === 'left' ? t('sidebar.switchChatPanelRight') : t('sidebar.switchChatPanelLeft')}
+        position="right"
+        mini
+        disabled={!collapsed}
+      >
+        <button
+          className="sidebar-item"
+          onClick={onChatSideToggle}
+          aria-label={chatSide === 'left' ? t('sidebar.switchChatPanelRight') : t('sidebar.switchChatPanelLeft')}
+          aria-pressed={chatSide === 'left'}
+          type="button"
+        >
+          <span className="sidebar-icon"><ChatSideIcon side={chatSide} /></span>
+          <span className="sidebar-label">{chatSide === 'left' ? t('sidebar.chatPanelLeft') : t('sidebar.chatPanelRight')}</span>
+        </button>
+      </Tooltip>
       <Tooltip content={t('sidebar.chat')} position="right" mini disabled={!collapsed}>
         <button 
           className={`sidebar-item${chatOpen ? ' sidebar-item-active' : ''}`} 

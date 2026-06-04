@@ -12,6 +12,10 @@
     "chat": "チャット",
     "openChat": "チャットを開く",
     "closeChat": "チャットを閉じる",
+    "chatPanelLeft": "チャットパネルは左側",
+    "chatPanelRight": "チャットパネルは右側",
+    "switchChatPanelLeft": "チャットパネルを左側へ移動",
+    "switchChatPanelRight": "チャットパネルを右側へ移動",
     "darkMode": "ダークモード",
     "lightMode": "ライトモード",
     "switchToDark": "ダークモードに切り替え",
@@ -528,6 +532,7 @@
     "resizeChatPanel": "チャットパネルの幅を調整",
     "collapseChatPanel": "チャットパネルを折りたたむ",
     "expandChatPanel": "チャットパネルを展開",
+    "saveSidebarSettingsFailed": "サイドバー設定の保存に失敗しました",
     "pageTitles": {
       "start": "スタート",
       "scroll": "復習",

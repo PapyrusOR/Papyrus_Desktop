@@ -12,6 +12,10 @@
     "chat": "聊天",
     "openChat": "打開聊天",
     "closeChat": "關閉聊天",
+    "chatPanelLeft": "聊天欄在左側",
+    "chatPanelRight": "聊天欄在右側",
+    "switchChatPanelLeft": "切換聊天欄到左側",
+    "switchChatPanelRight": "切換聊天欄到右側",
     "darkMode": "夜間模式",
     "lightMode": "日間模式",
     "switchToDark": "切換到夜間模式",
@@ -528,6 +532,7 @@
     "resizeChatPanel": "調整聊天面板寬度",
     "collapseChatPanel": "收起聊天面板",
     "expandChatPanel": "展開聊天面板",
+    "saveSidebarSettingsFailed": "側邊欄設置保存失敗",
     "pageTitles": {
       "start": "開始",
       "scroll": "複習",

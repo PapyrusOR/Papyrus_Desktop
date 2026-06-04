@@ -62,6 +62,25 @@
   left: 7px;
 }
 
+.sidebar-chat-side-icon {
+  width: 22px;
+  height: 22px;
+  color: currentColor;
+  transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+.sidebar-chat-side-icon-right {
+  transform: rotate(180deg);
+}
+
+.sidebar-chat-side-icon-divider {
+  transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+.sidebar-chat-side-icon-right .sidebar-chat-side-icon-divider {
+  transform: translateX(10px);
+}
+
 /* 标签文字 - 收起时隐藏 */
 .sidebar-label {
   font-size: 13px;
@@ -133,7 +152,9 @@
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
   .sidebar-item,
-  .sidebar-label {
+  .sidebar-label,
+  .sidebar-chat-side-icon,
+  .sidebar-chat-side-icon-divider {
     transition: none;
   }
 }
