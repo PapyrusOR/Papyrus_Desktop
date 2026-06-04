@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import fs from 'node:fs';
 import sharp from 'sharp';
-import { listFiles, createFolder, saveFile, deleteFileItem, getFileById } from '../../core/files.js';
+import { listFiles, createFolder, saveFile, deleteFileItem, getFileById, isSafeFileStoragePath } from '../../core/files.js';
 
 const MAX_PREVIEW_SIZE = 10 * 1024 * 1024;
 const THUMBNAIL_SIZE = 128;
@@ -93,7 +93,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     const { id } = request.params as { id: string };
     const file = getFileById(id);
 
-    if (!file || !file.file_storage_path || !fs.existsSync(file.file_storage_path)) {
+    if (!file || !file.file_storage_path || !fs.existsSync(file.file_storage_path) || !isSafeFileStoragePath(file.file_storage_path)) {
       reply.status(404).send({ success: false, error: '文件不存在或已被删除' });
       return;
     }
@@ -115,7 +115,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     const { id } = request.params as { id: string };
     const file = getFileById(id);
 
-    if (!file || !file.file_storage_path || !fs.existsSync(file.file_storage_path)) {
+    if (!file || !file.file_storage_path || !fs.existsSync(file.file_storage_path) || !isSafeFileStoragePath(file.file_storage_path)) {
       reply.status(404).send({ success: false, error: '文件不存在或已被删除' });
       return;
     }
@@ -140,7 +140,7 @@ export default async function filesRoutes(fastify: FastifyInstance): Promise<voi
     const { id } = request.params as { id: string };
     const file = getFileById(id);
 
-    if (!file || !file.file_storage_path || !fs.existsSync(file.file_storage_path)) {
+    if (!file || !file.file_storage_path || !fs.existsSync(file.file_storage_path) || !isSafeFileStoragePath(file.file_storage_path)) {
       reply.status(404).send({ success: false, error: '文件不存在或已被删除' });
       return;
     }

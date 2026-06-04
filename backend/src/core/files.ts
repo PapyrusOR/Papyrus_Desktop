@@ -9,6 +9,7 @@ import {
   deleteFileById,
 } from '../db/database.js';
 import { paths } from '../utils/paths.js';
+import { assertPathInsideDirectory, isPathInsideDirectory } from '../utils/security.js';
 
 import type { FileRecord } from './types.js';
 import type { PapyrusLogger } from '../utils/logger.js';
@@ -18,6 +19,14 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 function sanitizeFilename(name: string): string {
   const withoutTraversal = name.replace(/\.\./g, '_');
   return withoutTraversal.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 200);
+}
+
+function assertFileStoragePath(filePath: string): string {
+  return assertPathInsideDirectory(filePath, paths.vaultDir, '文件存储路径不在应用文件库目录内');
+}
+
+export function isSafeFileStoragePath(filePath: string): boolean {
+  return isPathInsideDirectory(filePath, paths.vaultDir);
 }
 
 export function listFiles(logger?: PapyrusLogger): FileRecord[] {
@@ -93,6 +102,10 @@ function getMimeType(ext: string): string {
 }
 
 function validateFileContent(buffer: Buffer, ext: string): boolean {
+  if (ext === 'svg') {
+    const text = buffer.toString('utf8', 0, Math.min(buffer.length, 4096)).toLowerCase();
+    if (text.includes('<script') || text.includes('onload=') || text.includes('javascript:')) return false;
+  }
   if (buffer.length < 8) return true;
   const signatures: Record<string, Array<{ offset: number; bytes: number[] }>> = {
     png: [{ offset: 0, bytes: [0x89, 0x50, 0x4E, 0x47] }],
@@ -204,8 +217,9 @@ export function deleteFileItem(
 
   // Delete the file from disk if it has a storage path
   if (file.file_storage_path && fs.existsSync(file.file_storage_path)) {
-    fs.unlinkSync(file.file_storage_path);
-    logger?.info(`删除磁盘文件: ${file.file_storage_path}`);
+    const safeStoragePath = assertFileStoragePath(file.file_storage_path);
+    fs.unlinkSync(safeStoragePath);
+    logger?.info(`删除磁盘文件: ${safeStoragePath}`);
   }
 
   deleteFileById(fileId, logger);
@@ -218,8 +232,9 @@ export function getFileStream(fileId: string): { stream: fs.ReadStream; file: Fi
   if (!file || !file.file_storage_path || !fs.existsSync(file.file_storage_path)) {
     return null;
   }
+  const safeStoragePath = assertFileStoragePath(file.file_storage_path);
   return {
-    stream: fs.createReadStream(file.file_storage_path),
+    stream: fs.createReadStream(safeStoragePath),
     file,
   };
 }

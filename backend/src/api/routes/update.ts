@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { createRequire } from 'node:module';
 import { fetchWithProxy } from '../../utils/proxy.js';
+import { safeExternalUrlOrNull } from '../../utils/security.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../../package.json');
@@ -46,6 +47,8 @@ const GITHUB_API_ENDPOINTS = [
 ];
 
 const FETCH_TIMEOUT_MS = 10000;
+const TRUSTED_RELEASE_DOMAINS = ['github.com', 'githubusercontent.com'];
+const FALLBACK_RELEASE_URL = `https://github.com/${REPO}/releases/latest`;
 
 async function fetchReleaseFromEndpoint(url: string): Promise<GitHubRelease> {
   const res = await fetchWithProxy(url, {
@@ -89,6 +92,8 @@ export default async function updateRoutes(fastify: FastifyInstance): Promise<vo
 
       const latest = rawData.tag_name;
       const hasUpdate = latest !== CURRENT_VERSION;
+      const releaseUrl = safeExternalUrlOrNull(rawData.html_url, TRUSTED_RELEASE_DOMAINS) ?? FALLBACK_RELEASE_URL;
+      const downloadUrl = safeExternalUrlOrNull(rawData.assets[0]?.browser_download_url ?? '', TRUSTED_RELEASE_DOMAINS) ?? releaseUrl;
 
       reply.send({
         success: true,
@@ -96,8 +101,8 @@ export default async function updateRoutes(fastify: FastifyInstance): Promise<vo
           current_version: CURRENT_VERSION,
           latest_version: latest,
           has_update: hasUpdate,
-          release_url: rawData.html_url,
-          download_url: rawData.assets[0]?.browser_download_url ?? rawData.html_url,
+          release_url: releaseUrl,
+          download_url: downloadUrl,
           release_notes: rawData.body,
           published_at: rawData.published_at,
         },

@@ -169,10 +169,10 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
 
             <SettingItem title={t('generalView.dateFormat')} desc={t('generalView.dateFormatDesc')} divider={false}>
               <Select value="yyyy-MM-dd" style={{ width: 160 }}>
-                <Option value="yyyy-MM-dd">2024-01-01</Option>
-                <Option value="yyyy/MM/dd">2024/01/01</Option>
-                <Option value="dd/MM/yyyy">01/01/2024</Option>
-                <Option value="MM/dd/yyyy">01/01/2024</Option>
+                <Option value="yyyy-MM-dd">2024-06-15</Option>
+                <Option value="yyyy/MM/dd">2024/06/15</Option>
+                <Option value="dd/MM/yyyy">15/06/2024</Option>
+                <Option value="MM/dd/yyyy">06/15/2024</Option>
               </Select>
             </SettingItem>
           </>

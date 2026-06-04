@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { paths } from '../utils/paths.js';
 import { encryptApiKey, decryptApiKey } from '../core/crypto.js';
+import { isPrivateNetworkUrl } from '../utils/security.js';
 
 export interface ProviderConfig {
   api_key: string;
@@ -83,61 +84,7 @@ function isValidAscii(text: string): boolean {
   return /^[\x00-\x7F]*$/.test(text);
   }
 export function isPrivateUrl(urlStr: string): boolean {
-  if (!urlStr) return false;
-  try {
-    const parsed = new URL(urlStr);
-    const hostname = parsed.hostname.toLowerCase();
-
-    // Reject localhost variants
-    if (['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]', '[::ffff:127.0.0.1]'].includes(hostname)) {
-      return true;
-    }
-
-    // Reject all loopback forms including shorthand (127.1, 127.0.1, etc.)
-    if (/^127(\.\d+){1,3}$/.test(hostname)) {
-      return true;
-    }
-
-    // Reject decimal-only hostnames (e.g., 2130706433, 0)
-    if (/^\d+$/.test(hostname)) {
-      return true;
-    }
-
-    // Reject hexadecimal IP addresses
-    if (/^0x[0-9a-f]+$/i.test(hostname)) {
-      return true;
-    }
-
-    // Reject mixed hexadecimal/octal dotted notation (e.g., 0x7f.0.0.1, 0177.0.0.1)
-    // by detecting any segment that starts with 0x or 0 and is not a standard decimal
-    const ipv4Segments = hostname.split('.');
-    if (ipv4Segments.length >= 2 && ipv4Segments.length <= 4) {
-      const hasNonDecimalSegment = ipv4Segments.some(seg => {
-        if (!seg) return false;
-        // Hex segment
-        if (/^0x[0-9a-f]+$/i.test(seg)) return true;
-        // Octal segment (starts with 0 and is not just "0")
-        if (/^0\d+$/.test(seg)) return true;
-        return false;
-      });
-      if (hasNonDecimalSegment) {
-        return true;
-      }
-    }
-
-    // Reject private IPv4 ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 169.254.x.x, 0.x.x.x
-    if (/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.)/.test(hostname)) {
-      return true;
-    }
-
-    // Reject IPv6 loopback and link-local
-    if (/^\[?::1\]?$/.test(hostname) || /^\[?fe80:/i.test(hostname)) {
-      return true;
-    }
-  } catch {
-    // ignore invalid URLs
-  }
-  return false;
+  return isPrivateNetworkUrl(urlStr);
 }
 
 export class AIConfig {

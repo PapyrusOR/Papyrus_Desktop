@@ -4,6 +4,7 @@ import path from 'node:path';
 import { paths } from '../../utils/paths.js';
 import { PapyrusLogger } from '../../utils/logger.js';
 import { aiConfig } from './ai.js';
+import { isPathInsideDirectory, resolveRealPathForSecurity } from '../../utils/security.js';
 
 let globalLogger: PapyrusLogger | null = null;
 
@@ -36,10 +37,8 @@ export default async function logsRoutes(fastify: FastifyInstance): Promise<void
     }
 
     if (body.log_dir) {
-      const resolvedLogDir = path.resolve(body.log_dir);
-      const resolvedDataDir = path.resolve(paths.dataDir);
-      const isUnderDataDir = resolvedLogDir === resolvedDataDir || resolvedLogDir.startsWith(resolvedDataDir + path.sep);
-      if (!isUnderDataDir) {
+      const resolvedLogDir = resolveRealPathForSecurity(body.log_dir);
+      if (!isPathInsideDirectory(resolvedLogDir, paths.dataDir)) {
         reply.status(400).send({ success: false, error: 'Log directory must be within the application data directory' });
         return;
       }

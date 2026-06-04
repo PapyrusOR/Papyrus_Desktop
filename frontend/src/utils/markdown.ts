@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
 
 const ALLOWED_SCHEMES = new Set(['http', 'https', 'mailto', 'tel']);
+const DANGEROUS_MARKDOWN_LINK_RE = /\[([^\]]*)\]\(\s*(?:javascript|data|vbscript):[^)]*\)/gi;
 
 const md = new MarkdownIt({
   html: false,
@@ -29,11 +30,11 @@ const purifyConfig = {
 };
 
 export function renderMarkdown(source: string): string {
-  const html = md.render(source);
+  const html = md.render(source.replace(DANGEROUS_MARKDOWN_LINK_RE, '$1'));
   return DOMPurify.sanitize(html, purifyConfig);
 }
 
 export function renderMarkdownInline(source: string): string {
-  const html = md.renderInline(source);
+  const html = md.renderInline(source.replace(DANGEROUS_MARKDOWN_LINK_RE, '$1'));
   return DOMPurify.sanitize(html, purifyConfig);
 }

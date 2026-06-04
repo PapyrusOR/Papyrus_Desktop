@@ -7,6 +7,7 @@ const md = new MarkdownIt({
 });
 
 const ALLOWED_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'ftp:']);
+const DANGEROUS_MARKDOWN_LINK_RE = /\[([^\]]*)\]\(\s*(?:javascript|data|vbscript):[^)]*\)/gi;
 
 md.validateLink = (url: string): boolean => {
   try {
@@ -24,7 +25,8 @@ export default async function markdownRoutes(fastify: FastifyInstance): Promise<
       reply.status(400).send({ success: false, error: 'Content is required' });
       return;
     }
-    const html = md.render(body.content);
+    const safeContent = body.content.replace(DANGEROUS_MARKDOWN_LINK_RE, '$1');
+    const html = md.render(safeContent);
     reply.send({ success: true, html });
   });
 }
