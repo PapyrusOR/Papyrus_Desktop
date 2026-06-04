@@ -14,10 +14,11 @@
 .chat-panel-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 0 8px;
   height: 40px;
   flex-shrink: 0;
+  min-width: 0;
   border-bottom: 2px solid var(--color-border-2);
 }
 
@@ -25,6 +26,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .chat-panel-header-btn {
@@ -367,10 +369,16 @@ body[arco-theme="dark"] .chat-message-user .chat-message-bubble {
   cursor: pointer;
 }
 
+.chat-model-selector {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .chat-model-btn {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   padding: 8px 16px;
   border: none;
   background: transparent;
@@ -380,11 +388,12 @@ body[arco-theme="dark"] .chat-message-user .chat-message-bubble {
   font-size: 14px;
   white-space: nowrap;
   transition: background 0.2s, color 0.2s;
-  min-width: 200px;
-  max-width: 280px;
+  min-width: 0;
+  max-width: none;
 }
 
 .chat-model-btn span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }

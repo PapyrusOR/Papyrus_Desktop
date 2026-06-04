@@ -24,31 +24,33 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   return (
     <div className="chat-panel-header">
-      <Dropdown
-        trigger="click"
-        disabled={availableModels.length === 0}
-        triggerProps={{
-          popupStyle: { minWidth: '320px' },
-        }}
-        droplist={
-          <Menu className="chat-model-menu" onClickMenuItem={onModelSelect}>
-            {availableModels.length === 0 ? (
-              <Menu.Item key="_empty" disabled>
-                {configChecked ? '暂无可用模型' : '正在加载模型...'}
-              </Menu.Item>
-            ) : (
-              availableModels.map((m) => (
-                <Menu.Item key={m.key}>{m.label}</Menu.Item>
-              ))
-            )}
-          </Menu>
-        }
-      >
-        <button className="chat-model-btn" disabled={availableModels.length === 0}>
-          <span>{selectedModel?.name || '选择模型'}</span>
-          <IconDown className="tw-text-xs" />
-        </button>
-      </Dropdown>
+      <div className="chat-model-selector">
+        <Dropdown
+          trigger="click"
+          disabled={availableModels.length === 0}
+          triggerProps={{
+            popupStyle: { minWidth: '320px' },
+          }}
+          droplist={
+            <Menu className="chat-model-menu" onClickMenuItem={onModelSelect}>
+              {availableModels.length === 0 ? (
+                <Menu.Item key="_empty" disabled>
+                  {configChecked ? '暂无可用模型' : '正在加载模型...'}
+                </Menu.Item>
+              ) : (
+                availableModels.map((m) => (
+                  <Menu.Item key={m.key}>{m.label}</Menu.Item>
+                ))
+              )}
+            </Menu>
+          }
+        >
+          <button className="chat-model-btn" disabled={availableModels.length === 0}>
+            <span>{selectedModel?.name || '选择模型'}</span>
+            <IconDown className="tw-text-xs" />
+          </button>
+        </Dropdown>
+      </div>
       <div className="chat-panel-header-actions">
         <Tooltip content="新建对话" mini>
           <button
