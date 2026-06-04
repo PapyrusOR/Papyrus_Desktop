@@ -67,6 +67,12 @@ body[arco-theme='dark'] {
 :root {
   /* 基础字号 */
   --font-size-base: 15px;
+  --font-size-xs: calc(var(--font-size-base) - 3px);
+  --font-size-sm: calc(var(--font-size-base) - 2px);
+  --font-size-md: calc(var(--font-size-base) + 1px);
+  --font-size-lg: calc(var(--font-size-base) + 3px);
+  --font-size-xl: calc(var(--font-size-base) + 5px);
+  --font-size-xxl: calc(var(--font-size-base) + 9px);
 
   /* 主色调 */
   --color-primary: #206CCF;
@@ -84,6 +90,110 @@ body[arco-theme='dark'] {
   /* 边框悬停色 */
   --color-border-hover: #9FD4FD;
   --color-border-danger: rgba(245, 63, 63, 0.5);
+}
+
+body {
+  font-size: var(--font-size-base);
+}
+
+button,
+input,
+textarea,
+select {
+  font-size: inherit;
+}
+
+.arco-typography,
+.arco-form,
+.arco-form-item,
+.arco-checkbox,
+.arco-radio,
+.arco-switch,
+.arco-slider,
+.arco-tabs,
+.arco-menu,
+.arco-dropdown,
+.arco-popover,
+.arco-tooltip,
+.arco-message,
+.arco-notification,
+.arco-table,
+.arco-list,
+.arco-collapse,
+.arco-card,
+.arco-descriptions,
+.arco-pagination,
+.arco-empty {
+  font-size: var(--font-size-base) !important;
+}
+
+.arco-typography-secondary,
+.arco-form-item-label,
+.arco-form-message,
+.arco-input-group-prefix,
+.arco-input-group-suffix,
+.arco-select-option,
+.arco-dropdown-menu-item,
+.arco-table-th,
+.arco-table-td,
+.arco-pagination-item,
+.arco-tag {
+  font-size: var(--font-size-sm) !important;
+}
+
+.arco-button,
+.arco-input,
+.arco-textarea,
+.arco-input-wrapper,
+.arco-input-inner-wrapper,
+.arco-textarea-wrapper,
+.arco-textarea-inner-wrapper,
+.arco-select-view,
+.arco-input-tag,
+.arco-input-tag-input,
+.arco-modal,
+.arco-drawer {
+  font-size: var(--font-size-base) !important;
+}
+
+.arco-button-size-mini,
+.arco-button-size-small,
+.arco-input-size-mini,
+.arco-input-size-small,
+.arco-select-size-mini,
+.arco-select-size-small,
+.arco-tag-size-small {
+  font-size: var(--font-size-sm) !important;
+}
+
+.arco-modal-title,
+.arco-drawer-title,
+.arco-popover-title {
+  font-size: var(--font-size-md) !important;
+}
+
+.arco-typography h1,
+.arco-typography-heading-1 {
+  font-size: var(--font-size-xxl) !important;
+}
+
+.arco-typography h2,
+.arco-typography-heading-2 {
+  font-size: var(--font-size-xl) !important;
+}
+
+.arco-typography h3,
+.arco-typography-heading-3 {
+  font-size: var(--font-size-lg) !important;
+}
+
+.arco-typography h4,
+.arco-typography-heading-4,
+.arco-typography h5,
+.arco-typography-heading-5,
+.arco-typography h6,
+.arco-typography-heading-6 {
+  font-size: var(--font-size-md) !important;
 }
 
 /* 全局过渡动画 - 可选
