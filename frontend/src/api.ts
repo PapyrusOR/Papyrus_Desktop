@@ -37,6 +37,81 @@ export async function getAuthToken(): Promise<string | null> {
   }
 }
 
+type ApiErrorBody = {
+  detail?: string;
+  error?: string;
+  errorId?: string;
+};
+
+// 判断未知值是否是可读取属性的普通对象，输入为任意 JSON 解析结果，输出为类型收窄后的记录对象。
+// 原因：API 错误体来自运行时响应，必须先用类型守卫收窄，才能在 strict TypeScript 下安全读取字段。
+// 未使用类型断言直接读取：直接断言会绕过运行时校验，遇到 HTML、数组或 null 时仍可能隐藏真实错误。
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// 从未知 JSON 错误体中提取前端需要展示的字符串字段，输入为解析结果，输出为稳定的错误对象。
+// 原因：后端错误响应只需要 detail/error/errorId 三个字段，集中收窄能保持请求主流程简洁。
+// 未使用 Zod：这里是极小的响应错误体读取，手写守卫足够且避免为热路径增加额外依赖和 schema 噪音。
+function normalizeErrorBody(body: unknown): ApiErrorBody {
+  if (!isRecord(body)) {
+    return {};
+  }
+
+  return {
+    detail: typeof body.detail === 'string' ? body.detail : undefined,
+    error: typeof body.error === 'string' ? body.error : undefined,
+    errorId: typeof body.errorId === 'string' ? body.errorId : undefined,
+  };
+}
+
+// 安全解析 API JSON 响应，输入为 fetch Response，输出为调用方声明的响应类型。
+// 原因：开发代理异常时可能返回前端 HTML，先检查文本和 Content-Type 可避免控制台出现 JSON SyntaxError 刷屏。
+// 未使用 response.json()：它会在非 JSON 响应上直接抛底层解析错误，无法给用户明确的后端/代理异常提示。
+async function parseJsonResponse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  const trimmedText = text.trimStart();
+  const contentType = res.headers.get('content-type')?.toLowerCase() ?? '';
+  const looksLikeJson = trimmedText.startsWith('{') || trimmedText.startsWith('[');
+
+  if (trimmedText.length === 0) {
+    // 这里需要把空响应映射到泛型返回值；调用方的具体接口类型只能在 API 边界外由后端契约保证。
+    return {} as T;
+  }
+
+  if (!contentType.includes('json') && !looksLikeJson) {
+    throw new Error('服务器返回了非 JSON 响应，请确认后端服务/代理是否正常');
+  }
+
+  try {
+    // JSON.parse 的标准库返回 any；先接入 unknown，再在 API 泛型边界转换为调用方声明的响应类型。
+    const parsed: unknown = JSON.parse(text);
+    return parsed as T;
+  } catch {
+    throw new Error('服务器返回了无法解析的 JSON 响应，请稍后重试');
+  }
+}
+
+// 基于已收窄的错误体生成展示文本，输入为错误体和 HTTP fallback，输出为最终错误消息。
+// 原因：401 重试前后都需要同一套错误拼接规则，集中处理可保持原行为并减少重复。
+// 未内联到 request：内联会重复 detail/error/errorId 处理，后续修改错误格式时更容易遗漏分支。
+function buildErrorMessage(body: unknown, fallback: string): string {
+  const normalizedBody = normalizeErrorBody(body);
+  const baseMessage = normalizedBody.detail ?? normalizedBody.error ?? fallback;
+  return normalizedBody.errorId ? `${baseMessage} [errorId: ${normalizedBody.errorId}]` : baseMessage;
+}
+
+// 尝试解析错误响应体，输入为 fetch Response，输出为 JSON 错误体或解析失败信息。
+// 原因：非 2xx 响应也可能是开发服务器返回的 HTML，保留解析失败消息比只显示状态码更有排查价值。
+// 未让调用方直接 catch：集中处理可保持 401 重试前后的错误信息策略一致。
+async function parseErrorBody(res: Response): Promise<unknown> {
+  try {
+    return await parseJsonResponse<unknown>(res);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : res.statusText };
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const token = await getAuthToken();
@@ -50,9 +125,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      const baseMessage = body.detail ?? body.error ?? res.statusText;
-      const message = body.errorId ? `${baseMessage} [errorId: ${body.errorId}]` : baseMessage;
+      const body = await parseErrorBody(res);
+      const message = buildErrorMessage(body, res.statusText);
       if (res.status === 401 && !cachedToken) {
         console.warn('[API] Received 401, retrying token fetch...');
         cachedToken = undefined;
@@ -68,11 +142,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
             },
           });
           if (retryRes.ok) {
-            return retryRes.json();
+            return parseJsonResponse<T>(retryRes);
           }
-          const retryBody = await retryRes.json().catch(() => ({}));
-          const retryBaseMsg = retryBody.detail ?? retryBody.error ?? retryRes.statusText;
-          const retryMsg = retryBody.errorId ? `${retryBaseMsg} [errorId: ${retryBody.errorId}]` : retryBaseMsg;
+          const retryBody = await parseErrorBody(retryRes);
+          const retryMsg = buildErrorMessage(retryBody, retryRes.statusText);
           console.error(`[API] Retry also failed with ${retryRes.status}: ${retryMsg}`);
           throw new Error(retryMsg);
         }
@@ -80,7 +153,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       }
       throw new Error(message);
     }
-    return res.json();
+    return parseJsonResponse<T>(res);
   } catch (err) {
     if (err instanceof Error && err.message.includes('Failed to fetch')) {
       throw new Error('无法连接到服务器，请检查网络或后端是否已启动');
