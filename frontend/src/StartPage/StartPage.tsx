@@ -301,14 +301,14 @@ const ShortcutCard = ({ icon, label, onClick }: { icon: ReactNode; label: string
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '24px',
+        fontSize: 'var(--font-size-display-md)',
         transition: 'background 0.2s',
       }}>
         {icon}
       </div>
       <Typography.Text
         type={hovered ? 'primary' : 'secondary'}
-        style={{ fontSize: '16px', fontWeight: 500 }}
+        style={{ fontSize: 'var(--font-size-md)', fontWeight: 500 }}
       >
         {label}
       </Typography.Text>

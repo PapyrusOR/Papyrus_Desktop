@@ -44,6 +44,9 @@ describe('Database', () => {
   let insertFile: typeof import('../../src/db/database.js').insertFile;
   let deleteFileById: typeof import('../../src/db/database.js').deleteFileById;
   let updateFile: typeof import('../../src/db/database.js').updateFile;
+  let getUiSettings: typeof import('../../src/db/database.js').getUiSettings;
+  let saveUiSettings: typeof import('../../src/db/database.js').saveUiSettings;
+  let getSidebarSettings: typeof import('../../src/db/database.js').getSidebarSettings;
 
   beforeAll(async () => {
     fs.mkdirSync(testDir, { recursive: true });
@@ -87,6 +90,9 @@ describe('Database', () => {
     insertFile = db.insertFile as typeof insertFile;
     deleteFileById = db.deleteFileById as typeof deleteFileById;
     updateFile = db.updateFile as typeof updateFile;
+    getUiSettings = db.getUiSettings as typeof getUiSettings;
+    saveUiSettings = db.saveUiSettings as typeof saveUiSettings;
+    getSidebarSettings = db.getSidebarSettings as typeof getSidebarSettings;
 
     dbPath = path.join(testDir, 'papyrus.db');
   });
@@ -366,6 +372,45 @@ describe('Database', () => {
 
       expect(deleteModel(modelId)).toBe(true);
       expect(deleteModel('non-existent')).toBe(false);
+    });
+  });
+
+  describe('UI Settings', () => {
+    it('should return defaults when no UI settings are saved', () => {
+      expect(getUiSettings()).toEqual({
+        chatPanelSide: 'right',
+        language: 'zh-CN',
+        fontSize: 'medium',
+      });
+    });
+
+    it('should save full UI settings and keep sidebar compatibility', () => {
+      const saved = saveUiSettings({
+        chatPanelSide: 'left',
+        language: 'ja-JP',
+        fontSize: 'large',
+      });
+      expect(saved).toEqual({
+        chatPanelSide: 'left',
+        language: 'ja-JP',
+        fontSize: 'large',
+      });
+      expect(getSidebarSettings()).toEqual({ chatPanelSide: 'left' });
+    });
+
+    it('should preserve existing UI settings during partial updates', () => {
+      saveUiSettings({ language: 'en-US', fontSize: 'small', chatPanelSide: 'left' });
+      expect(saveUiSettings({ fontSize: 'large' })).toEqual({
+        chatPanelSide: 'left',
+        language: 'en-US',
+        fontSize: 'large',
+      });
+    });
+
+    it('should reject invalid UI settings at the persistence boundary', () => {
+      expect(() => saveUiSettings({ language: 'fr-FR' as never })).toThrow('Invalid language');
+      expect(() => saveUiSettings({ fontSize: 'huge' as never })).toThrow('Invalid font size');
+      expect(() => saveUiSettings({ chatPanelSide: 'top' as never })).toThrow('Invalid chat panel side');
     });
   });
 

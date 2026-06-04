@@ -83,7 +83,7 @@
 
 /* 标签文字 - 收起时隐藏 */
 .sidebar-label {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.3s cubic-bezier(0.4,0,0.2,1);

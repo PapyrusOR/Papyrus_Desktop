@@ -226,7 +226,7 @@ export const PageLayout = ({
       }}>
         <Typography.Title
           heading={1}
-          style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: '40px' }}
+          style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: 'var(--font-size-display-xl)' }}
         >
           {title}
         </Typography.Title>

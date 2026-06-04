@@ -47,18 +47,18 @@ const ReviewCard = ({ item, onClick }: { item: ReviewItem; onClick?: () => void 
           color: '#fff',
           borderRadius: '999px',
           padding: '2px 10px',
-          fontSize: '12px',
+          fontSize: 'var(--font-size-xs)',
           fontWeight: 600,
           lineHeight: '20px',
         }}>
           {t('startPage.dueCount', { count: item.scrollCount })}
         </div>
-        <Typography.Text bold style={{ fontSize: '18px', lineHeight: 1.3 }}>
+        <Typography.Text bold style={{ fontSize: 'var(--font-size-lg)', lineHeight: 1.3 }}>
           {title}
         </Typography.Text>
       </div>
 
-      <Typography.Text type='secondary' style={{ fontSize: '13px' }}>
+      <Typography.Text type='secondary' style={{ fontSize: 'var(--font-size-sm)' }}>
         {t('startPage.minutes', { count: item.estimatedMinutes })}
       </Typography.Text>
     </CommonCard>

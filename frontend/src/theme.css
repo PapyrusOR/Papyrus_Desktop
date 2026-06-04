@@ -3,17 +3,57 @@
    遵循字节设计规范和 WCAG 无障碍标准
    ============================================ */
 
-/* Arco Design 深色模式变量覆盖 */
+/* 浅色模式默认值 */
+:root {
+  /* 基础字号 */
+  --font-size-base: 15px;
+
+  /* 主色调 */
+  --color-primary: #206CCF;
+  --color-primary-light: rgba(32, 108, 207, 0.08);
+  --color-primary-hover: #1654a8;
+
+  /* 成功/危险/警告色 */
+  --color-success: #00B42A;
+  --color-success-light: rgba(0, 180, 42, 0.08);
+  --color-danger: #F53F3F;
+  --color-danger-light: rgba(245, 63, 63, 0.08);
+  --color-warning: #FF7D00;
+  --color-warning-light: rgba(255, 125, 0, 0.08);
+
+  /* 边框悬停色 */
+  --color-border-hover: #9FD4FD;
+  --color-border-danger: rgba(245, 63, 63, 0.5);
+}
+
+body {
+  --font-size-xs: calc(var(--font-size-base) - 3px);
+  --font-size-sm: calc(var(--font-size-base) - 2px);
+  --font-size-md: calc(var(--font-size-base) + 1px);
+  --font-size-lg: calc(var(--font-size-base) + 3px);
+  --font-size-xl: calc(var(--font-size-base) + 5px);
+  --font-size-xxl: calc(var(--font-size-base) + 9px);
+  --font-size-display-sm: calc(var(--font-size-base) + 1px);
+  --font-size-display-md: calc(var(--font-size-base) + 9px);
+  --font-size-display-lg: calc(var(--font-size-base) + 13px);
+  --font-size-display-xl: calc(var(--font-size-base) + 25px);
+  --font-size-display-xxl: calc(var(--font-size-base) + 33px);
+  font-size: var(--font-size-base);
+}
+
 body[data-font-size="small"] {
   --font-size-base: 14px;
 }
+
 body[data-font-size="medium"] {
   --font-size-base: 15px;
 }
+
 body[data-font-size="large"] {
   --font-size-base: 16px;
 }
 
+/* Arco Design 深色模式变量覆盖 */
 body[arco-theme='dark'] {
   /* 背景色 */
   --color-bg-1: #2a2a2b;
@@ -22,30 +62,30 @@ body[arco-theme='dark'] {
   --color-bg-4: #424243;
   --color-bg-5: #4a4a4b;
   --color-bg-white: #2a2a2b;
-  
+
   /* 文字色 */
   --color-text-1: rgba(255, 255, 255, 0.9);
   --color-text-2: rgba(255, 255, 255, 0.7);
   --color-text-3: rgba(255, 255, 255, 0.5);
   --color-text-4: rgba(255, 255, 255, 0.3);
-  
+
   /* 填充色 */
   --color-fill-1: rgba(255, 255, 255, 0.04);
   --color-fill-2: rgba(255, 255, 255, 0.08);
   --color-fill-3: rgba(255, 255, 255, 0.12);
   --color-fill-4: rgba(255, 255, 255, 0.16);
-  
+
   /* 边框色 */
   --color-border-1: rgba(255, 255, 255, 0.08);
   --color-border-2: rgba(255, 255, 255, 0.12);
   --color-border-3: rgba(255, 255, 255, 0.16);
   --color-border-4: rgba(255, 255, 255, 0.24);
-  
+
   /* 主色调 */
   --color-primary: #206CCF;
   --color-primary-light: rgba(32, 108, 207, 0.2);
   --color-primary-hover: #4c8fe0;
-  
+
   /* 其他颜色 */
   --color-success: #00B42A;
   --color-success-light: rgba(0, 180, 42, 0.2);
@@ -53,47 +93,14 @@ body[arco-theme='dark'] {
   --color-danger-light: rgba(245, 63, 63, 0.2);
   --color-warning: #FF7D00;
   --color-warning-light: rgba(255, 125, 0, 0.2);
-  
+
   /* 链接色 */
   --color-link: #206CCF;
   --color-link-hover: #4c8fe0;
   --color-link-active: #1654a8;
-  
+
   /* 遮罩 */
   --color-mask-bg: rgba(0, 0, 0, 0.6);
-}
-
-/* 浅色模式默认值 */
-:root {
-  /* 基础字号 */
-  --font-size-base: 15px;
-  --font-size-xs: calc(var(--font-size-base) - 3px);
-  --font-size-sm: calc(var(--font-size-base) - 2px);
-  --font-size-md: calc(var(--font-size-base) + 1px);
-  --font-size-lg: calc(var(--font-size-base) + 3px);
-  --font-size-xl: calc(var(--font-size-base) + 5px);
-  --font-size-xxl: calc(var(--font-size-base) + 9px);
-
-  /* 主色调 */
-  --color-primary: #206CCF;
-  --color-primary-light: rgba(32, 108, 207, 0.08);
-  --color-primary-hover: #1654a8;
-  
-  /* 成功/危险/警告色 */
-  --color-success: #00B42A;
-  --color-success-light: rgba(0, 180, 42, 0.08);
-  --color-danger: #F53F3F;
-  --color-danger-light: rgba(245, 63, 63, 0.08);
-  --color-warning: #FF7D00;
-  --color-warning-light: rgba(255, 125, 0, 0.08);
-  
-  /* 边框悬停色 */
-  --color-border-hover: #9FD4FD;
-  --color-border-danger: rgba(245, 63, 63, 0.5);
-}
-
-body {
-  font-size: var(--font-size-base);
 }
 
 button,
@@ -101,99 +108,6 @@ input,
 textarea,
 select {
   font-size: inherit;
-}
-
-.arco-typography,
-.arco-form,
-.arco-form-item,
-.arco-checkbox,
-.arco-radio,
-.arco-switch,
-.arco-slider,
-.arco-tabs,
-.arco-menu,
-.arco-dropdown,
-.arco-popover,
-.arco-tooltip,
-.arco-message,
-.arco-notification,
-.arco-table,
-.arco-list,
-.arco-collapse,
-.arco-card,
-.arco-descriptions,
-.arco-pagination,
-.arco-empty {
-  font-size: var(--font-size-base) !important;
-}
-
-.arco-typography-secondary,
-.arco-form-item-label,
-.arco-form-message,
-.arco-input-group-prefix,
-.arco-input-group-suffix,
-.arco-select-option,
-.arco-dropdown-menu-item,
-.arco-table-th,
-.arco-table-td,
-.arco-pagination-item,
-.arco-tag {
-  font-size: var(--font-size-sm) !important;
-}
-
-.arco-button,
-.arco-input,
-.arco-textarea,
-.arco-input-wrapper,
-.arco-input-inner-wrapper,
-.arco-textarea-wrapper,
-.arco-textarea-inner-wrapper,
-.arco-select-view,
-.arco-input-tag,
-.arco-input-tag-input,
-.arco-modal,
-.arco-drawer {
-  font-size: var(--font-size-base) !important;
-}
-
-.arco-button-size-mini,
-.arco-button-size-small,
-.arco-input-size-mini,
-.arco-input-size-small,
-.arco-select-size-mini,
-.arco-select-size-small,
-.arco-tag-size-small {
-  font-size: var(--font-size-sm) !important;
-}
-
-.arco-modal-title,
-.arco-drawer-title,
-.arco-popover-title {
-  font-size: var(--font-size-md) !important;
-}
-
-.arco-typography h1,
-.arco-typography-heading-1 {
-  font-size: var(--font-size-xxl) !important;
-}
-
-.arco-typography h2,
-.arco-typography-heading-2 {
-  font-size: var(--font-size-xl) !important;
-}
-
-.arco-typography h3,
-.arco-typography-heading-3 {
-  font-size: var(--font-size-lg) !important;
-}
-
-.arco-typography h4,
-.arco-typography-heading-4,
-.arco-typography h5,
-.arco-typography-heading-5,
-.arco-typography h6,
-.arco-typography-heading-6 {
-  font-size: var(--font-size-md) !important;
 }
 
 /* 全局过渡动画 - 可选
@@ -435,7 +349,7 @@ html.a11y-focus-indicator .arco-select-view.arco-select-view-focus {
     --color-text-3: #333333;
     --color-border-2: #666666;
   }
-  
+
   body[arco-theme='dark'] {
     --color-text-1: #ffffff;
     --color-text-2: #e6e6e6;
@@ -455,7 +369,7 @@ html.a11y-focus-indicator .arco-select-view.arco-select-view-focus {
   text-decoration: none;
   z-index: 10000;
   border-radius: 0 0 8px 0;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 

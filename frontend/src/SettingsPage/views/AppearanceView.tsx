@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Input,
@@ -17,12 +17,20 @@ import {
 } from '@arco-design/web-react/icon';
 import { SettingItem, SettingsViewLayout } from '../components';
 import { useSettingsView } from '../../hooks/useSettingsView';
+import { api, type UiFontSize } from '../../api';
 import {
   useSceneryManager,
   usePageScenery,
   useStartPageScenery,
   type PageType,
 } from '../../hooks/useScenery';
+import {
+  applyFontSizeToDom,
+  dispatchFontSizeChanged,
+  isUiFontSize,
+  mirrorFontSizeToLocalStorage,
+  readStoredFontSize,
+} from '../../utils/uiSettings';
 
 const FormItem = Form.Item;
 const { Title, Text, Paragraph } = Typography;
@@ -51,16 +59,31 @@ const SECTIONS = [
 const AppearanceView = ({ onBack }: AppearanceViewProps) => {
   const { t } = useTranslation();
   const { navItems, sections } = useSettingsView({ navItems: NAV_ITEMS, sections: SECTIONS });
-  const [fontSize, setFontSize] = useState(() => {
-    try { return localStorage.getItem('papyrus_font_size') ?? 'medium'; }
-    catch { return 'medium'; }
-  });
+  const [fontSize, setFontSize] = useState<UiFontSize>(() => readStoredFontSize());
 
-  const handleFontSizeChange = (value: string) => {
-    setFontSize(value);
-    localStorage.setItem('papyrus_font_size', value);
-    document.body.dataset.fontSize = value;
-    window.dispatchEvent(new CustomEvent('papyrus_font_size_changed'));
+  useEffect(() => {
+    api.getUiSettings()
+      .then(data => {
+        if (data.success) {
+          setFontSize(data.settings.fontSize);
+          mirrorFontSizeToLocalStorage(data.settings.fontSize);
+          applyFontSizeToDom(data.settings.fontSize);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load UI settings:', err);
+      });
+  }, []);
+
+  const handleFontSizeChange = (value: unknown) => {
+    const nextFontSize = isUiFontSize(value) ? value : 'medium';
+    setFontSize(nextFontSize);
+    mirrorFontSizeToLocalStorage(nextFontSize);
+    applyFontSizeToDom(nextFontSize);
+    dispatchFontSizeChanged(nextFontSize);
+    api.saveUiSettings({ fontSize: nextFontSize }).catch(err => {
+      console.error('Failed to save UI settings:', err);
+    });
   };
 
   const { allSceneries, addCustomScenery } = useSceneryManager();
@@ -110,10 +133,10 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
       }}>
         <IconPalette style={{ color: 'var(--color-text-3)', fontSize: 20, marginTop: 2 }} />
         <div>
-          <Text style={{ fontSize: 13, fontWeight: 500, marginBottom: 4, display: 'block' }}>
+          <Text style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, marginBottom: 4, display: 'block' }}>
             {t('appearanceView.themeSwitch')}
           </Text>
-          <Paragraph type="secondary" style={{ fontSize: 13, margin: 0 }}>
+          <Paragraph type="secondary" style={{ fontSize: 'var(--font-size-sm)', margin: 0 }}>
             {t('appearanceView.themeSwitchDesc')}
           </Paragraph>
         </div>
@@ -134,7 +157,7 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
       {startPageScenery.config.enabled && (
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={{ fontSize: 13 }}>{t('appearanceView.scenerySelectImage')}</Text>
+            <Text style={{ fontSize: 'var(--font-size-sm)' }}>{t('appearanceView.scenerySelectImage')}</Text>
             <Button
               type="primary"
               size="mini"
@@ -203,7 +226,7 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
           </div>
 
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Text style={{ fontSize: 13, minWidth: 60 }}>{t('appearanceView.sceneryOpacity')}</Text>
+            <Text style={{ fontSize: 'var(--font-size-sm)', minWidth: 60 }}>{t('appearanceView.sceneryOpacity')}</Text>
             <Slider
               min={25}
               max={75}
@@ -212,29 +235,29 @@ const AppearanceView = ({ onBack }: AppearanceViewProps) => {
               onChange={(val) => startPageScenery.updateConfig({ opacity: (val as number) / 100 })}
               style={{ flex: 1, maxWidth: 150 }}
             />
-            <Text style={{ fontSize: 13, minWidth: 40 }}>
+            <Text style={{ fontSize: 'var(--font-size-sm)', minWidth: 40 }}>
               {Math.round((startPageScenery.config.opacity ?? 0.35) * 100)}%
             </Text>
           </div>
 
           <div style={{ marginTop: 16 }}>
-            <Text style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>{t('appearanceView.sceneryPoem')}</Text>
+            <Text style={{ fontSize: 'var(--font-size-sm)', marginBottom: 8, display: 'block' }}>{t('appearanceView.sceneryPoem')}</Text>
             <Input.TextArea
               placeholder={t('appearanceView.sceneryPoemPlaceholder')}
               value={startPageScenery.config.poem || ''}
               onChange={(val) => startPageScenery.updateConfig({ poem: val })}
               autoSize={{ minRows: 2, maxRows: 4 }}
-              style={{ fontSize: 13 }}
+              style={{ fontSize: 'var(--font-size-sm)' }}
             />
           </div>
 
           <div style={{ marginTop: 12 }}>
-            <Text style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>{t('appearanceView.scenerySource')}</Text>
+            <Text style={{ fontSize: 'var(--font-size-sm)', marginBottom: 8, display: 'block' }}>{t('appearanceView.scenerySource')}</Text>
             <Input
               placeholder={t('appearanceView.scenerySourcePlaceholder')}
               value={startPageScenery.config.source || ''}
               onChange={(val) => startPageScenery.updateConfig({ source: val })}
-              style={{ fontSize: 13 }}
+              style={{ fontSize: 'var(--font-size-sm)' }}
             />
           </div>
         </div>

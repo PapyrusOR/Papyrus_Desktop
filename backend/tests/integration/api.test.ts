@@ -32,7 +32,8 @@ describe('API Integration Tests', () => {
     db.exec(`DELETE FROM files; DELETE FROM cards; DELETE FROM notes;
              DELETE FROM card_versions; DELETE FROM note_versions;
              DELETE FROM relations;
-             DELETE FROM provider_models; DELETE FROM api_keys; DELETE FROM providers;`);
+             DELETE FROM provider_models; DELETE FROM api_keys; DELETE FROM providers;
+             DELETE FROM ui_settings;`);
 
     const { paths } = await import('../../src/utils/paths.js');
     fs.rmSync(paths.vaultDir, { recursive: true, force: true });
@@ -122,6 +123,66 @@ describe('API Integration Tests', () => {
     expect(logs).toContain('intentional test crash');
     expect(logs).not.toContain('sk-secret-key-12345');
     expect(logs).toContain('sk-***45');
+  });
+
+  it('GET /api/ui-settings should return default UI settings', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/ui-settings',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      success: true,
+      settings: {
+        chatPanelSide: 'right',
+        language: 'zh-CN',
+        fontSize: 'medium',
+      },
+    });
+  });
+
+  it('POST /api/ui-settings should save valid partial UI settings', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/ui-settings',
+      payload: { language: 'zh-TW', fontSize: 'large' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      success: true,
+      settings: {
+        chatPanelSide: 'right',
+        language: 'zh-TW',
+        fontSize: 'large',
+      },
+    });
+  });
+
+  it('POST /api/ui-settings should reject invalid UI settings', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/ui-settings',
+      payload: { language: 'fr-FR' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body)).toEqual({ success: false, error: 'Invalid language' });
+  });
+
+  it('POST /api/ui-settings/sidebar should remain compatible', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/ui-settings/sidebar',
+      payload: { chatPanelSide: 'left' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      success: true,
+      settings: { chatPanelSide: 'left' },
+    });
   });
 
   it('POST /api/cards should create a card', async () => {

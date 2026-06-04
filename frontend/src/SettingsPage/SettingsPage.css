@@ -61,7 +61,7 @@
   font-weight: 600;
   line-height: 1;
   margin: 0 0 32px 0;
-  font-size: 40px;
+  font-size: var(--font-size-display-xl);
   color: var(--color-text-1);
 }
 
@@ -113,7 +113,7 @@
 }
 
 .settings-category-title {
-  font-size: 15px;
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-1);
   display: block;
@@ -121,7 +121,7 @@
 }
 
 .settings-category-desc {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-3);
   margin: 0;
   line-height: 1.4;
@@ -142,7 +142,7 @@
 
 .settings-back-btn {
   padding: 0;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-2);
 }
 
@@ -161,7 +161,7 @@
   font-weight: 400;
   line-height: 1;
   margin: 0 0 32px 0;
-  font-size: 28px;
+  font-size: var(--font-size-display-lg);
   color: var(--color-text-1);
 }
 
@@ -171,7 +171,7 @@
 }
 
 .settings-section-title {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
   margin: 0 0 24px 0;
   color: var(--color-text-1);
@@ -195,7 +195,7 @@
 }
 
 .settings-item-title {
-  font-size: 15px;
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-1);
   display: block;
@@ -203,7 +203,7 @@
 }
 
 .settings-item-desc {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-3);
   margin: 0;
   line-height: 1.4;
@@ -256,7 +256,7 @@
 }
 
 .settings-form-label {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-1);
   min-width: 120px;
@@ -355,7 +355,7 @@
 
 .settings-shortcut-value {
   font-family: 'SF Mono', Monaco, monospace;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   padding: 8px 16px;
   background: var(--color-fill-2);
   border-radius: 6px;
@@ -550,11 +550,11 @@
   }
 
   .settings-page-title {
-    font-size: 32px;
+    font-size: var(--font-size-display-lg);
   }
 
   .settings-detail-title {
-    font-size: 24px;
+    font-size: var(--font-size-display-md);
   }
 }
 
@@ -584,7 +584,7 @@
 }
 
 .settings-category-icon-svg {
-  font-size: 32px;
+  font-size: var(--font-size-display-lg);
 }
 
 .settings-animation-wrapper {

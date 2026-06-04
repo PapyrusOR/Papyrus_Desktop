@@ -1651,16 +1651,48 @@ export function clearAllData(): void {
 // ==================== UI Settings ====================
 
 export type ChatPanelSide = 'left' | 'right';
+export type UiLanguage = 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP';
+export type UiFontSize = 'small' | 'medium' | 'large';
 
 export interface SidebarSettings {
   chatPanelSide: ChatPanelSide;
 }
 
+export interface UiSettings extends SidebarSettings {
+  language: UiLanguage;
+  fontSize: UiFontSize;
+}
+
 const CHAT_PANEL_SIDE_KEY = 'chat_panel_side';
+const LANGUAGE_KEY = 'language';
+const FONT_SIZE_KEY = 'font_size';
 const DEFAULT_CHAT_PANEL_SIDE: ChatPanelSide = 'right';
+const DEFAULT_UI_LANGUAGE: UiLanguage = 'zh-CN';
+const DEFAULT_UI_FONT_SIZE: UiFontSize = 'medium';
 
 function isChatPanelSide(value: string): value is ChatPanelSide {
   return value === 'left' || value === 'right';
+}
+
+function isUiLanguage(value: string): value is UiLanguage {
+  return value === 'zh-CN' || value === 'zh-TW' || value === 'en-US' || value === 'ja-JP';
+}
+
+function isUiFontSize(value: string): value is UiFontSize {
+  return value === 'small' || value === 'medium' || value === 'large';
+}
+
+function readUiSetting(key: string): string | undefined {
+  const database = getDb();
+  const row = database.prepare('SELECT value FROM ui_settings WHERE key = ?').get(key) as { value: string } | undefined;
+  return row?.value;
+}
+
+function writeUiSetting(key: string, value: string): void {
+  const database = getDb();
+  database.prepare(
+    'INSERT OR REPLACE INTO ui_settings (key, value, updated_at) VALUES (?, ?, ?)'
+  ).run(key, value, Date.now() / 1000);
 }
 
 /**
@@ -1669,10 +1701,24 @@ function isChatPanelSide(value: string): value is ChatPanelSide {
  * 未使用 localStorage：浏览器存储无法满足“后端通过 DB 持久化”的要求。
  */
 export function getSidebarSettings(): SidebarSettings {
-  const database = getDb();
-  const row = database.prepare('SELECT value FROM ui_settings WHERE key = ?').get(CHAT_PANEL_SIDE_KEY) as { value: string } | undefined;
+  const chatPanelSide = readUiSetting(CHAT_PANEL_SIDE_KEY);
   return {
-    chatPanelSide: row && isChatPanelSide(row.value) ? row.value : DEFAULT_CHAT_PANEL_SIDE,
+    chatPanelSide: chatPanelSide && isChatPanelSide(chatPanelSide) ? chatPanelSide : DEFAULT_CHAT_PANEL_SIDE,
+  };
+}
+
+/**
+ * 读取完整 UI 偏好设置，包含语言、字号和侧边栏方向。
+ * 原因：语言与字号会影响根级 Provider 和全局 CSS，必须与其他 UI 偏好一样进入 SQLite 持久化链路。
+ * 未强制迁移旧 localStorage：后端只负责稳定默认值，前端保留旧键作为首次启动兜底。
+ */
+export function getUiSettings(): UiSettings {
+  const language = readUiSetting(LANGUAGE_KEY);
+  const fontSize = readUiSetting(FONT_SIZE_KEY);
+  return {
+    ...getSidebarSettings(),
+    language: language && isUiLanguage(language) ? language : DEFAULT_UI_LANGUAGE,
+    fontSize: fontSize && isUiFontSize(fontSize) ? fontSize : DEFAULT_UI_FONT_SIZE,
   };
 }
 
@@ -1685,11 +1731,35 @@ export function saveSidebarSettings(settings: SidebarSettings): SidebarSettings 
   if (!isChatPanelSide(settings.chatPanelSide)) {
     throw new Error('Invalid chat panel side');
   }
-  const database = getDb();
-  database.prepare(
-    'INSERT OR REPLACE INTO ui_settings (key, value, updated_at) VALUES (?, ?, ?)'
-  ).run(CHAT_PANEL_SIDE_KEY, settings.chatPanelSide, Date.now() / 1000);
+  writeUiSetting(CHAT_PANEL_SIDE_KEY, settings.chatPanelSide);
   return getSidebarSettings();
+}
+
+/**
+ * 保存完整 UI 偏好设置，允许部分更新并对每个字段做枚举校验。
+ * 原因：设置页会分别更新语言和字号，部分更新避免前端为了保存一个字段而覆盖其他偏好。
+ * 未接收任意 key/value：公开接口必须保持有限字段，防止写入无约束 UI 配置。
+ */
+export function saveUiSettings(settings: Partial<UiSettings>): UiSettings {
+  if (settings.chatPanelSide !== undefined) {
+    if (!isChatPanelSide(settings.chatPanelSide)) {
+      throw new Error('Invalid chat panel side');
+    }
+    writeUiSetting(CHAT_PANEL_SIDE_KEY, settings.chatPanelSide);
+  }
+  if (settings.language !== undefined) {
+    if (!isUiLanguage(settings.language)) {
+      throw new Error('Invalid language');
+    }
+    writeUiSetting(LANGUAGE_KEY, settings.language);
+  }
+  if (settings.fontSize !== undefined) {
+    if (!isUiFontSize(settings.fontSize)) {
+      throw new Error('Invalid font size');
+    }
+    writeUiSetting(FONT_SIZE_KEY, settings.fontSize);
+  }
+  return getUiSettings();
 }
 
 // ==================== Chat Sessions ====================

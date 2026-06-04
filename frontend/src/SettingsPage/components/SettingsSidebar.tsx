@@ -84,9 +84,9 @@ export const SettingsSidebar = ({
             type="text"
             icon={<IconArrowLeft />}
             onClick={onBack}
-            style={{ padding: 0, fontSize: 14 }}
+            style={{ padding: 0, fontSize: 'var(--font-size-sm)' }}
           />
-          <Text style={{ fontSize: '14px', fontWeight: 500 }}>{title}</Text>
+          <Text style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{title}</Text>
         </div>
 
         {/* 菜单项 */}
@@ -122,10 +122,10 @@ export const SettingsSidebar = ({
                   }
                 }}
               >
-                <Icon style={{ fontSize: 16 }} />
+                <Icon style={{ fontSize: 'var(--font-size-md)' }} />
                 <Text
                   style={{
-                    fontSize: 13,
+                    fontSize: 'var(--font-size-sm)',
                     color: isActive ? 'var(--color-primary)' : 'inherit',
                     fontWeight: isActive ? 500 : 400,
                   }}
@@ -175,7 +175,7 @@ export const SettingsContent = ({ title, children }: SettingsContentProps) => {
     >
       <Typography.Title
         heading={2}
-        style={{ margin: '0 0 32px 0', fontWeight: 400, fontSize: '28px' }}
+        style={{ margin: '0 0 32px 0', fontWeight: 400, fontSize: 'var(--font-size-display-lg)' }}
       >
         {title}
       </Typography.Title>

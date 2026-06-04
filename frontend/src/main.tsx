@@ -12,6 +12,8 @@ import { createRoot } from 'react-dom/client';
 import { ConfigProvider } from '@arco-design/web-react';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
 import enUS from '@arco-design/web-react/es/locale/en-US';
+import zhTW from '@arco-design/web-react/es/locale/zh-TW';
+import jaJP from '@arco-design/web-react/es/locale/ja-JP';
 
 import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -22,6 +24,17 @@ import './tailwind.css';  // Tailwind CSS
 import App from './App';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { ScreenReaderAnnouncerProvider } from './components/ScreenReaderAnnouncer';
+import { api, type UiLanguage } from './api';
+import {
+  applyFontSizeToDom,
+  applyUiSettings,
+  DEFAULT_UI_LANGUAGE,
+  readStoredFontSize,
+  readStoredLanguage,
+  UI_LANGUAGE_CHANGED_EVENT,
+  type UiLanguageChangedDetail,
+  isUiLanguage,
+} from './utils/uiSettings';
 
 // 初始化 i18n
 import i18n, { init as i18nInit } from './i18n';
@@ -40,10 +53,7 @@ if (prefersDark) {
 }
 
 // 初始化字体大小
-try {
-  const savedFontSize = localStorage.getItem('papyrus_font_size');
-  if (savedFontSize) document.body.dataset.fontSize = savedFontSize;
-} catch { /* ignore */ }
+applyFontSizeToDom(readStoredFontSize());
 
 // 监听深色模式变化
 const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -71,9 +81,11 @@ if (import.meta.hot) {
  * 应用根组件
  * 包装所有必要的 Provider
  */
-const LOCALE_MAP: Record<string, typeof zhCN> = {
+const LOCALE_MAP: Record<UiLanguage, typeof zhCN> = {
   'zh-CN': zhCN,
+  'zh-TW': zhTW,
   'en-US': enUS,
+  'ja-JP': jaJP,
 };
 
 const updateSplashScreenText = async () => {
@@ -89,10 +101,7 @@ const updateSplashScreenText = async () => {
 };
 
 const Root = () => {
-  const [localeKey, setLocaleKey] = useState(() => {
-    try { return localStorage.getItem('papyrus_language') ?? 'zh-CN'; }
-    catch { return 'zh-CN'; }
-  });
+  const [localeKey, setLocaleKey] = useState<UiLanguage>(() => readStoredLanguage());
   const [i18nReady, setI18nReady] = useState(false);
 
   const locale = LOCALE_MAP[localeKey] ?? zhCN;
@@ -100,19 +109,40 @@ const Root = () => {
   useEffect(() => {
     const initI18n = async () => {
       await i18nInit;
+      try {
+        const data = await api.getUiSettings();
+        if (data.success) {
+          applyUiSettings(data.settings);
+          await i18n.changeLanguage(data.settings.language);
+          setLocaleKey(data.settings.language);
+        }
+      } catch (err) {
+        const storedLanguage = readStoredLanguage();
+        await i18n.changeLanguage(storedLanguage);
+        setLocaleKey(storedLanguage);
+        console.warn('Failed to load UI settings:', err);
+      }
       setI18nReady(true);
     };
     initI18n();
 
     const handler = (e: StorageEvent) => {
       if (e.key === 'papyrus_language') {
-        setLocaleKey(e.newValue ?? 'zh-CN');
+        setLocaleKey(isUiLanguage(e.newValue) ? e.newValue : DEFAULT_UI_LANGUAGE);
       }
     };
+    const languageChangedHandler = (e: Event) => {
+      const detail = (e as CustomEvent<UiLanguageChangedDetail>).detail;
+      setLocaleKey(isUiLanguage(detail?.language) ? detail.language : DEFAULT_UI_LANGUAGE);
+    };
     window.addEventListener('storage', handler);
+    window.addEventListener(UI_LANGUAGE_CHANGED_EVENT, languageChangedHandler);
     // 更新启动屏幕文本
     updateSplashScreenText();
-    return () => window.removeEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('storage', handler);
+      window.removeEventListener(UI_LANGUAGE_CHANGED_EVENT, languageChangedHandler);
+    };
   }, []);
 
   if (!i18nReady) {

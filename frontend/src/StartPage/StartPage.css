@@ -28,7 +28,7 @@
   font-weight: 600;
   line-height: 1;
   margin: 0;
-  font-size: 40px;
+  font-size: var(--font-size-display-xl);
 }
 
 .start-shelves {
@@ -40,7 +40,7 @@
   line-height: 1;
   margin: 0 0 16px 0;
   padding: 0;
-  font-size: 28px;
+  font-size: var(--font-size-display-lg);
 }
 
 .start-bottom-spacer {
@@ -57,7 +57,7 @@
   line-height: 1;
   margin: 0 0 24px 0;
   padding: 0;
-  font-size: 16px;
+  font-size: var(--font-size-display-sm);
   color: var(--color-text-3);
 }
 
@@ -101,7 +101,7 @@
 }
 
 .start-shortcut-icon-wrap {
-  font-size: 28px;
+  font-size: var(--font-size-display-lg);
   color: var(--color-text-3);
 }
 
@@ -110,11 +110,11 @@
 }
 
 .start-shortcut-icon {
-  font-size: 28px;
+  font-size: var(--font-size-display-lg);
 }
 
 .start-shortcut-label {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 
@@ -162,12 +162,12 @@
 
 .arco-typography.start-card-headline {
   margin: 0 0 8px;
-  font-size: 48px;
+  font-size: var(--font-size-display-xxl);
   font-weight: 600;
 }
 
 .start-card-subline {
-  font-size: 24px;
+  font-size: var(--font-size-display-md);
 }
 
 .start-card-bottom {
@@ -181,7 +181,7 @@
 }
 
 .start-card-greeting {
-  font-size: 24px;
+  font-size: var(--font-size-display-md);
   font-weight: 600;
   opacity: 1;
   transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -198,7 +198,7 @@
   min-width: 120px;
   height: 48px;
   padding: 0 32px;
-  font-size: 16px;
+  font-size: var(--font-size-md);
   flex-shrink: 0;
 }
 
@@ -292,7 +292,7 @@
 .start-poem-text {
   writing-mode: vertical-rl;
   font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 400;
   letter-spacing: 0.3em;
   color: var(--color-text-1);
@@ -304,7 +304,7 @@
 .start-poem-source {
   writing-mode: vertical-rl;
   font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 400;
   letter-spacing: 0.15em;
   color: var(--color-text-3);

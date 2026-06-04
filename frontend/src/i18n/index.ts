@@ -4,6 +4,7 @@ import zhCN from '../locales/zh-CN.json';
 import enUS from '../locales/en-US.json';
 import zhTW from '../locales/zh-TW.json';
 import jaJP from '../locales/ja-JP.json';
+import { readStoredLanguage } from '../utils/uiSettings';
 
 const resources = {
   'zh-CN': { translation: zhCN },
@@ -12,7 +13,7 @@ const resources = {
   'ja-JP': { translation: jaJP },
 };
 
-const savedLanguage = localStorage.getItem('papyrus_language') ?? 'zh-CN';
+const savedLanguage = readStoredLanguage();
 
 export const init = i18n
   .use(initReactI18next)

@@ -16,7 +16,14 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingItem, SettingsViewLayout } from '../components';
 import { useSettingsView } from '../../hooks/useSettingsView';
-import { api } from '../../api';
+import { api, type UiLanguage } from '../../api';
+import {
+  applyUiSettings,
+  dispatchLanguageChanged,
+  isUiLanguage,
+  mirrorLanguageToLocalStorage,
+  readStoredLanguage,
+} from '../../utils/uiSettings';
 
 const { Option } = Select;
 
@@ -52,9 +59,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
     return saved !== null ? saved === 'true' : false;
   });
   const [reviewReminder, setReviewReminder] = useState(true);
-  const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('papyrus_language') ?? 'zh-CN';
-  });
+  const [language, setLanguage] = useState<UiLanguage>(() => readStoredLanguage());
 
   const [logsConfig, setLogsConfig] = useState<LogsConfig>({
     log_dir: '',
@@ -77,13 +82,32 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   }, []);
 
   useEffect(() => {
+    api.getUiSettings()
+      .then(data => {
+        if (data.success) {
+          setLanguage(data.settings.language);
+          applyUiSettings(data.settings);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load UI settings:', err);
+      });
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('papyrus_minimize_to_tray', String(minimizeToTray));
   }, [minimizeToTray]);
 
-  useEffect(() => {
-    localStorage.setItem('papyrus_language', language);
-    i18n.changeLanguage(language);
-  }, [language, i18n]);
+  const handleLanguageChange = (value: unknown) => {
+    const nextLanguage = isUiLanguage(value) ? value : 'zh-CN';
+    setLanguage(nextLanguage);
+    mirrorLanguageToLocalStorage(nextLanguage);
+    void i18n.changeLanguage(nextLanguage);
+    dispatchLanguageChanged(nextLanguage);
+    api.saveUiSettings({ language: nextLanguage }).catch(err => {
+      Message.error(err instanceof Error ? err.message : t('generalView.saveFailed'));
+    });
+  };
 
   const saveLogsConfig = async (updates: Partial<LogsConfig>) => {
     const newConfig = { ...logsConfig, ...updates };
@@ -159,7 +183,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
         return (
           <>
             <SettingItem title={t('generalView.languageLabel')} desc={t('generalView.languageDesc')}>
-              <Select value={language} onChange={setLanguage} style={{ width: 160 }}>
+              <Select value={language} onChange={handleLanguageChange} style={{ width: 160 }}>
                 <Option value="zh-CN">简体中文</Option>
                 <Option value="zh-TW">繁體中文</Option>
                 <Option value="en-US">English</Option>

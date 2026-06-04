@@ -218,9 +218,16 @@ export type LogsConfig = {
 
 // ========== UI Settings Types ==========
 export type ChatPanelSide = 'left' | 'right';
+export type UiLanguage = 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP';
+export type UiFontSize = 'small' | 'medium' | 'large';
 
 export type SidebarSettings = {
   chatPanelSide: ChatPanelSide;
+};
+
+export type UiSettings = SidebarSettings & {
+  language: UiLanguage;
+  fontSize: UiFontSize;
 };
 
 // ========== Update Types ==========
@@ -527,6 +534,13 @@ export const api = {
     request<{ success: boolean; path: string }>('/config/logs/open-dir', { method: 'POST' }),
 
   // UI Settings
+  getUiSettings: () =>
+    request<{ success: boolean; settings: UiSettings }>('/ui-settings'),
+  saveUiSettings: (settings: Partial<UiSettings>) =>
+    request<{ success: boolean; settings: UiSettings }>('/ui-settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
   getSidebarSettings: () =>
     request<{ success: boolean; settings: SidebarSettings }>('/ui-settings/sidebar'),
   saveSidebarSettings: (settings: SidebarSettings) =>

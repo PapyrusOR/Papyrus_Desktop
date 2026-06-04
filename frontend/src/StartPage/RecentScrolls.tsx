@@ -49,7 +49,7 @@ const CollectionCard = ({ collection, onClick, t }: { collection: Collection; on
             color: '#fff',
             borderRadius: '999px',
             padding: '2px 10px',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
             lineHeight: '20px',
           }}>
@@ -64,24 +64,24 @@ const CollectionCard = ({ collection, onClick, t }: { collection: Collection; on
             color: 'var(--color-text-3)',
             borderRadius: '999px',
             padding: '2px 10px',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
             lineHeight: '20px',
           }}>
             {t('startPage.completed')}
           </div>
         )}
-        <Typography.Text bold style={{ fontSize: '18px', lineHeight: 1.3 }}>
+        <Typography.Text bold style={{ fontSize: 'var(--font-size-lg)', lineHeight: 1.3 }}>
           {collection.title}
         </Typography.Text>
       </div>
 
       {/* 底部：卡片数 + 最近使用 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <Typography.Text type='secondary' style={{ fontSize: '13px' }}>
+        <Typography.Text type='secondary' style={{ fontSize: 'var(--font-size-sm)' }}>
           {t('startPage.cardCount', { count: collection.scrollCount })}
         </Typography.Text>
-        <Typography.Text type='secondary' style={{ fontSize: '13px' }}>
+        <Typography.Text type='secondary' style={{ fontSize: 'var(--font-size-sm)' }}>
           {t('startPage.lastUsed')}
         </Typography.Text>
       </div>

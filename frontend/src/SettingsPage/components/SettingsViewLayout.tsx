@@ -71,9 +71,9 @@ export const SettingsViewLayout = ({
             type="text"
             icon={<IconArrowLeft />}
             onClick={onBack}
-            style={{ padding: 0, fontSize: 14 }}
+            style={{ padding: 0, fontSize: 'var(--font-size-sm)' }}
           />
-          <Text style={{ fontSize: '14px', fontWeight: 500 }}>{title}</Text>
+          <Text style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{title}</Text>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
@@ -101,9 +101,9 @@ export const SettingsViewLayout = ({
                   userSelect: 'none',
                 }}
               >
-                <ItemIcon style={{ fontSize: 16 }} />
+                <ItemIcon style={{ fontSize: 'var(--font-size-md)' }} />
                 <Text style={{
-                  fontSize: 13,
+                  fontSize: 'var(--font-size-sm)',
                   color: isActive ? 'var(--color-primary)' : 'inherit',
                   fontWeight: isActive ? 500 : 400,
                 }}>{item.label}</Text>
@@ -124,8 +124,8 @@ export const SettingsViewLayout = ({
       >
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <Icon style={{ fontSize: 32, color: iconColor }} />
-            <Typography.Title heading={2} style={{ margin: 0, fontWeight: 400, fontSize: '28px' }}>
+            <Icon style={{ fontSize: 'var(--font-size-display-lg)', color: iconColor }} />
+            <Typography.Title heading={2} style={{ margin: 0, fontWeight: 400, fontSize: 'var(--font-size-display-lg)' }}>
               {title}
             </Typography.Title>
           </div>
@@ -145,9 +145,9 @@ export const SettingsViewLayout = ({
             {section.title && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                 {section.icon && (
-                  <section.icon style={{ fontSize: 20, color: section.iconColor || 'var(--color-text-1)' }} />
+                  <section.icon style={{ fontSize: 'var(--font-size-xl)', color: section.iconColor || 'var(--color-text-1)' }} />
                 )}
-                <Typography.Title heading={4} style={{ margin: 0, fontSize: 20 }}>
+                <Typography.Title heading={4} style={{ margin: 0, fontSize: 'var(--font-size-xl)' }}>
                   {section.title}
                 </Typography.Title>
               </div>

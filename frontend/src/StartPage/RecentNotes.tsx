@@ -42,11 +42,11 @@ const NoteCard = ({ note, onClick }: NoteCardProps) => {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflow: 'hidden' }}>
-        <Typography.Text bold style={{ fontSize: '16px', lineHeight: 1.3 }}>
+        <Typography.Text bold style={{ fontSize: 'var(--font-size-md)', lineHeight: 1.3 }}>
           {note.title}
         </Typography.Text>
         <Typography.Text type='secondary' style={{ 
-          fontSize: '12px', 
+          fontSize: 'var(--font-size-xs)',
           lineHeight: 1.5,
           display: '-webkit-box',
           WebkitLineClamp: 3,
@@ -58,7 +58,7 @@ const NoteCard = ({ note, onClick }: NoteCardProps) => {
         </Typography.Text>
       </div>
 
-      <Typography.Text type='secondary' style={{ fontSize: '12px', marginTop: '8px' }}>
+      <Typography.Text type='secondary' style={{ fontSize: 'var(--font-size-xs)', marginTop: '8px' }}>
         {note.lastUsed}
       </Typography.Text>
     </CommonCard>
