@@ -18,6 +18,7 @@ import {
 } from '@arco-design/web-react/icon';
 import { api } from '../../api';
 import type { VersionInfo } from '../../api';
+import { formatDateBySetting } from '../../utils/dateFormat.js';
 import './AboutView.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -113,16 +114,7 @@ const AboutView = ({ onBack }: AboutViewProps) => {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '';
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString(i18n.language || 'zh-CN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
+    return formatDateBySetting(dateStr);
   };
 
   const truncateReleaseNotes = (notes: string | null) => {

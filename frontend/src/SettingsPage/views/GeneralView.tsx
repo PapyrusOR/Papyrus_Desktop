@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { SettingItem, SettingsViewLayout } from '../components';
 import { useSettingsView } from '../../hooks/useSettingsView';
 import { api } from '../../api';
+import { getDateFormat, setDateFormat, type DateFormat } from '../../utils/dateFormat.js';
 
 const { Option } = Select;
 
@@ -55,6 +56,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   const [language, setLanguage] = useState(() => {
     return localStorage.getItem('papyrus_language') ?? 'zh-CN';
   });
+  const [dateFormat, setDateFormatState] = useState<DateFormat>(() => getDateFormat());
 
   const [logsConfig, setLogsConfig] = useState<LogsConfig>({
     log_dir: '',
@@ -168,7 +170,14 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             </SettingItem>
 
             <SettingItem title={t('generalView.dateFormat')} desc={t('generalView.dateFormatDesc')} divider={false}>
-              <Select value="yyyy-MM-dd" style={{ width: 160 }}>
+              <Select
+                value={dateFormat}
+                onChange={(value: DateFormat) => {
+                  setDateFormatState(value);
+                  setDateFormat(value);
+                }}
+                style={{ width: 160 }}
+              >
                 <Option value="yyyy-MM-dd">2024-06-15</Option>
                 <Option value="yyyy/MM/dd">2024/06/15</Option>
                 <Option value="dd/MM/yyyy">15/06/2024</Option>

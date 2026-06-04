@@ -8,6 +8,7 @@ import type { FileItemData } from '../api';
 import { PageLayout } from '../components';
 import { PRIMARY_COLOR } from '../theme-constants';
 import { addRecentItem } from '../utils/recentFiles';
+import { formatDateBySetting } from '../utils/dateFormat.js';
 
 import ZipIcon from './ZipIcon';
 import FilePreviewModal from './FilePreviewModal';
@@ -40,7 +41,7 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleDateString(i18n.language || 'zh-CN');
+  return formatDateBySetting(timestamp);
 }
 
 // 网格文件卡片
