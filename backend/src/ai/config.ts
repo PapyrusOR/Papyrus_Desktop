@@ -180,15 +180,17 @@ export class AIConfig {
     }
   }
 
-  saveConfig(): void {
+  saveConfig(): boolean {
     try {
       writeUiSetting('ai.current_provider', this.config.current_provider);
       writeUiSetting('ai.current_model', this.config.current_model);
       writeUiSetting('ai.parameters', JSON.stringify(this.config.parameters));
       writeUiSetting('ai.features', JSON.stringify(this.config.features));
       writeUiSetting('ai.log', JSON.stringify(this.config.log));
+      return true;
     } catch (e) {
       console.error('保存 AI 配置到数据库失败:', e instanceof Error ? e.message : String(e));
+      return false;
     }
   }
 

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { AIConfig } from './config.js';
 import { paths } from '../utils/paths.js';
 import { migrateJsonProvidersToDb, loadAIConfigFromDb } from './db-sync.js';
-import { loadAllProviders } from '../db/database.js';
+import { loadAllProviders, readUiSetting } from '../db/database.js';
 
 export let aiConfig = new AIConfig(paths.dataDir);
 
@@ -23,23 +23,22 @@ export function initAIConfig(): void {
       console.log('[initAIConfig] 检测到 ai_config.json，开始一次性迁移...');
 
       // 1. 迁移 providers
-      migrateJsonProvidersToDb(aiConfig);
+      const migratedTypes = migrateJsonProvidersToDb(aiConfig);
 
       // 2. 验证迁移完整性
-      const after = loadAllProviders();
       const jsonProviderCount = Object.keys(aiConfig.config.providers).length;
-      if (after.length < jsonProviderCount) {
+      if (migratedTypes.length < jsonProviderCount) {
         console.error(
-          `[initAIConfig] 迁移不完整：JSON 有 ${jsonProviderCount} 个 provider，DB 只入了 ${after.length} 个，保留 JSON 文件`
+          `[initAIConfig] 迁移不完整：JSON 有 ${jsonProviderCount} 个 provider，成功迁移 ${migratedTypes.length} 个，保留 JSON 文件`
         );
         // 不删除 JSON，让用户下次启动重试
       } else {
         // 3. 写入非 provider 配置到 DB
-        aiConfig.saveConfig();
+        const saved = aiConfig.saveConfig();
 
         // 4. 二次验证：读回确认落盘
-        const verifyCurrentProvider = aiConfig.config.current_provider;
-        if (verifyCurrentProvider) {
+        const verifyCurrentProvider = readUiSetting('ai.current_provider');
+        if (saved && verifyCurrentProvider) {
           // 5. 验证通过，删除 JSON
           fs.unlinkSync(aiConfig.configFile);
           console.log('[initAIConfig] 迁移完成，ai_config.json 已删除');

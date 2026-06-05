@@ -11,9 +11,10 @@ function isMaskedKey(key: string): boolean {
  * 仅在首次启动、DB providers 表为空且 JSON 存在时调用。
  * 调用方负责迁移前后的验证和 JSON 删除。
  */
-export function migrateJsonProvidersToDb(aiConfig: AIConfig): void {
+export function migrateJsonProvidersToDb(aiConfig: AIConfig): string[] {
   try {
     const dbProviders = loadAllProviders();
+    const migrated: string[] = [];
     for (const [providerType, providerConfig] of Object.entries(aiConfig.config.providers)) {
       const sameType = dbProviders.filter((p) => p.type === providerType);
       if (sameType.length > 1) {
@@ -53,10 +54,14 @@ export function migrateJsonProvidersToDb(aiConfig: AIConfig): void {
         }
       } catch (innerErr) {
         console.warn(`[migrateJsonProvidersToDb] 同步 provider "${providerType}" 失败:`, innerErr instanceof Error ? innerErr.message : String(innerErr));
+        continue;
       }
+      migrated.push(providerType);
     }
+    return migrated;
   } catch (e) {
     console.warn('迁移 AI 配置到数据库失败:', e instanceof Error ? e.message : String(e));
+    return [];
   }
 }
 
