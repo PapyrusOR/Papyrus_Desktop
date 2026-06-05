@@ -240,11 +240,10 @@ const StartCard = ({ scenery, headline, subline, greeting, buttonLabel, onButton
         )}
         <div />
 
-        <StartCTAButton
-          label={buttonLabel}
-          onClick={onButtonClick}
-          highlighted={hovered}
-        />
+       <StartCTAButton
+         label={buttonLabel}
+         onClick={onButtonClick}
+       />
       </div>
 
       {showScenery && (
