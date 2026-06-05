@@ -16,7 +16,6 @@ export const PROVIDER_PRESETS: Record<string, { name: string; baseUrl: string }>
   'openai-response': { name: 'OpenAI-Response', baseUrl: 'https://api.openai.com/v1' },
   anthropic: { name: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1' },
   gemini: { name: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
-  'liyuan-deepseek': { name: 'LiYuan For DeepSeek', baseUrl: 'https://papyrus.liyuanstudio.com/v1' },
   ollama: { name: 'Ollama', baseUrl: 'http://localhost:11434' },
 };
 

@@ -44,8 +44,7 @@ export function isKeylessProvider(name: string): boolean {
     name === 'tabbyapi' ||
     name === 'koboldcpp' ||
     name === 'text-generation-webui' ||
-    name === 'llamacpp' ||
-    name === 'liyuan-deepseek'
+    name === 'llamacpp'
   );
 }
 

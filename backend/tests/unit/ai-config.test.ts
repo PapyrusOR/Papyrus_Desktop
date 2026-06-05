@@ -24,6 +24,7 @@ describe('AIConfig', () => {
     const config = new AIConfig(tempDir);
     expect(config.config.current_provider).toBe('');
     expect(config.config.current_model).toBe('');
+    // providers are no longer hardcoded; database is the source of truth
     expect(config.config.providers).toEqual({});
     expect(config.config.parameters.temperature).toBe(0.7);
   });
@@ -74,9 +75,70 @@ describe('AIConfig', () => {
     expect(config2.config.log.log_rotation).toBe(true);
   });
 
-  describe('isPrivateUrl', () => {
-    it('blocks private IP ranges', async () => {
-      const { isPrivateUrl } = await import('../../src/ai/config.js');
+  it('should normalize invalid parameters on load', () => {
+  it('should normalize invalid parameters on load', () => {
+    const configFile = path.join(tempDir, 'ai_config.json');
+    fs.writeFileSync(configFile, JSON.stringify({
+      current_provider: 'openai',
+      current_model: 'gpt-3.5-turbo',
+      parameters: {
+        temperature: 'invalid',
+        max_tokens: 'also-invalid',
+      },
+    }), 'utf8');
+
+    const config = new AIConfig(tempDir);
+    expect(config.config.parameters.temperature).toBe(0.7);
+    expect(config.config.parameters.max_tokens).toBe(2000);
+  });
+
+  it('should handle empty api_key gracefully', () => {
+    const config = new AIConfig(tempDir);
+    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
+    expect(() => config.validateConfig()).not.toThrow();
+  });
+
+  it('should reject private IP for non-local providers', () => {
+    const config = new AIConfig(tempDir);
+    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
+    config.config.providers['openai'].base_url = 'http://192.168.1.100:8080';
+    expect(() => config.validateConfig()).toThrow('SSRF');
+  });
+
+  it('should fallback to default provider when current_provider is invalid', () => {
+    const configFile = path.join(tempDir, 'ai_config.json');
+    fs.writeFileSync(configFile, JSON.stringify({
+      providers: {
+        moonshot: { api_key: '', base_url: 'https://api.moonshot.cn/v1', models: ['kimi-k2.5'] },
+      },
+      current_provider: 'nonexistent-provider',
+      current_model: 'gpt-3.5-turbo',
+      parameters: {},
+      features: {},
+      log: {},
+    }), 'utf8');
+
+    const config = new AIConfig(tempDir);
+    expect(config.config.current_provider).toBe('');
+  });
+
+  it('should preserve current_provider/current_model when providers field is empty (DB-managed)', () => {
+    const configFile = path.join(tempDir, 'ai_config.json');
+    fs.writeFileSync(configFile, JSON.stringify({
+      current_provider: 'user-custom-provider',
+      current_model: 'user-custom-model',
+      parameters: {},
+      features: {},
+      log: {},
+    }), 'utf8');
+
+    const config = new AIConfig(tempDir);
+    expect(config.config.current_provider).toBe('user-custom-provider');
+    expect(config.config.current_model).toBe('user-custom-model');
+  });
+  describe('edge cases', () => {
+    it('isPrivateUrl blocks private IP ranges', async () => {
+     const { isPrivateUrl } = await import('../../src/ai/config.js');
       expect(isPrivateUrl('http://127.0.0.1:11434')).toBe(true);
       expect(isPrivateUrl('http://localhost:8080')).toBe(true);
       expect(isPrivateUrl('http://192.168.1.1')).toBe(true);

@@ -257,9 +257,13 @@ describe('PapyrusLogger', () => {
   });
 
   describe('edge cases', () => {
-    it('exportLogs returns null for invalid export path', () => {
+    it('exportLogs returns null when path is not a directory', () => {
       const logger = new PapyrusLogger(testDir);
-      const result = logger.exportLogs('/nonexistent/locked/path/xyz');
+      // Create a file, then try to export into it as if it were a directory
+      // mkdirSync on a file path throws EEXIST, causing exportLogs to return null
+      const filePath = path.join(testDir, 'not-a-dir');
+      fs.writeFileSync(filePath, 'I am a file');
+      const result = logger.exportLogs(filePath);
       expect(result).toBeNull();
     });
 

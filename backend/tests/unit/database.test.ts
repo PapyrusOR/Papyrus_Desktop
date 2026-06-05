@@ -298,11 +298,9 @@ describe('Database', () => {
   });
 
   describe('Providers', () => {
-    it('should start with the default provider on new db', () => {
+    it('should start with no default providers on new db', () => {
       const providers = loadAllProviders();
-      expect(providers.length).toBe(1);
-      expect(providers[0]?.name).toBe('LiYuan For DeepSeek');
-      expect(providers[0]?.isDefault).toBe(true);
+      expect(providers.length).toBe(0);
     });
 
     it('should save and load a custom provider', () => {

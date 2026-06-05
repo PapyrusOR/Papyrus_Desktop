@@ -18,6 +18,7 @@ const { spawn, exec, execSync } = require('child_process');
 const os = require('os');
 const crypto = require('crypto');
 const { createDiagnosticWindow } = require('./diagnostic-window');
+const { validateExternalUrl, validateOpenFolderPath } = require('./security-validators');
 
 // Generate a per-session auth token for backend API protection
 const PAPYRUS_AUTH_TOKEN = crypto.randomBytes(32).toString('base64url');
@@ -426,16 +427,9 @@ function createWindow() {
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // SECURITY: validate URL before opening
-    const allowedProtocols = ['http:', 'https:', 'mailto:'];
-    let parsed;
-    try {
-      parsed = new URL(url);
-    } catch (e) {
-      return { action: 'deny' };
-    }
-    if (allowedProtocols.includes(parsed.protocol)) {
-      shell.openExternal(url);
+    const validation = validateExternalUrl(url);
+    if (validation.ok) {
+      shell.openExternal(validation.url);
     }
     return { action: 'deny' };
   });
@@ -523,37 +517,11 @@ function setupIPC() {
 
   // Open external link
   ipcMain.handle('shell:openExternal', async (event, url) => {
-    // SECURITY: whitelist protocols to prevent RCE via dangerous protocols
-    const allowedProtocols = ['http:', 'https:', 'mailto:'];
-    const allowedDomains = [
-      'github.com',
-      'githubusercontent.com',
-      'papyrus.liyuanstudio.com',
-      'openai.com',
-      'anthropic.com',
-      'google.com',
-      'googleapis.com',
-      'deepseek.com',
-      'siliconflow.cn',
-      'moonshot.cn',
-    ];
-    let parsed;
-    try {
-      parsed = new URL(url);
-    } catch (e) {
-      throw new Error('Invalid URL');
+    const validation = validateExternalUrl(url);
+    if (!validation.ok) {
+      throw new Error(validation.reason);
     }
-    if (!allowedProtocols.includes(parsed.protocol)) {
-      throw new Error('Disallowed protocol');
-    }
-    if (parsed.protocol !== 'mailto:') {
-      const hostname = parsed.hostname.toLowerCase();
-      const isAllowed = allowedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
-      if (!isAllowed) {
-        throw new Error('Disallowed domain: ' + hostname);
-      }
-    }
-    await shell.openExternal(url);
+    await shell.openExternal(validation.url);
   });
   
   // Open data folder
@@ -564,21 +532,15 @@ function setupIPC() {
 
   // Open any folder (with path validation)
   ipcMain.handle('shell:openFolder', async (event, folderPath) => {
-    if (!folderPath || typeof folderPath !== 'string') {
-      throw new Error('Invalid folder path');
-    }
-    const resolved = path.resolve(folderPath);
     const dataDir = app.getPath('userData');
     const homeDir = os.homedir();
     const documentsDir = path.join(homeDir, 'Documents');
     const downloadsDir = path.join(homeDir, 'Downloads');
-    const isUnderDataDir = resolved === dataDir || resolved.startsWith(dataDir + path.sep);
-    const isUnderDocuments = resolved === documentsDir || resolved.startsWith(documentsDir + path.sep);
-    const isUnderDownloads = resolved === downloadsDir || resolved.startsWith(downloadsDir + path.sep);
-    if (!isUnderDataDir && !isUnderDocuments && !isUnderDownloads) {
-      throw new Error('Path outside allowed directories');
+    const validation = validateOpenFolderPath(folderPath, [dataDir, documentsDir, downloadsDir]);
+    if (!validation.ok) {
+      throw new Error(validation.reason);
     }
-    await shell.openPath(resolved);
+    await shell.openPath(validation.path);
   });
 
   // Minimize to tray
@@ -757,15 +719,9 @@ app.on('quit', () => {
 app.on('web-contents-created', (event, contents) => {
   contents.on('new-window', (event, navigationUrl) => {
     event.preventDefault();
-    const allowedProtocols = ['http:', 'https:', 'mailto:'];
-    let parsed;
-    try {
-      parsed = new URL(navigationUrl);
-    } catch (e) {
-      return;
-    }
-    if (allowedProtocols.includes(parsed.protocol)) {
-      shell.openExternal(navigationUrl);
+    const validation = validateExternalUrl(navigationUrl);
+    if (validation.ok) {
+      shell.openExternal(validation.url);
     }
   });
 });

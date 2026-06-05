@@ -883,7 +883,6 @@ function inferProviderType(baseUrl: string | undefined, fallbackType: string | u
   if (fallbackType && fallbackType !== 'custom') return fallbackType;
   const url = (baseUrl ?? '').toLowerCase();
   if (url.includes('deepseek.com')) return 'deepseek';
-  if (url.includes('liyuanstudio')) return 'liyuan-deepseek';
   if (url.includes('openai.com')) return 'openai';
   if (url.includes('anthropic.com')) return 'anthropic';
   if (url.includes('google') || url.includes('gemini')) return 'gemini';

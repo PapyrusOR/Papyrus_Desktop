@@ -44,7 +44,7 @@ describe('ai-db-sync', () => {
   it('loadAIConfigFromDb does nothing when DB has no providers', () => {
     const cfg = new AIConfig(tempDir);
     cfg.config.current_provider = 'custom';
-    loadAIConfigFromDb(cfg);
+    syncDBToAIConfig(cfg);
     // DB is empty (no seed), so current_provider stays unchanged
     expect(cfg.config.current_provider).toBe('custom');
   });

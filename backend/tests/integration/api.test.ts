@@ -605,12 +605,12 @@ describe('API Integration Tests', () => {
       global.fetch = () => Promise.resolve({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({
-          tag_name: 'v999.0.0',
-          html_url: 'https://example.com/release',
+          json: () => Promise.resolve({
+            tag_name: 'v999.0.0',
+          html_url: 'https://github.com/PapyrusOR/Papyrus_Desktop/releases/tag/v999.0.0',
           body: 'Release notes here',
           published_at: '2026-01-01T00:00:00Z',
-          assets: [{ browser_download_url: 'https://example.com/download' }],
+          assets: [{ browser_download_url: 'https://github.com/PapyrusOR/Papyrus_Desktop/releases/download/v999.0.0/Papyrus.exe' }],
         }),
       } as unknown as Response);
 
@@ -625,8 +625,8 @@ describe('API Integration Tests', () => {
       expect(body.data.has_update).toBe(true);
       expect(body.data.latest_version).toBe('v999.0.0');
       expect(body.data.current_version).toBeDefined();
-      expect(body.data.release_url).toBe('https://example.com/release');
-      expect(body.data.download_url).toBe('https://example.com/download');
+      expect(body.data.release_url).toBe('https://github.com/PapyrusOR/Papyrus_Desktop/releases/tag/v999.0.0');
+      expect(body.data.download_url).toBe('https://github.com/PapyrusOR/Papyrus_Desktop/releases/download/v999.0.0/Papyrus.exe');
       expect(body.data.release_notes).toBe('Release notes here');
     } finally {
       global.fetch = savedFetch;

@@ -1,5 +1,7 @@
 import path from 'node:path';
 import { paths } from '../utils/paths.js';
+import { encryptApiKey, decryptApiKey } from '../core/crypto.js';
+import { isPrivateNetworkUrl } from '../utils/security.js';
 import { readUiSetting, writeUiSetting } from '../db/database.js';
 import { getProviderConfigFromDB } from './db-sync.js';
 
@@ -60,39 +62,7 @@ function toInt(value: unknown, defaultValue: number): number {
  * 保留用于外部调用（provider.ts、ai-completion.ts、ai-config.ts）。
  */
 export function isPrivateUrl(urlStr: string): boolean {
-  if (!urlStr) return false;
-  try {
-    const parsed = new URL(urlStr);
-    const hostname = parsed.hostname.toLowerCase();
-
-    if (['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]', '[::ffff:127.0.0.1]'].includes(hostname)) {
-      return true;
-    }
-    if (/^127(\.\d+){1,3}$/.test(hostname)) {
-      return true;
-    }
-    if (/^\d+$/.test(hostname)) {
-      return true;
-    }
-    if (/^0x[0-9a-f]+$/i.test(hostname)) {
-      return true;
-    }
-    const ipv4Segments = hostname.split('.');
-    if (ipv4Segments.length >= 2 && ipv4Segments.length <= 4) {
-      const hasNonDecimalSeg = ipv4Segments.some((seg) => /^0x[0-9a-f]+$/i.test(seg) || /^0\d+$/.test(seg));
-    if (hasNonDecimalSeg) return true;
-    }
-    // Reject private IPv4 ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 169.254.x.x, 0.x.x.x
-    if (/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.)/.test(hostname)) {
-      return true;
-    }
-    if (/^\[?::1\]?$/.test(hostname) || /^\[?fe80:/i.test(hostname)) {
-      return true;
-    }
-  } catch {
-    // ignore invalid URLs
-  }
-  return false;
+  return isPrivateNetworkUrl(urlStr);
 }
 
 export class AIConfig {

@@ -8,6 +8,7 @@ import { getSolarTerm, fetchSolarTerm } from './solarTerms';
 import { type SceneryContent, fetchSceneryContent } from './sceneryContent';
 import { api } from '../api';
 import { useCommonCardStyle, CommonCard, CardGroup } from '../components';
+import { formatDateBySetting } from '../utils/dateFormat.js';
 import './StartPage.css';
 
 
@@ -53,7 +54,7 @@ function getGreeting(hour: number, t: (key: string) => string): string {
 }
 
 function formatDateLabel(date: Date): string {
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  return formatDateBySetting(date);
 }
 
 function useStartPageData(t: (key: string) => string): StartPageData & { refresh: () => void } {

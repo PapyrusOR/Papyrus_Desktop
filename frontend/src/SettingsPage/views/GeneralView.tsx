@@ -16,14 +16,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingItem, SettingsViewLayout } from '../components';
 import { useSettingsView } from '../../hooks/useSettingsView';
-import { api, type UiLanguage, type UiDateFormat } from '../../api';
-import {
-  applyUiSettings,
-  dispatchLanguageChanged,
-  isUiLanguage,
-  mirrorLanguageToLocalStorage,
-  readStoredLanguage,
-} from '../../utils/uiSettings';
+import { api } from '../../api';
+import { getDateFormat, setDateFormat, type DateFormat } from '../../utils/dateFormat.js';
 
 const { Option } = Select;
 
@@ -59,8 +53,10 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
     return saved !== null ? saved === 'true' : false;
   });
   const [reviewReminder, setReviewReminder] = useState(true);
-  const [language, setLanguage] = useState<UiLanguage>(() => readStoredLanguage());
-  const [dateFormat, setDateFormat] = useState<UiDateFormat>('yyyy-MM-dd');
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('papyrus_language') ?? 'zh-CN';
+  });
+  const [dateFormat, setDateFormatState] = useState<DateFormat>(() => getDateFormat());
 
   const [logsConfig, setLogsConfig] = useState<LogsConfig>({
     log_dir: '',
@@ -196,19 +192,16 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             <SettingItem title={t('generalView.dateFormat')} desc={t('generalView.dateFormatDesc')} divider={false}>
               <Select
                 value={dateFormat}
-                onChange={(value) => {
-                  const fmt = value as UiDateFormat;
-                  setDateFormat(fmt);
-                  api.saveUiSettings({ dateFormat: fmt }).catch(err => {
-                    Message.error(err instanceof Error ? err.message : t('generalView.saveFailed'));
-                  });
+                onChange={(value: DateFormat) => {
+                  setDateFormatState(value);
+                  setDateFormat(value);
                 }}
                 style={{ width: 160 }}
               >
-                <Option value="yyyy-MM-dd">2024-01-01</Option>
-                <Option value="yyyy/MM/dd">2024/01/01</Option>
-                <Option value="dd/MM/yyyy">01/01/2024</Option>
-                <Option value="MM/dd/yyyy">01/01/2024</Option>
+                <Option value="yyyy-MM-dd">2024-06-15</Option>
+                <Option value="yyyy/MM/dd">2024/06/15</Option>
+                <Option value="dd/MM/yyyy">15/06/2024</Option>
+                <Option value="MM/dd/yyyy">06/15/2024</Option>
               </Select>
             </SettingItem>
           </>
