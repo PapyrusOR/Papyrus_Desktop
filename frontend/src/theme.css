@@ -22,8 +22,13 @@
   --color-warning-light: rgba(255, 125, 0, 0.08);
 
   /* 边框悬停色 */
-  --color-border-hover: #9FD4FD;
-  --color-border-danger: rgba(245, 63, 63, 0.5);
+ --color-border-hover: #9FD4FD;
+ --color-border-danger: rgba(245, 63, 63, 0.5);
+
+  /* 字重 —— 与 UI_TOKENS.md 对齐 */
+  --font-weight-400: 400;
+  --font-weight-500: 500;
+  --font-weight-600: 600;
 }
 
 body {
@@ -368,9 +373,9 @@ html.a11y-focus-indicator .arco-select-view.arco-select-view-focus {
   padding: 8px 16px;
   text-decoration: none;
   z-index: 10000;
-  border-radius: 0 0 8px 0;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
+ border-radius: 0 0 8px 0;
+ font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-500);
 }
 
 .skip-link:focus {

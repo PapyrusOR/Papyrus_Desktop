@@ -45,10 +45,15 @@ describe('AIConfig', () => {
     config.config.providers['openai'].api_key = 'sk-test12345';
 
     const masked = config.getMaskedConfig();
+<<<<<<< Updated upstream
     const maskedOpenai = masked.providers['openai'];
     if (!maskedOpenai) throw new Error('expected masked openai provider to exist');
     expect(maskedOpenai.api_key).not.toBe('sk-test12345');
     expect(maskedOpenai.api_key).toContain('*');
+=======
+    expect(masked.providers).toEqual({});
+    expect(masked.current_provider).toBe('');
+>>>>>>> Stashed changes
   });
 
   it('should mask short API keys completely', () => {

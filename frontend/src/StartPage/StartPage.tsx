@@ -442,7 +442,7 @@ const StartPage = ({ onDoneChange, onNavigate, onStartStudy, onNewCard }: StartP
         />
       )}
       <div className="start-hero">
-        <Typography.Title heading={1} className="start-hero-title">
+        <Typography.Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: 'var(--font-size-display-xl)' }}>
           {t('startPage.title')}
         </Typography.Title>
 

@@ -141,7 +141,7 @@ interface MainViewProps {
 
 const MainView = ({ title, categories, onCategoryClick }: MainViewProps) => (
   <div className="settings-main settings-main-scrollable">
-    <Title heading={1} className="settings-page-title">{title}</Title>
+    <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: 'var(--font-size-display-xl)' }}>{title}</Title>
     <div className="settings-categories-grid">
       {categories.map(category => (
         <CategoryCard key={category.key} category={category} onCategoryClick={onCategoryClick} />
@@ -203,7 +203,7 @@ const SettingsPage = () => {
       )}
       {activeCategory === null && animating && direction === 'out' && (
         <div className="settings-main settings-main-scrollable settings-page-exit">
-          <Title heading={1} className="settings-page-title">{t('settings.title')}</Title>
+          <Title heading={1} style={{ fontWeight: 600, lineHeight: 1, margin: 0, fontSize: 'var(--font-size-display-xl)' }}>{t('settings.title')}</Title>
           <div className="settings-categories-grid">
             {SETTING_CATEGORIES.map(category => (
               <CategoryCard key={category.key} category={category} onCategoryClick={handleCategoryClick} />
