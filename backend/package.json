@@ -4,12 +4,9 @@
   "description": "Papyrus Desktop TypeScript backend",
   "type": "module",
   "main": "dist/api/server.js",
-  "imports": {
-    "#/*": "./dist/*"
-  },
   "scripts": {
     "dev": "tsx watch src/api/server.ts",
-    "build": "tsc",
+    "build": "tsc && node scripts/postbuild.js",
     "start": "node dist/api/server.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
