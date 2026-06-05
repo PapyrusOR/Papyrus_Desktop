@@ -70,7 +70,8 @@
 }
 
 .sidebar-chat-side-icon-right {
-  transform: rotate(180deg);
+  /* 不翻转整个图标，仅通过竖条移动来表示左右侧切换 */
+  transform: none;
 }
 
 .sidebar-chat-side-icon-divider {
