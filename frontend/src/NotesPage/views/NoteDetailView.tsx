@@ -541,6 +541,7 @@ export const NoteDetailView = ({
                     value={newTag}
                     onChange={setNewTag}
                     onPressEnter={handleAddTag}
+                    onBlur={() => { if (newTag.trim()) handleAddTag(); }}
                     placeholder={t('noteDetail.tagPlaceholder')}
                     style={{ width: '80px' }}
                     size='small'

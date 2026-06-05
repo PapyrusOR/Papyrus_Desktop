@@ -219,10 +219,12 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard, onNaviga
         onFocus={() => setIsFocused(true)}
         onBlur={() => {
           setTimeout(() => {
-            if (containerRef.current && !containerRef.current.contains(document.activeElement)) {
+            // 延时检查焦点是否仍在搜索框内；为不可聚焦的子元素添加 tabIndex 后 activeElement 不会跳到 body
+            const el = document.activeElement;
+            if (containerRef.current && el && !containerRef.current.contains(el)) {
               setIsFocused(false);
             }
-          }, 150);
+          }, 200);
         }}
 
         className="titlebar-search-input"
@@ -311,6 +313,7 @@ const SearchBox = ({ onResultClick, onNavigateToNote, onNavigateToCard, onNaviga
                     role="option"
                     aria-selected={selectedIndex === index}
                     onClick={() => handleResultClick(result)}
+                    tabIndex={0}
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={`tw-px-4 tw-py-3 tw-cursor-pointer tw-transition-colors tw-duration-150 tw-flex tw-items-start tw-gap-3 ${
                       selectedIndex === index ? 'tw-bg-arco-fill-2' : 'tw-bg-transparent'

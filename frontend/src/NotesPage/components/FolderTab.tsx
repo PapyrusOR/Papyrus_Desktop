@@ -1,6 +1,6 @@
 import { IconFolder } from '@arco-design/web-react/icon';
 import { PRIMARY_COLOR } from '../constants';
-import i18n from '../../i18n';
+import { useTranslation } from 'react-i18next';
 
 interface FolderTabProps {
   folder: string;
@@ -9,7 +9,12 @@ interface FolderTabProps {
   onClick: () => void;
 }
 
-export const FolderTab = ({ folder, count, isActive, onClick }: FolderTabProps) => (
+export const FolderTab = ({ folder, count, isActive, onClick }: FolderTabProps) => {
+  const { t } = useTranslation();
+  // '__all_notes__' 是前端内部键，显示时需翻译为对应语言标签
+  const displayName = folder === '__all_notes__' ? t('notesPage.allNotes') : folder;
+
+  return (
   <div
     onClick={onClick}
     style={{
@@ -48,7 +53,7 @@ export const FolderTab = ({ folder, count, isActive, onClick }: FolderTabProps) 
         overflow: 'hidden',
         textOverflow: 'ellipsis',
       }}>
-        {folder}
+        {displayName}
       </div>
       <div style={{ 
         fontSize: '11px', 
@@ -56,8 +61,9 @@ export const FolderTab = ({ folder, count, isActive, onClick }: FolderTabProps) 
         marginTop: '4px',
         whiteSpace: 'nowrap',
       }}>
-        {count} {i18n.t('common.notesUnit')}
+        {count} {t('common.notesUnit')}
       </div>
     </div>
   </div>
-);
+  );
+};

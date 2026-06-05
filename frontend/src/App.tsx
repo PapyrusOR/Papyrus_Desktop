@@ -107,11 +107,22 @@ const App = () => {
   }, [chatSide, t]);
 
   // 处理页面切换动画 - 串行执行，先退出再进入（新页面预加载但不显示）
-  const handlePageChange = useCallback((newPage: string, noteId?: string) => {
+  const handlePageChange = useCallback((newPage: string, options?: string | { noteId?: string; fileId?: string; cardId?: string }) => {
     if (isTransitioning) return;
+
+    // 兼容旧版 noteId 字符串参数和新版 params 对象参数
+    const noteId = typeof options === 'string' ? options : options?.noteId;
+    const fileId = typeof options === 'object' && options ? options.fileId : undefined;
+    const cardId = typeof options === 'object' && options ? options.cardId : undefined;
 
     if (noteId && newPage === 'notes') {
       setInitialNoteId(noteId);
+    }
+    if (fileId && newPage === 'files') {
+      setInitialFileId(fileId);
+    }
+    if (cardId && newPage === 'scroll') {
+      setInitialCardId(cardId);
     }
 
     const newIndex = PAGE_ORDER.indexOf(newPage);

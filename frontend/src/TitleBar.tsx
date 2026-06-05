@@ -17,8 +17,10 @@ const Shortcut = ({ keys }: { keys: string }) => (
   </span>
 );
 
+type PageChangeOptions = { noteId?: string; fileId?: string; cardId?: string };
+
 interface TitleBarProps {
-  onPageChange?: (page: string, noteId?: string) => void;
+  onPageChange?: (page: string, options?: string | PageChangeOptions) => void;
   onNewNote?: () => void;
   onNewCard?: () => void;
   onSearchResult?: (result: SearchResult) => void;
@@ -144,11 +146,11 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
     } else {
       // 默认行为：跳转到对应页面
       if (result.type === 'note') {
-        onPageChange?.('notes');
+        onPageChange?.('notes', result.id);
       } else if (result.type === 'card') {
-        onPageChange?.('scroll');
+        onPageChange?.('scroll', { cardId: result.id });
       } else if (result.type === 'file') {
-        onPageChange?.('files');
+        onPageChange?.('files', { fileId: result.id });
       }
     }
   };
@@ -191,9 +193,9 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
     if (item.type === 'note') {
       onPageChange?.('notes', item.id);
     } else if (item.type === 'card') {
-      onPageChange?.('scroll');
+      onPageChange?.('scroll', { cardId: item.id });
     } else if (item.type === 'file') {
-      onPageChange?.('files');
+      onPageChange?.('files', { fileId: item.id });
     }
   };
 
@@ -394,32 +396,36 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
         </span>
       </Menu.Item>
       <Divider style={{ margin: '4px 0' }} />
-      <Menu.Item key="cut">
+      <Menu.Item key="cut" onClick={() => { try { document.execCommand('cut'); } catch { /* ignore */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           {t('titleBar.cut')}
           <Shortcut keys={getShortcutDisplay('cut')} />
         </span>
       </Menu.Item>
-      <Menu.Item key="copy">
+      <Menu.Item key="copy" onClick={() => { try { document.execCommand('copy'); } catch { /* ignore */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           {t('titleBar.copy')}
           <Shortcut keys={getShortcutDisplay('copy')} />
         </span>
       </Menu.Item>
-      <Menu.Item key="paste">
+      <Menu.Item key="paste" onClick={() => { try { document.execCommand('paste'); } catch { /* ignore */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           {t('titleBar.paste')}
           <Shortcut keys={getShortcutDisplay('paste')} />
         </span>
       </Menu.Item>
       <Divider style={{ margin: '4px 0' }} />
-      <Menu.Item key="select-all">
+      <Menu.Item key="select-all" onClick={() => { try { document.execCommand('selectAll'); } catch { /* ignore */ } }}>
         <span className="tw-flex tw-items-center tw-w-full">
           {t('titleBar.selectAll')}
           <Shortcut keys={getShortcutDisplay('selectAll')} />
         </span>
       </Menu.Item>
-      <Menu.Item key="find">
+      <Menu.Item key="find" onClick={() => {
+        try {
+          window.dispatchEvent(new CustomEvent('papyrus_focus_search'));
+        } catch { /* ignore */ }
+      }}>
         <span className="tw-flex tw-items-center tw-w-full">
           {t('titleBar.find')}
           <Shortcut keys={getShortcutDisplay('find')} />
@@ -479,7 +485,7 @@ const TitleBar = ({ onPageChange, onNewNote, onNewCard, onSearchResult }: TitleB
               onPageChange?.('notes', noteId);
             }}
             onNavigateToCard={() => onPageChange?.('scroll')}
-            onNavigateToFile={() => onPageChange?.('files')}
+            onNavigateToFile={(fileId) => onPageChange?.('files', { fileId })}
           />
         </div>
 

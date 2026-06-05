@@ -54,17 +54,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
   flex-shrink: 0;
   transition: none;
+}
+
+.sidebar-expanded .sidebar-icon {
+  width: 18px;
+  height: 18px;
   position: absolute;
   left: 7px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .sidebar-chat-side-icon {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   color: currentColor;
   transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
 }

@@ -298,7 +298,7 @@ const ChatView = ({ onBack }: ChatViewProps) => {
 
             <SettingItem title={t('chatView.avatar')} desc={t('chatView.avatarDesc')} divider={false}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <div
                     style={{
                       width: 48,

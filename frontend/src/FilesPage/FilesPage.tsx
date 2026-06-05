@@ -109,16 +109,16 @@ const ListFileRow = ({ file, onClick, onDownload, onDelete, formatItemCount }: {
 };
 
 // 筛选标签映射
-const FILTER_TAGS = ['全部', '文件夹', '文档', '图片', '视频', '音频'] as const;
+const FILTER_TAGS = ['all', 'folder', 'document', 'image', 'video', 'audio'] as const;
 type FilterTag = typeof FILTER_TAGS[number];
 
 const FILTER_MAP: Record<FilterTag, (f: FileItemData) => boolean> = {
-  '全部': () => true,
-  '文件夹': (f) => Boolean(f.is_folder),
-  '文档': (f) => !f.is_folder && (f.type === 'document' || f.type === 'unknown'),
-  '图片': (f) => !f.is_folder && f.type === 'image',
-  '视频': (f) => !f.is_folder && f.type === 'video',
-  '音频': (f) => !f.is_folder && f.type === 'audio',
+  'all': () => true,
+  'folder': (f) => Boolean(f.is_folder),
+  'document': (f) => !f.is_folder && (f.type === 'document' || f.type === 'unknown'),
+  'image': (f) => !f.is_folder && f.type === 'image',
+  'video': (f) => !f.is_folder && f.type === 'video',
+  'audio': (f) => !f.is_folder && f.type === 'audio',
 };
 
 interface FilesPageProps {
@@ -153,11 +153,21 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
 
   // 文件夹导航状态
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-  const [folderStack, setFolderStack] = useState<Array<{ id: string | null; name: string }>>([{ id: null, name: t('filesPage.rootFolderName') ?? '文件库' }]);
+  const [folderStack, setFolderStack] = useState<Array<{ id: string | null; name: string }>>([{ id: null, name: t('filesPage.rootFolderName') ?? 'Files' }]);
   const [folderNavDirection, setFolderNavDirection] = useState<'forward' | 'backward'>('forward');
 
   // 筛选状态
-  const [activeFilter, setActiveFilter] = useState<FilterTag>('全部');
+  const [activeFilter, setActiveFilter] = useState<FilterTag>('all');
+
+  // 筛选标签 i18n 显示名映射
+  const filterLabels = useMemo<Record<FilterTag, string>>(() => ({
+    all: t('filesPage.filterAll'),
+    folder: t('filesPage.filterFolder'),
+    document: t('filesPage.filterDocument'),
+    image: t('filesPage.filterImage'),
+    video: t('filesPage.filterVideo'),
+    audio: t('filesPage.filterAudio'),
+  }), [t]);
 
   // 预览弹窗状态
   const [previewFile, setPreviewFile] = useState<FileItemData | null>(null);
@@ -172,7 +182,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
   // 当前文件夹下的文件（按 parent_id 过滤）
   const currentFiles = useMemo(() => {
     let filtered = allFiles.filter(f => f.parent_id === currentFolder);
-    if (activeFilter !== '全部') {
+    if (activeFilter !== 'all') {
       filtered = filtered.filter(FILTER_MAP[activeFilter]);
     }
     return filtered;
@@ -296,7 +306,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
       setFolderNavDirection('forward');
       setCurrentFolder(file.id);
       setFolderStack(prev => [...prev, { id: file.id, name: file.name }]);
-      setActiveFilter('全部');
+      setActiveFilter('all');
       return;
     }
     window.open(getFileUrl(file.id, 'download'), '_blank');
@@ -317,7 +327,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
       setFolderNavDirection('forward');
       setCurrentFolder(file.id);
       setFolderStack(prev => [...prev, { id: file.id, name: file.name }]);
-      setActiveFilter('全部');
+      setActiveFilter('all');
     } else if (isPreviewableFile(file)) {
       addRecentItem({ id: file.id, type: 'file', title: file.name });
       setPreviewFile(file);
@@ -365,12 +375,12 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
       setFolderNavDirection('forward');
       setCurrentFolder(target.id);
       setFolderStack(buildFolderStack(target.id, allFiles, rootName));
-      setActiveFilter('全部');
+      setActiveFilter('all');
     } else {
       setFolderNavDirection('forward');
       setCurrentFolder(target.parent_id);
       setFolderStack(buildFolderStack(target.parent_id, allFiles, rootName));
-      setActiveFilter('全部');
+      setActiveFilter('all');
       handleFileClick(target);
     }
     onInitialFileIdUsed?.();
@@ -381,7 +391,7 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
     setFolderNavDirection('backward');
     setCurrentFolder(target.id);
     setFolderStack(prev => prev.slice(0, index + 1));
-    setActiveFilter('全部');
+    setActiveFilter('all');
   };
 
   const currentFolderStats = useMemo(() => {
@@ -467,11 +477,11 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
           {FILTER_TAGS.map(tag => (
             <Tag
               key={tag}
-              color={tag === activeFilter ? 'arcoblue' : undefined}
+              color={tag === activeFilter ? 'arcoblue' : 'default'}
               style={{ cursor: 'pointer' }}
               onClick={() => setActiveFilter(tag)}
             >
-              {tag}
+              {filterLabels[tag]}
             </Tag>
           ))}
         </div>
@@ -481,7 +491,8 @@ const FilesPage = ({ initialFileId, onInitialFileIdUsed }: FilesPageProps) => {
         <Empty description={t('filesPage.loading')} className="files-empty-padded" />
       ) : currentFiles.length === 0 ? (
         <div key={currentFolder ?? 'root'} className={`files-content-enter files-content-enter-${folderNavDirection}`}>
-          <Empty description={activeFilter !== '全部' ? t('filesPage.noFilterResults') : currentFolder ? t('filesPage.emptyFolder') : t('filesPage.noFiles')} className="files-empty-padded" />
+          <Empty description={activeFilter !== 'all' ? t('filesPage.noFilterResults') : currentFolder ? t('filesPage.emptyFolder') : t('filesPage.noFiles')} className="files-empty-padded" />
+          <Empty description={activeFilter !== 'all' ? t('filesPage.noFilterResults') : currentFolder ? t('filesPage.emptyFolder') : t('filesPage.noFiles')} className="files-empty-padded" />
         </div>
       ) : viewMode === 'grid' ? (
         <div key={currentFolder ?? 'root'} className={`files-content-enter files-content-enter-${folderNavDirection}`}>
