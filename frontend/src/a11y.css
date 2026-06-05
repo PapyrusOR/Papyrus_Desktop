@@ -38,7 +38,7 @@
   z-index: 9999;
   text-decoration: none;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--font-weight-500);
   border-radius: 0 0 4px 0;
   transition: top 0.2s ease;
 }
@@ -315,7 +315,7 @@ html.aaa-section-nav section:focus-within {
 
 /* 当前页面指示 */
 [aria-current="page"] {
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
 }
 
 /* 按下状态 */

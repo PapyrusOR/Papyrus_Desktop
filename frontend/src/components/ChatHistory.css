@@ -25,7 +25,7 @@
   align-items: center;
   gap: 8px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
   color: var(--color-text-1);
 }
 
@@ -111,7 +111,7 @@
 
 .chat-history-item-active .chat-history-item-title {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: var(--font-weight-500);
 }
 
 .chat-history-item-content {

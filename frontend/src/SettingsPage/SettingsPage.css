@@ -55,16 +55,6 @@
   padding: 64px 48px 64px;
   min-height: 100%;
 }
-
-/* 页面标题 - 与其他页面保持一致 */
-.settings-page-title {
-  font-weight: 600;
-  line-height: 1;
-  margin: 0 0 32px 0;
-  font-size: var(--font-size-display-xl);
-  color: var(--color-text-1);
-}
-
 /* 分类网格 - 固定三列布局 */
 .settings-categories-grid {
   display: grid;
@@ -114,7 +104,7 @@
 
 .settings-category-title {
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
   color: var(--color-text-1);
   display: block;
   margin-bottom: 8px;
@@ -157,8 +147,8 @@
 }
 
 /* 详情标题 */
-.settings-detail-title {
-  font-weight: 400;
+.settings-detail-title.arco-typography-h2 {
+  font-weight: var(--font-weight-400);
   line-height: 1;
   margin: 0 0 32px 0;
   font-size: var(--font-size-display-lg);
@@ -172,7 +162,7 @@
 
 .settings-section-title {
   font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
   margin: 0 0 24px 0;
   color: var(--color-text-1);
 }
@@ -196,7 +186,7 @@
 
 .settings-item-title {
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
   color: var(--color-text-1);
   display: block;
   margin-bottom: 8px;
@@ -257,7 +247,7 @@
 
 .settings-form-label {
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
   color: var(--color-text-1);
   min-width: 120px;
 }
@@ -548,12 +538,7 @@
   .settings-categories-grid {
     grid-template-columns: 1fr;
   }
-
-  .settings-page-title {
-    font-size: var(--font-size-display-lg);
-  }
-
-  .settings-detail-title {
+  .settings-detail-title.arco-typography-h2 {
     font-size: var(--font-size-display-md);
   }
 }

@@ -192,7 +192,7 @@
 
 .files-stats-number {
   font-size: 28px;
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
 }
 
 .files-stats-label {
@@ -242,7 +242,7 @@
 }
 
 .files-page-title {
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
   line-height: 1;
   margin: 0;
   font-size: 40px;
@@ -290,7 +290,7 @@
   background: var(--color-fill-2);
   font-size: 13px;
   color: var(--color-text-3);
-  font-weight: 500;
+  font-weight: var(--font-weight-500);
 }
 
 .files-list-header-icon {

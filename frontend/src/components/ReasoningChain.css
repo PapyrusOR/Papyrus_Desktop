@@ -74,7 +74,7 @@
 
 .reasoning-title {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--font-weight-500);
   color: var(--color-text-1);
 }
 

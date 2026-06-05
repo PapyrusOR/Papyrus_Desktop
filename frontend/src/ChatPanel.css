@@ -435,7 +435,7 @@ body[arco-theme="dark"] .chat-message-user .chat-message-bubble {
 .chat-file-list-title {
   font-size: 11px;
   color: var(--color-text-3);
-  font-weight: 500;
+  font-weight: var(--font-weight-500);
 }
 
 .chat-file-list-clear {
@@ -587,7 +587,7 @@ body[arco-theme="dark"] .chat-file-tag .arco-tag-icon {
 .chat-markdown h3,
 .chat-markdown h4 {
   margin: 8px 0 4px;
-  font-weight: 600;
+  font-weight: var(--font-weight-600);
 }
 
 .chat-markdown a {
@@ -644,7 +644,7 @@ body[arco-theme="dark"] .chat-file-tag .arco-tag-icon {
 
 .chat-session-title {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--font-weight-500);
 }
 
 .chat-session-meta {

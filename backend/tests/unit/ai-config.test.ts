@@ -49,6 +49,10 @@ describe('AIConfig', () => {
     const masked = config.getMaskedConfig();
     expect(masked.providers).toEqual({});
     expect(masked.current_provider).toBe('liyuan-deepseek');
+    const maskedOpenai = masked.providers['openai'];
+    if (!maskedOpenai) throw new Error('expected masked openai provider to exist');
+    expect(maskedOpenai.api_key).not.toBe('sk-test12345');
+    expect(maskedOpenai.api_key).toContain('*');
   });
 
   it('getProviderConfig should read from DB', () => {
