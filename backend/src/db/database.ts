@@ -1628,6 +1628,7 @@ export function clearAllData(): void {
 export type ChatPanelSide = 'left' | 'right';
 export type UiLanguage = 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP';
 export type UiFontSize = 'small' | 'medium' | 'large';
+export type UiDateFormat = 'yyyy-MM-dd' | 'yyyy/MM/dd' | 'dd/MM/yyyy' | 'MM/dd/yyyy';
 
 export interface SidebarSettings {
   chatPanelSide: ChatPanelSide;
@@ -1636,6 +1637,7 @@ export interface SidebarSettings {
 export interface UiSettings extends SidebarSettings {
   language: UiLanguage;
   fontSize: UiFontSize;
+  dateFormat: UiDateFormat;
 }
 
 const CHAT_PANEL_SIDE_KEY = 'chat_panel_side';
@@ -1644,6 +1646,8 @@ const FONT_SIZE_KEY = 'font_size';
 const DEFAULT_CHAT_PANEL_SIDE: ChatPanelSide = 'right';
 const DEFAULT_UI_LANGUAGE: UiLanguage = 'zh-CN';
 const DEFAULT_UI_FONT_SIZE: UiFontSize = 'medium';
+const DATE_FORMAT_KEY = 'date_format';
+const DEFAULT_DATE_FORMAT: UiDateFormat = 'yyyy-MM-dd';
 
 function isChatPanelSide(value: string): value is ChatPanelSide {
   return value === 'left' || value === 'right';
@@ -1655,6 +1659,10 @@ function isUiLanguage(value: string): value is UiLanguage {
 
 function isUiFontSize(value: string): value is UiFontSize {
   return value === 'small' || value === 'medium' || value === 'large';
+}
+
+export function isUiDateFormat(value: unknown): value is UiDateFormat {
+  return value === 'yyyy-MM-dd' || value === 'yyyy/MM/dd' || value === 'dd/MM/yyyy' || value === 'MM/dd/yyyy';
 }
 
 export function readUiSetting(key: string): string | undefined {
@@ -1690,10 +1698,12 @@ export function getSidebarSettings(): SidebarSettings {
 export function getUiSettings(): UiSettings {
   const language = readUiSetting(LANGUAGE_KEY);
   const fontSize = readUiSetting(FONT_SIZE_KEY);
+  const dateFormat = readUiSetting(DATE_FORMAT_KEY);
   return {
     ...getSidebarSettings(),
     language: language && isUiLanguage(language) ? language : DEFAULT_UI_LANGUAGE,
     fontSize: fontSize && isUiFontSize(fontSize) ? fontSize : DEFAULT_UI_FONT_SIZE,
+    dateFormat: dateFormat && isUiDateFormat(dateFormat) ? dateFormat : DEFAULT_DATE_FORMAT,
   };
 }
 
@@ -1733,6 +1743,12 @@ export function saveUiSettings(settings: Partial<UiSettings>): UiSettings {
       throw new Error('Invalid font size');
     }
     writeUiSetting(FONT_SIZE_KEY, settings.fontSize);
+  }
+  if (settings.dateFormat !== undefined) {
+    if (!isUiDateFormat(settings.dateFormat)) {
+      throw new Error('Invalid date format');
+    }
+    writeUiSetting(DATE_FORMAT_KEY, settings.dateFormat);
   }
   return getUiSettings();
 }

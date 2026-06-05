@@ -16,7 +16,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingItem, SettingsViewLayout } from '../components';
 import { useSettingsView } from '../../hooks/useSettingsView';
-import { api, type UiLanguage } from '../../api';
+import { api, type UiLanguage, type UiDateFormat } from '../../api';
 import {
   applyUiSettings,
   dispatchLanguageChanged,
@@ -60,6 +60,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
   });
   const [reviewReminder, setReviewReminder] = useState(true);
   const [language, setLanguage] = useState<UiLanguage>(() => readStoredLanguage());
+  const [dateFormat, setDateFormat] = useState<UiDateFormat>('yyyy-MM-dd');
 
   const [logsConfig, setLogsConfig] = useState<LogsConfig>({
     log_dir: '',
@@ -86,6 +87,7 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
       .then(data => {
         if (data.success) {
           setLanguage(data.settings.language);
+          setDateFormat(data.settings.dateFormat);
           applyUiSettings(data.settings);
         }
       })
@@ -192,7 +194,17 @@ const GeneralView = ({ onBack }: GeneralViewProps) => {
             </SettingItem>
 
             <SettingItem title={t('generalView.dateFormat')} desc={t('generalView.dateFormatDesc')} divider={false}>
-              <Select value="yyyy-MM-dd" style={{ width: 160 }}>
+              <Select
+                value={dateFormat}
+                onChange={(value) => {
+                  const fmt = value as UiDateFormat;
+                  setDateFormat(fmt);
+                  api.saveUiSettings({ dateFormat: fmt }).catch(err => {
+                    Message.error(err instanceof Error ? err.message : t('generalView.saveFailed'));
+                  });
+                }}
+                style={{ width: 160 }}
+              >
                 <Option value="yyyy-MM-dd">2024-01-01</Option>
                 <Option value="yyyy/MM/dd">2024/01/01</Option>
                 <Option value="dd/MM/yyyy">01/01/2024</Option>

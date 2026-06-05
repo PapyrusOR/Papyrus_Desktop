@@ -220,6 +220,7 @@ export type LogsConfig = {
 export type ChatPanelSide = 'left' | 'right';
 export type UiLanguage = 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP';
 export type UiFontSize = 'small' | 'medium' | 'large';
+export type UiDateFormat = 'yyyy-MM-dd' | 'yyyy/MM/dd' | 'dd/MM/yyyy' | 'MM/dd/yyyy';
 
 export type SidebarSettings = {
   chatPanelSide: ChatPanelSide;
@@ -228,6 +229,7 @@ export type SidebarSettings = {
 export type UiSettings = SidebarSettings & {
   language: UiLanguage;
   fontSize: UiFontSize;
+  dateFormat: UiDateFormat;
 };
 
 // ========== Update Types ==========

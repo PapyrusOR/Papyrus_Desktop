@@ -7,6 +7,7 @@ import {
   type ChatPanelSide,
   type UiFontSize,
   type UiLanguage,
+  isUiDateFormat,
   type UiSettings,
 } from '../../db/database.js';
 
@@ -14,6 +15,7 @@ interface UiSettingsPayload {
   chatPanelSide?: unknown;
   language?: unknown;
   fontSize?: unknown;
+  dateFormat?: unknown;
 }
 
 interface SidebarSettingsPayload {
@@ -56,11 +58,16 @@ export default async function uiSettingsRoutes(fastify: FastifyInstance): Promis
       reply.status(400).send({ success: false, error: 'Invalid fontSize' });
       return;
     }
+    if (body.dateFormat !== undefined && !isUiDateFormat(body.dateFormat)) {
+      reply.status(400).send({ success: false, error: 'Invalid dateFormat' });
+      return;
+    }
 
     const updates: Partial<UiSettings> = {};
     if (body.chatPanelSide !== undefined) updates.chatPanelSide = body.chatPanelSide;
     if (body.language !== undefined) updates.language = body.language;
     if (body.fontSize !== undefined) updates.fontSize = body.fontSize;
+    if (body.dateFormat !== undefined) updates.dateFormat = body.dateFormat;
 
     const settings = saveUiSettings(updates);
     reply.send({ success: true, settings });
