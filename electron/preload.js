@@ -46,5 +46,16 @@ contextBridge.exposeInMainWorld('electronEnv', {
   PLATFORM: process.platform,
 });
 
+// Expose app version for non-Vite environments
+let appVersion = 'unknown';
+try {
+  const { readFileSync } = require('fs');
+  const { join } = require('path');
+  appVersion = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')).version || 'unknown';
+} catch {
+  // ignore
+}
+contextBridge.exposeInMainWorld('appVersion', appVersion);
+
 // Log that preload script has loaded
 console.log('[Preload] Electron API exposed successfully');

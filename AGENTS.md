@@ -1,6 +1,6 @@
 ﻿# Papyrus 项目开发信息
 
-> 版本: 2.0.0-beta.12 | 许可: MIT | 仓库: https://github.com/PapyrusOR/Papyrus_Desktop
+> 版本: 2.0.0-beta.11 | 许可: MIT | 仓库: https://github.com/PapyrusOR/Papyrus_Desktop
 
 ## 项目简介
 
@@ -448,3 +448,7 @@ GitHub Actions 工作流（`.github/workflows/release-optimized.yml`）：
 - AI 工具定义放在 `ai/tools/`，通过 registry 注册
 - 工具分为 read（只读）和 write（写操作需审批）两类
 - 日志使用 `PapyrusLogger`，支持事件日志和结构化输出
+
+## 行动约定
+
+在执行整体修改代码操作（如按照plan修改代码，修改bug等）时，自行设定一个五万tokens的goal（如果支持goal模式，），耗尽后需要用户同意才能自动设定goal。

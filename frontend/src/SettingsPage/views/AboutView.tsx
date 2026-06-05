@@ -28,8 +28,13 @@ interface AboutViewProps {
 }
 
 declare const __APP_VERSION__: string;
+declare global {
+  interface Window {
+    appVersion?: string;
+  }
+}
 
-const APP_VERSION = __APP_VERSION__;
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : (window.appVersion || 'unknown');
 
 const AboutView = ({ onBack }: AboutViewProps) => {
   const { t } = useTranslation();
