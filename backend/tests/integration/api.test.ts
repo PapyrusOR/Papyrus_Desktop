@@ -132,32 +132,34 @@ describe('API Integration Tests', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(JSON.parse(response.body)).toEqual({
-      success: true,
-      settings: {
-        chatPanelSide: 'right',
-        language: 'zh-CN',
-        fontSize: 'medium',
-      },
-    });
-  });
+   expect(JSON.parse(response.body)).toEqual({
+     success: true,
+     settings: {
+       chatPanelSide: 'right',
+       language: 'zh-CN',
+       fontSize: 'medium',
+        dateFormat: 'yyyy-MM-dd',
+     },
+   });
+ });
 
-  it('POST /api/ui-settings should save valid partial UI settings', async () => {
-    const response = await app.inject({
-      method: 'POST',
-      url: '/api/ui-settings',
-      payload: { language: 'zh-TW', fontSize: 'large' },
-    });
+ it('POST /api/ui-settings should save valid partial UI settings', async () => {
+   const response = await app.inject({
+     method: 'POST',
+     url: '/api/ui-settings',
+     payload: { language: 'zh-TW', fontSize: 'large' },
+   });
 
-    expect(response.statusCode).toBe(200);
-    expect(JSON.parse(response.body)).toEqual({
-      success: true,
-      settings: {
-        chatPanelSide: 'right',
-        language: 'zh-TW',
-        fontSize: 'large',
-      },
-    });
+   expect(response.statusCode).toBe(200);
+   expect(JSON.parse(response.body)).toEqual({
+     success: true,
+     settings: {
+       chatPanelSide: 'right',
+       language: 'zh-TW',
+       fontSize: 'large',
+        dateFormat: 'yyyy-MM-dd',
+     },
+   });
   });
 
   it('POST /api/ui-settings should reject invalid UI settings', async () => {

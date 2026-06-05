@@ -18,6 +18,7 @@ import { SettingItem, SettingsViewLayout } from '../components';
 import { useSettingsView } from '../../hooks/useSettingsView';
 import { api } from '../../api';
 import { getDateFormat, setDateFormat, type DateFormat } from '../../utils/dateFormat.js';
+import { isUiLanguage, mirrorLanguageToLocalStorage, dispatchLanguageChanged, applyUiSettings } from '../../utils/uiSettings.js';
 
 const { Option } = Select;
 

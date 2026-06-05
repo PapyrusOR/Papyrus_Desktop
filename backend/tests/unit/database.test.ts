@@ -375,12 +375,13 @@ describe('Database', () => {
 
   describe('UI Settings', () => {
     it('should return defaults when no UI settings are saved', () => {
-      expect(getUiSettings()).toEqual({
-        chatPanelSide: 'right',
-        language: 'zh-CN',
-        fontSize: 'medium',
-      });
-    });
+       expect(getUiSettings()).toEqual({
+         chatPanelSide: 'right',
+         language: 'zh-CN',
+         fontSize: 'medium',
+          dateFormat: 'yyyy-MM-dd',
+       });
+     });
 
     it('should save full UI settings and keep sidebar compatibility', () => {
       const saved = saveUiSettings({
@@ -388,21 +389,23 @@ describe('Database', () => {
         language: 'ja-JP',
         fontSize: 'large',
       });
-      expect(saved).toEqual({
-        chatPanelSide: 'left',
-        language: 'ja-JP',
-        fontSize: 'large',
-      });
+     expect(saved).toEqual({
+       chatPanelSide: 'left',
+       language: 'ja-JP',
+       fontSize: 'large',
+        dateFormat: 'yyyy-MM-dd',
+     });
       expect(getSidebarSettings()).toEqual({ chatPanelSide: 'left' });
     });
 
     it('should preserve existing UI settings during partial updates', () => {
       saveUiSettings({ language: 'en-US', fontSize: 'small', chatPanelSide: 'left' });
-      expect(saveUiSettings({ fontSize: 'large' })).toEqual({
-        chatPanelSide: 'left',
-        language: 'en-US',
-        fontSize: 'large',
-      });
+     expect(saveUiSettings({ fontSize: 'large' })).toEqual({
+       chatPanelSide: 'left',
+       language: 'en-US',
+       fontSize: 'large',
+        dateFormat: 'yyyy-MM-dd',
+     });
     });
 
     it('should reject invalid UI settings at the persistence boundary', () => {

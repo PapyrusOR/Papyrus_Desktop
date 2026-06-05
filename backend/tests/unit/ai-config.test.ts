@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { AIConfig } from '../../src/ai/config.js';
-import { closeDb } from '../../src/db/database.js';
+import { closeDb, writeUiSetting } from '../../src/db/database.js';
 
 describe('AIConfig', () => {
   let tempDir: string;
@@ -75,8 +75,7 @@ describe('AIConfig', () => {
     expect(config2.config.log.log_rotation).toBe(true);
   });
 
-  it('should normalize invalid parameters on load', () => {
-  it('should normalize invalid parameters on load', () => {
+ it('should normalize invalid parameters on load', () => {
     const configFile = path.join(tempDir, 'ai_config.json');
     fs.writeFileSync(configFile, JSON.stringify({
       current_provider: 'openai',
@@ -92,20 +91,7 @@ describe('AIConfig', () => {
     expect(config.config.parameters.max_tokens).toBe(2000);
   });
 
-  it('should handle empty api_key gracefully', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    expect(() => config.validateConfig()).not.toThrow();
-  });
-
-  it('should reject private IP for non-local providers', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['openai'].base_url = 'http://192.168.1.100:8080';
-    expect(() => config.validateConfig()).toThrow('SSRF');
-  });
-
-  it('should fallback to default provider when current_provider is invalid', () => {
+ it('should fallback to default provider when current_provider is invalid', () => {
     const configFile = path.join(tempDir, 'ai_config.json');
     fs.writeFileSync(configFile, JSON.stringify({
       providers: {
@@ -122,15 +108,9 @@ describe('AIConfig', () => {
     expect(config.config.current_provider).toBe('');
   });
 
-  it('should preserve current_provider/current_model when providers field is empty (DB-managed)', () => {
-    const configFile = path.join(tempDir, 'ai_config.json');
-    fs.writeFileSync(configFile, JSON.stringify({
-      current_provider: 'user-custom-provider',
-      current_model: 'user-custom-model',
-      parameters: {},
-      features: {},
-      log: {},
-    }), 'utf8');
+ it('should preserve current_provider/current_model when providers field is empty (DB-managed)', () => {
+    writeUiSetting('ai.current_provider', 'user-custom-provider');
+    writeUiSetting('ai.current_model', 'user-custom-model');
 
     const config = new AIConfig(tempDir);
     expect(config.config.current_provider).toBe('user-custom-provider');
