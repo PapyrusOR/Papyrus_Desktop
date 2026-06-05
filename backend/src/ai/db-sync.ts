@@ -1,61 +1,23 @@
 import { randomUUID } from 'node:crypto';
 import { AIConfig } from './config.js';
-import { loadAllProviders, saveProvider, saveApiKey, saveModel } from '../db/database.js';
+import { loadAllProviders, saveProvider, saveApiKey, saveModel, readUiSetting } from '../db/database.js';
 
 function isMaskedKey(key: string): boolean {
   return key.length > 0 && key.startsWith('*');
 }
 
 /**
- * 从数据库同步全局配置到 AIConfig
- * - 同步 isDefault provider 到 current_provider / current_model
- * - 不再同步 provider 列表（数据库为唯一事实来源）
- * @param aiConfig AIConfig 实例
- * @param forceSyncDefault 
- * - 默认值为 false：仅在当前 provider 无效时才同步数据库中的默认 provider
- * - 设置为 true：无论当前 provider 是否有效，都强制同步数据库中的默认 provider
- * - 使用场景：在用户显式设置默认 provider 后，需要立即同步到配置时使用
+ * 一次性迁移：将 ai_config.json 中的 provider 配置同步到数据库。
+ * 仅在首次启动、DB providers 表为空且 JSON 存在时调用。
+ * 调用方负责迁移前后的验证和 JSON 删除。
  */
-export function syncDBToAIConfig(aiConfig: AIConfig, forceSyncDefault: boolean = false): void {
-  try {
-    const dbProviders = loadAllProviders();
-    if (dbProviders.length === 0) return;
-
-    // 检查是否需要同步
-    const currentProviderType = aiConfig.config.current_provider;
-    const currentProviderValid = dbProviders.some(
-      (p) => p.type === currentProviderType && p.enabled
-    );
-
-    if (!currentProviderValid || forceSyncDefault) {
-      const defaultProvider = dbProviders.find((p) => p.isDefault);
-      if (defaultProvider && defaultProvider.type) {
-        aiConfig.config.current_provider = defaultProvider.type;
-        const enabledModels = defaultProvider.models
-          .filter((m) => m.enabled)
-          .map((m) => m.modelId);
-        const currentModel = aiConfig.config.current_model;
-        if (enabledModels.length > 0 && !enabledModels.includes(currentModel)) {
-          aiConfig.config.current_model = enabledModels[0] ?? currentModel;
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('从数据库同步 AI 配置失败:', e instanceof Error ? e.message : String(e));
-  }
-}
-
-/**
- * 将 AIConfig 中的 provider 配置同步到数据库
- * 确保 POST /api/config/ai 设置的 api_key / base_url / models 能被后续路由读取
- */
-export function syncAIConfigToDB(aiConfig: AIConfig): void {
+export function migrateJsonProvidersToDb(aiConfig: AIConfig): void {
   try {
     const dbProviders = loadAllProviders();
     for (const [providerType, providerConfig] of Object.entries(aiConfig.config.providers)) {
       const sameType = dbProviders.filter((p) => p.type === providerType);
       if (sameType.length > 1) {
-        console.warn(`[syncAIConfigToDB] 发现 ${sameType.length} 个同名 provider type "${providerType}"，使用第一个`);
+        console.warn(`[migrateJsonProvidersToDb] 发现 ${sameType.length} 个同名 provider type "${providerType}"，使用第一个`);
       }
       const existing = sameType[0];
       const providerId = existing?.id ?? `p-${providerType}-${randomUUID()}`;
@@ -90,17 +52,82 @@ export function syncAIConfigToDB(aiConfig: AIConfig): void {
           }
         }
       } catch (innerErr) {
-        console.warn(`[syncAIConfigToDB] 同步 provider "${providerType}" 失败:`, innerErr instanceof Error ? innerErr.message : String(innerErr));
+        console.warn(`[migrateJsonProvidersToDb] 同步 provider "${providerType}" 失败:`, innerErr instanceof Error ? innerErr.message : String(innerErr));
       }
     }
   } catch (e) {
-    console.warn('同步 AI 配置到数据库失败:', e instanceof Error ? e.message : String(e));
+    console.warn('迁移 AI 配置到数据库失败:', e instanceof Error ? e.message : String(e));
   }
 }
 
 /**
- * 从数据库获取指定 provider 的完整运行时配置
- * 用于替代 aiConfig.config.providers 的硬编码读取
+ * 从数据库加载完整 AI 配置到 AIConfig 实例内存。
+ * - 读取 current_provider / current_model / parameters / features / log 从 ui_settings 表
+ * - 同步 isDefault provider 到 current_provider / current_model
+ * - 从此不再涉及 ai_config.json
+ *
+ * @param forceSyncDefault 强制用 DB 的 isDefault provider 覆盖当前值
+ */
+export function loadAIConfigFromDb(aiConfig: AIConfig, forceSyncDefault: boolean = false): void {
+  try {
+    // 从 ui_settings 加载非 provider 配置
+    const dbCurrentProvider = readUiSetting('ai.current_provider');
+    const dbCurrentModel = readUiSetting('ai.current_model');
+    const dbParameters = readUiSetting('ai.parameters');
+    const dbFeatures = readUiSetting('ai.features');
+    const dbLog = readUiSetting('ai.log');
+
+    if (dbCurrentProvider) aiConfig.config.current_provider = dbCurrentProvider;
+    if (dbCurrentModel) aiConfig.config.current_model = dbCurrentModel;
+    if (dbParameters) {
+      try {
+        const parsed = JSON.parse(dbParameters);
+        aiConfig.config.parameters = { ...aiConfig.config.parameters, ...parsed };
+      } catch { /* ignore corrupt JSON */ }
+    }
+    if (dbFeatures) {
+      try {
+        const parsed = JSON.parse(dbFeatures);
+        aiConfig.config.features = { ...aiConfig.config.features, ...parsed };
+      } catch { /* ignore corrupt JSON */ }
+    }
+    if (dbLog) {
+      try {
+        const parsed = JSON.parse(dbLog);
+        aiConfig.config.log = { ...aiConfig.config.log, ...parsed };
+      } catch { /* ignore corrupt JSON */ }
+    }
+
+    // 从 providers 表同步 default provider 选择
+    const dbProviders = loadAllProviders();
+    if (dbProviders.length === 0) return;
+
+    const currentProviderType = aiConfig.config.current_provider;
+    const currentProviderValid = dbProviders.some(
+      (p) => p.type === currentProviderType && p.enabled
+    );
+
+    if (!currentProviderValid || forceSyncDefault) {
+      const defaultProvider = dbProviders.find((p) => p.isDefault);
+      if (defaultProvider && defaultProvider.type) {
+        aiConfig.config.current_provider = defaultProvider.type;
+        const enabledModels = defaultProvider.models
+          .filter((m) => m.enabled)
+          .map((m) => m.modelId);
+        const currentModel = aiConfig.config.current_model;
+        if (enabledModels.length > 0 && !enabledModels.includes(currentModel)) {
+          aiConfig.config.current_model = enabledModels[0] ?? currentModel;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('从数据库加载 AI 配置失败:', e instanceof Error ? e.message : String(e));
+  }
+}
+
+/**
+ * 从数据库获取指定 provider 的配置。
+ * 用于 AI 聊天/补全路由，替代旧的 aiConfig.getProviderConfig()。
  */
 export function getProviderConfigFromDB(providerType: string): {
   api_key: string;
@@ -127,8 +154,8 @@ export function getProviderConfigFromDB(providerType: string): {
 }
 
 /**
- * 从数据库获取指定 provider 的第一个非空 API key
- * 用于 /chat 和 /completion 的临时 fallback
+ * 从数据库获取指定 provider 的第一个非空 API key。
+ * 用于 /chat 和 /completion 的临时 fallback。
  */
 export function getProviderApiKeyFromDB(providerType: string): string | null {
   try {

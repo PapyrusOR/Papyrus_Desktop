@@ -15,7 +15,7 @@ import {
 import { getDb } from '../../db/database.js';
 import type { Provider } from '../../core/types.js';
 import { aiConfig } from '../../ai/config-instance.js';
-import { syncDBToAIConfig } from '../../ai/db-sync.js';
+import { loadAIConfigFromDb } from '../../ai/db-sync.js';
 
 const ApiKeySchema = z.object({
   id: z.string().optional(),
@@ -150,9 +150,8 @@ export default async function providersRoutes(fastify: FastifyInstance): Promise
     try {
       const { providerId } = request.params as { providerId: string };
       setDefaultProvider(providerId);
-      // 同步数据库中的默认 provider 配置到 aiConfig，强制更新
-      syncDBToAIConfig(aiConfig, true);
-      aiConfig.saveConfig();
+      // 从数据库加载最新配置到内存
+      loadAIConfigFromDb(aiConfig, true);
       reply.send({ success: true, message: 'Default provider set' });
     } catch (err) {
       const message = err instanceof Error ? err.message : '服务器内部错误';

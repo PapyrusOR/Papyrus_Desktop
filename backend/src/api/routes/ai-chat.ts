@@ -4,7 +4,7 @@ import type { StreamChunk } from '../../ai/provider.js';
 import { PapyrusTools } from '../../ai/tools.js';
 import { aiConfig } from '../../ai/config-instance.js';
 import { getToolManager } from '../../ai/tool-manager.js';
-import { getProviderApiKeyFromDB, getProviderConfigFromDB, syncDBToAIConfig } from '../../ai/db-sync.js';
+import { getProviderApiKeyFromDB, getProviderConfigFromDB, loadAIConfigFromDb } from '../../ai/db-sync.js';
 import type { ChatBlock } from '../../core/types.js';
 import { isKeylessProvider } from './ai-common.js';
 import type { PendingToolCallTracker, ChatStreamReply } from './ai-common.js';
@@ -218,7 +218,7 @@ async function processChatStream(
 export default async function aiChatRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/chat', async (request, reply) => {
     // 在处理请求前，同步最新的配置
-    syncDBToAIConfig(aiConfig);
+    loadAIConfigFromDb(aiConfig);
     
     const payload = request.body as {
       message: string;
@@ -273,10 +273,10 @@ export default async function aiChatRoutes(fastify: FastifyInstance): Promise<vo
   });
 
   fastify.post('/messages/:messageId/regenerate', async (request, reply) => {
-    // 在处理请求前，同步最新的配置
-    syncDBToAIConfig(aiConfig);
-    
-    const { messageId } = request.params as { messageId: string };
+  // 在处理请求前，同步最新的配置
+    loadAIConfigFromDb(aiConfig);
+
+  const { messageId } = request.params as { messageId: string };
     const payload = (request.body ?? {}) as {
       model?: string;
       mode?: string;

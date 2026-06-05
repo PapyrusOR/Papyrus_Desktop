@@ -396,31 +396,6 @@ function deduplicateData(database: DatabaseSync): void {
 
 function seedDefaults(database: DatabaseSync): void {
   const now = Date.now();
-  const pid = 'p-liyuan-deepseek';
-
-  const existing = database.prepare('SELECT id FROM providers WHERE type = ?').get('liyuan-deepseek') as { id: string } | undefined;
-  if (!existing) {
-    database.prepare(
-      `INSERT INTO providers (id, type, name, base_url, enabled, is_default, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(pid, 'liyuan-deepseek', 'LiYuan For DeepSeek', 'https://papyrus.liyuanstudio.com/v1', 1, 1, now, now);
-  }
-
-  const modelIds = ['deepseek-v4-flash', 'deepseek-v4-pro'];
-  const modelNames = ['DeepSeek V4 Flash', 'DeepSeek V4 Pro'];
-  for (let i = 0; i < modelIds.length; i++) {
-    const modelId = modelIds[i];
-    const modelName = modelNames[i];
-    if (!modelId || !modelName) continue;
-    const modelExists = database.prepare('SELECT id FROM provider_models WHERE provider_id = ? AND model_id = ?').get(pid, modelId) as { id: string } | undefined;
-    if (!modelExists) {
-      database.prepare(
-        `INSERT INTO provider_models (id, provider_id, name, model_id, port, enabled)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).run(`${pid}-${modelId}`, pid, modelName, modelId, 'openai-compat', 1);
-    }
-  }
-
   const extensionCount = (database.prepare('SELECT COUNT(*) as c FROM extensions WHERE is_builtin = 1').get() as { c: number }).c;
   if (extensionCount === 0) {
     const builtinExtensions = [
@@ -1682,13 +1657,13 @@ function isUiFontSize(value: string): value is UiFontSize {
   return value === 'small' || value === 'medium' || value === 'large';
 }
 
-function readUiSetting(key: string): string | undefined {
+export function readUiSetting(key: string): string | undefined {
   const database = getDb();
   const row = database.prepare('SELECT value FROM ui_settings WHERE key = ?').get(key) as { value: string } | undefined;
   return row?.value;
 }
 
-function writeUiSetting(key: string, value: string): void {
+export function writeUiSetting(key: string, value: string): void {
   const database = getDb();
   database.prepare(
     'INSERT OR REPLACE INTO ui_settings (key, value, updated_at) VALUES (?, ?, ?)'

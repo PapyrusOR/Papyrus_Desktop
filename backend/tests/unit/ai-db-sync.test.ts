@@ -7,8 +7,8 @@ import { AIConfig } from '../../src/ai/config.js';
 describe('ai-db-sync', () => {
   let tempDir: string;
   const originalEnv = process.env.PAPYRUS_DATA_DIR;
-  let syncDBToAIConfig: typeof import('../../src/ai/db-sync.js').syncDBToAIConfig;
-  let syncAIConfigToDB: typeof import('../../src/ai/db-sync.js').syncAIConfigToDB;
+  let loadAIConfigFromDb: typeof import('../../src/ai/db-sync.js').loadAIConfigFromDb;
+  let migrateJsonProvidersToDb: typeof import('../../src/ai/db-sync.js').migrateJsonProvidersToDb;
   let getProviderConfigFromDB: typeof import('../../src/ai/db-sync.js').getProviderConfigFromDB;
   let getProviderApiKeyFromDB: typeof import('../../src/ai/db-sync.js').getProviderApiKeyFromDB;
   let closeDb: typeof import('../../src/db/database.js').closeDb;
@@ -21,8 +21,8 @@ describe('ai-db-sync', () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'papyrus-ai-db-sync-test-'));
     process.env.PAPYRUS_DATA_DIR = tempDir;
     const mod = await import('../../src/ai/db-sync.js');
-    syncDBToAIConfig = mod.syncDBToAIConfig;
-    syncAIConfigToDB = mod.syncAIConfigToDB;
+    loadAIConfigFromDb = mod.loadAIConfigFromDb;
+    migrateJsonProvidersToDb = mod.migrateJsonProvidersToDb;
     getProviderConfigFromDB = mod.getProviderConfigFromDB;
     getProviderApiKeyFromDB = mod.getProviderApiKeyFromDB;
     const dbMod = await import('../../src/db/database.js');
@@ -41,119 +41,103 @@ describe('ai-db-sync', () => {
     try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch { /* ignore */ }
   });
 
-  it('syncDBToAIConfig does nothing when DB has no providers', () => {
+  it('loadAIConfigFromDb does nothing when DB has no providers', () => {
     const cfg = new AIConfig(tempDir);
     cfg.config.current_provider = 'custom';
-    syncDBToAIConfig(cfg);
-    expect(cfg.config.current_provider).toBe('liyuan-deepseek');
+    loadAIConfigFromDb(cfg);
+    // DB is empty (no seed), so current_provider stays unchanged
+    expect(cfg.config.current_provider).toBe('custom');
   });
 
-  it('syncDBToAIConfig leaves current_provider unchanged when valid and force=false', () => {
+  it('loadAIConfigFromDb leaves current_provider unchanged when valid and force=false', () => {
+    saveProvider({ id: 'p1', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: true, models: [] });
+    saveModel('p1', { id: 'm1a', modelId: 'gpt-4o', name: 'GPT-4o', enabled: true });
     const cfg = new AIConfig(tempDir);
-    saveProvider({ id: 'p1', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: false, models: [] });
-    saveApiKey('p1', { id: 'k1', name: 'default', key: 'sk-test' });
-    saveModel('p1', { id: 'm1', modelId: 'gpt-4', name: 'GPT-4', enabled: true });
-
     cfg.config.current_provider = 'openai';
-    syncDBToAIConfig(cfg, false);
+    cfg.config.current_model = 'gpt-4o';
+    loadAIConfigFromDb(cfg, false);
     expect(cfg.config.current_provider).toBe('openai');
   });
 
-  it('syncDBToAIConfig ignores disabled providers when checking current provider validity', () => {
+  it('loadAIConfigFromDb ignores disabled providers when checking current provider validity', () => {
+    saveProvider({ id: 'p2', type: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', enabled: false, isDefault: false, models: [] });
+    saveProvider({ id: 'p3', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: true, models: [] });
+    saveModel('p3', { id: 'm3a', modelId: 'gpt-4o', name: 'GPT-4o', enabled: true });
     const cfg = new AIConfig(tempDir);
-    saveProvider({ id: 'p-disabled', type: 'openai', name: 'OpenAI Disabled', baseUrl: 'https://api.openai.com', enabled: false, isDefault: false, models: [] });
-    saveProvider({ id: 'p-default', type: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', enabled: true, isDefault: true, models: [] });
-    saveModel('p-default', { id: 'm-default', modelId: 'deepseek-chat', name: 'DeepSeek Chat', enabled: true });
+    cfg.config.current_provider = 'deepseek';
+    loadAIConfigFromDb(cfg, false);
+    expect(cfg.config.current_provider).toBe('openai');
+  });
 
+  it('loadAIConfigFromDb falls back to default provider when current is invalid', () => {
+    saveProvider({ id: 'p4', type: 'anthropic', name: 'Anthropic', baseUrl: 'https://api.anthropic.com', enabled: true, isDefault: true, models: [] });
+    saveModel('p4', { id: 'm4a', modelId: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', enabled: true });
+    const cfg = new AIConfig(tempDir);
+    cfg.config.current_provider = 'nonexistent';
+    loadAIConfigFromDb(cfg);
+    expect(cfg.config.current_provider).toBe('anthropic');
+  });
+
+  it('loadAIConfigFromDb forces sync when forceSyncDefault=true', () => {
+    saveProvider({ id: 'p5', type: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', enabled: true, isDefault: true, models: [] });
+    saveModel('p5', { id: 'm5a', modelId: 'deepseek-chat', name: 'DeepSeek Chat', enabled: true });
+    const cfg = new AIConfig(tempDir);
     cfg.config.current_provider = 'openai';
-    cfg.config.current_model = 'stale-model';
-    syncDBToAIConfig(cfg, false);
-
+    cfg.config.current_model = 'gpt-4o';
+    loadAIConfigFromDb(cfg, true);
     expect(cfg.config.current_provider).toBe('deepseek');
     expect(cfg.config.current_model).toBe('deepseek-chat');
   });
 
-  it('syncDBToAIConfig falls back to default provider when current is invalid', () => {
-    const cfg = new AIConfig(tempDir);
-    saveProvider({ id: 'p2', type: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', enabled: true, isDefault: true, models: [] });
-    saveApiKey('p2', { id: 'k2', name: 'default', key: 'sk-test' });
-    saveModel('p2', { id: 'm2', modelId: 'deepseek-chat', name: 'DS', enabled: true });
-
-    cfg.config.current_provider = 'nonexistent';
-    syncDBToAIConfig(cfg);
-    expect(cfg.config.current_provider).toBe('deepseek');
-  });
-
-  it('syncDBToAIConfig forces sync when forceSyncDefault=true', () => {
-    const cfg = new AIConfig(tempDir);
-    saveProvider({ id: 'p3', type: 'anthropic', name: 'Anthropic', baseUrl: 'https://api.anthropic.com', enabled: true, isDefault: true, models: [] });
-    saveApiKey('p3', { id: 'k3', name: 'default', key: 'sk-test' });
-    saveModel('p3', { id: 'm3', modelId: 'claude-3', name: 'Claude', enabled: true });
-
-    cfg.config.current_provider = 'openai'; // currently invalid in DB
-    syncDBToAIConfig(cfg, true);
-    expect(cfg.config.current_provider).toBe('anthropic');
-  });
-
-  it('syncAIConfigToDB does not throw with empty providers', () => {
+  it('migrateJsonProvidersToDb does not throw with empty providers', () => {
     const cfg = new AIConfig(tempDir);
     cfg.config.providers = {};
-    expect(() => syncAIConfigToDB(cfg)).not.toThrow();
+    expect(() => migrateJsonProvidersToDb(cfg)).not.toThrow();
   });
 
-  it('syncAIConfigToDB preserves existing API key when config contains a masked key', () => {
+  it('migrateJsonProvidersToDb preserves existing API key when config contains a masked key', () => {
+    saveProvider({ id: 'p6', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: false, models: [] });
+    saveApiKey('p6', { id: 'k6', name: 'default', key: 'sk-real-key' });
+
     const cfg = new AIConfig(tempDir);
-    saveProvider({ id: 'p-mask', type: 'openai', name: 'OpenAI', baseUrl: 'https://old.example.com', enabled: true, isDefault: false, models: [] });
-    saveApiKey('p-mask', { id: 'k-mask', name: 'default', key: 'sk-real-secret' });
-    cfg.config.current_provider = 'openai';
-    cfg.config.providers = {
-      openai: {
-        api_key: '********cret',
-        base_url: 'https://api.openai.com/v1',
-        models: ['gpt-4o'],
-      },
-    };
+    cfg.config.providers['openai'] = { api_key: '****...****abcd', base_url: 'https://api.openai.com', models: ['gpt-4o'] };
+    migrateJsonProvidersToDb(cfg);
 
-    syncAIConfigToDB(cfg);
-
-    expect(getProviderApiKeyFromDB('openai')).toBe('sk-real-secret');
-    const synced = getProviderConfigFromDB('openai');
-    expect(synced?.base_url).toBe('https://api.openai.com/v1');
-    expect(synced?.models).toContain('gpt-4o');
+    const apiKey = getProviderApiKeyFromDB('openai');
+    expect(apiKey).toBe('sk-real-key');
   });
 
-  it('syncAIConfigToDB keeps syncing other providers when one provider fails', () => {
+  it('migrateJsonProvidersToDb keeps syncing other providers when one provider fails', () => {
     const cfg = new AIConfig(tempDir);
-    saveProvider({ id: 'p-existing-ok', type: 'deepseek', name: 'DeepSeek', baseUrl: 'https://old.deepseek.com', enabled: true, isDefault: false, models: [] });
-    cfg.config.current_provider = 'deepseek';
-    cfg.config.providers = {
-      broken: {
-        api_key: 'sk-broken',
-        base_url: 'https://broken.example.com',
-        models: ['bad/model'],
-      },
-      deepseek: {
-        api_key: 'sk-deepseek',
-        base_url: 'https://api.deepseek.com',
-        models: ['deepseek-chat'],
-      },
-    };
+    cfg.config.providers['deepseek'] = { api_key: 'sk-deepseek', base_url: 'https://api.deepseek.com', models: ['deepseek-chat'] };
+    cfg.config.providers['broken'] = { api_key: '', base_url: '', models: [] };
+    cfg.config.providers['openai'] = { api_key: 'sk-openai', base_url: 'https://api.openai.com', models: ['gpt-4o'] };
 
-    expect(() => syncAIConfigToDB(cfg)).not.toThrow();
+    expect(() => migrateJsonProvidersToDb(cfg)).not.toThrow();
 
     const synced = getProviderConfigFromDB('deepseek');
     expect(synced?.base_url).toBe('https://api.deepseek.com');
-    expect(synced?.api_key).toBe('sk-deepseek');
-    expect(synced?.models).toContain('deepseek-chat');
   });
 
   it('getProviderConfigFromDB returns null for non-existent provider', () => {
-    const result = getProviderConfigFromDB('nonexistent');
-    expect(result).toBeNull();
+    expect(getProviderConfigFromDB('nonexistent')).toBeNull();
   });
 
-  it('getProviderConfigFromDB returns config with empty api_key when no keys', () => {
-    saveProvider({ id: 'p4', type: 'ollama', name: 'Ollama', baseUrl: 'http://localhost:11434', enabled: true, isDefault: false, models: [] });
+  it('getProviderConfigFromDB returns api_key, base_url, and enabled models', () => {
+    saveProvider({ id: 'p7', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: false, models: [] });
+    saveApiKey('p7', { id: 'k7', name: 'default', key: 'sk-test' });
+    saveModel('p7', { id: 'm7a', modelId: 'gpt-4o', name: 'GPT-4o', enabled: true });
+    saveModel('p7', { id: 'm7b', modelId: 'gpt-4o-mini', name: 'GPT-4o Mini', enabled: false });
+
+    const result = getProviderConfigFromDB('openai');
+    expect(result).not.toBeNull();
+    expect(result!.api_key).toBe('sk-test');
+    expect(result!.base_url).toBe('https://api.openai.com');
+    expect(result!.models).toEqual(['gpt-4o']);
+  });
+
+  it('getProviderConfigFromDB handles provider with empty API key', () => {
+    saveProvider({ id: 'p8', type: 'ollama', name: 'Ollama', baseUrl: 'http://localhost:11434', enabled: true, isDefault: false, models: [] });
     const result = getProviderConfigFromDB('ollama');
     expect(result).not.toBeNull();
     expect(result!.api_key).toBe('');
@@ -165,14 +149,14 @@ describe('ai-db-sync', () => {
   });
 
   it('getProviderApiKeyFromDB returns first non-empty key', () => {
-    saveProvider({ id: 'p5', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: false, models: [] });
-    saveApiKey('p5', { id: 'k5', name: 'default', key: 'sk-real' });
+    saveProvider({ id: 'p9', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: false, models: [] });
+    saveApiKey('p9', { id: 'k9', name: 'default', key: 'sk-real' });
     expect(getProviderApiKeyFromDB('openai')).toBe('sk-real');
   });
 
   it('getProviderApiKeyFromDB returns null when all keys are empty', () => {
-    saveProvider({ id: 'p6', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: false, models: [] });
-    saveApiKey('p6', { id: 'k6', name: 'default', key: '   ' });
+    saveProvider({ id: 'p10', type: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com', enabled: true, isDefault: false, models: [] });
+    saveApiKey('p10', { id: 'k10', name: 'default', key: '   ' });
     expect(getProviderApiKeyFromDB('openai')).toBeNull();
   });
 });

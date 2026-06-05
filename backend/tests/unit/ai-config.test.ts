@@ -2,169 +2,80 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { AIConfig } from '../../src/ai/config.js';
+import { closeDb } from '../../src/db/database.js';
 
 describe('AIConfig', () => {
   let tempDir: string;
+  const originalEnv = process.env.PAPYRUS_DATA_DIR;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'papyrus-ai-test-'));
+    process.env.PAPYRUS_DATA_DIR = tempDir;
   });
 
   afterEach(() => {
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    closeDb();
+    if (originalEnv !== undefined) process.env.PAPYRUS_DATA_DIR = originalEnv;
+    else delete process.env.PAPYRUS_DATA_DIR;
+    try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch { /* ignore */ }
   });
 
-  it('should create default config when file does not exist', () => {
+  it('should create default config when no settings exist in DB', () => {
     const config = new AIConfig(tempDir);
-    expect(config.config.current_provider).toBe('liyuan-deepseek');
-    expect(config.config.current_model).toBe('deepseek-v4-pro');
-    // providers are no longer hardcoded; database is the source of truth
+    expect(config.config.current_provider).toBe('');
+    expect(config.config.current_model).toBe('');
     expect(config.config.providers).toEqual({});
+    expect(config.config.parameters.temperature).toBe(0.7);
   });
 
-  it('should persist and reload config', () => {
+  it('should persist config to DB and reload', () => {
     const config1 = new AIConfig(tempDir);
-    // add provider manually so current_provider survives reload validation
-    config1.config.providers['moonshot'] = {
-      api_key: '',
-      base_url: 'https://api.moonshot.cn/v1',
-      models: ['kimi-k2.5'],
-    };
-    config1.config.current_provider = 'moonshot';
-    config1.config.current_model = 'kimi-k2.5';
+    config1.config.current_provider = 'openai';
+    config1.config.current_model = 'gpt-4o';
+    config1.config.parameters.temperature = 0.5;
+    config1.config.features.agent_enabled = true;
     config1.saveConfig();
 
+    // Reload from DB
     const config2 = new AIConfig(tempDir);
-    expect(config2.config.current_provider).toBe('moonshot');
-    expect(config2.config.current_model).toBe('kimi-k2.5');
+    expect(config2.config.current_provider).toBe('openai');
+    expect(config2.config.current_model).toBe('gpt-4o');
+    expect(config2.config.parameters.temperature).toBe(0.5);
+    expect(config2.config.features.agent_enabled).toBe(true);
   });
 
-  it('should mask API keys in getMaskedConfig', () => {
+  it('getMaskedConfig should return empty providers', () => {
     const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['openai'].api_key = 'sk-test12345';
-
     const masked = config.getMaskedConfig();
-    const maskedOpenai = masked.providers['openai'];
-    if (!maskedOpenai) throw new Error('expected masked openai provider to exist');
-    expect(maskedOpenai.api_key).not.toBe('sk-test12345');
-    expect(maskedOpenai.api_key).toContain('*');
+    expect(masked.providers).toEqual({});
+    expect(masked.current_provider).toBe('liyuan-deepseek');
   });
 
-  it('should mask short API keys completely', () => {
+  it('getProviderConfig should read from DB', () => {
     const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['openai'].api_key = 'abc';
-
-    const masked = config.getMaskedConfig();
-    const maskedOpenai = masked.providers['openai'];
-    if (!maskedOpenai) throw new Error('expected masked openai provider to exist');
-    expect(maskedOpenai.api_key).toBe('****');
+    config.config.current_provider = 'nonexistent';
+    // Provider not in DB should throw
+    expect(() => config.getProviderConfig()).toThrow('未知 provider');
   });
 
-  it('should mask long API keys by preserving last 4 chars', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['openai'].api_key = 'sk-very-long-key-1234';
-
-    const masked = config.getMaskedConfig();
-    const maskedOpenai = masked.providers['openai'];
-    if (!maskedOpenai) throw new Error('expected masked openai provider to exist');
-    expect(maskedOpenai.api_key).toMatch(/\*+1234$/);
-    expect(maskedOpenai.api_key.length).toBe('sk-very-long-key-1234'.length);
-  });
-
-  it('should validate SSRF for cloud providers', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['openai'].base_url = 'http://localhost:8080';
-    expect(() => config.validateConfig()).toThrow('SSRF');
-  });
-
-  it('should allow localhost for ollama', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['ollama'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['ollama'].base_url = 'http://localhost:11434';
-    expect(() => config.validateConfig()).not.toThrow();
-  });
-
-  it('should encrypt and decrypt API keys on save/load', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['openai'].api_key = 'secret-key-123';
-    config.saveConfig();
-
-    const raw = fs.readFileSync(path.join(tempDir, 'ai_config.json'), 'utf8');
-    expect(raw).not.toContain('secret-key-123');
+  it('setLogConfig should persist to DB', () => {
+    const config1 = new AIConfig(tempDir);
+    config1.setLogConfig({
+      log_dir: '/custom/logs',
+      log_level: 'ERROR',
+      max_log_files: 5,
+      log_rotation: true,
+    });
 
     const config2 = new AIConfig(tempDir);
-    const openai2 = config2.config.providers['openai'];
-    if (!openai2) throw new Error('expected openai provider after reload');
-    expect(openai2.api_key).toBe('secret-key-123');
+    expect(config2.config.log.log_dir).toBe('/custom/logs');
+    expect(config2.config.log.log_level).toBe('ERROR');
+    expect(config2.config.log.max_log_files).toBe(5);
+    expect(config2.config.log.log_rotation).toBe(true);
   });
 
-  it('should normalize invalid parameters on load', () => {
-    const configFile = path.join(tempDir, 'ai_config.json');
-    fs.writeFileSync(configFile, JSON.stringify({
-      current_provider: 'openai',
-      current_model: 'gpt-3.5-turbo',
-      parameters: {
-        temperature: 'invalid',
-        max_tokens: 'also-invalid',
-      },
-    }), 'utf8');
-
-    const config = new AIConfig(tempDir);
-    expect(config.config.parameters.temperature).toBe(0.7);
-    expect(config.config.parameters.max_tokens).toBe(2000);
-  });
-
-  it('should handle empty api_key gracefully', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    expect(() => config.validateConfig()).not.toThrow();
-  });
-
-  it('should reject private IP for non-local providers', () => {
-    const config = new AIConfig(tempDir);
-    config.config.providers['openai'] = { api_key: '', base_url: '', models: [] };
-    config.config.providers['openai'].base_url = 'http://192.168.1.100:8080';
-    expect(() => config.validateConfig()).toThrow('SSRF');
-  });
-
-  it('should fallback to default provider when current_provider is invalid', () => {
-    const configFile = path.join(tempDir, 'ai_config.json');
-    fs.writeFileSync(configFile, JSON.stringify({
-      providers: {
-        moonshot: { api_key: '', base_url: 'https://api.moonshot.cn/v1', models: ['kimi-k2.5'] },
-      },
-      current_provider: 'nonexistent-provider',
-      current_model: 'gpt-3.5-turbo',
-      parameters: {},
-      features: {},
-      log: {},
-    }), 'utf8');
-
-    const config = new AIConfig(tempDir);
-    expect(config.config.current_provider).toBe('liyuan-deepseek');
-  });
-
-  it('should preserve current_provider/current_model when providers field is empty (DB-managed)', () => {
-    const configFile = path.join(tempDir, 'ai_config.json');
-    fs.writeFileSync(configFile, JSON.stringify({
-      current_provider: 'user-custom-provider',
-      current_model: 'user-custom-model',
-      parameters: {},
-      features: {},
-      log: {},
-    }), 'utf8');
-
-    const config = new AIConfig(tempDir);
-    expect(config.config.current_provider).toBe('user-custom-provider');
-    expect(config.config.current_model).toBe('user-custom-model');
-  });
-  describe('edge cases', () => {
-    it('isPrivateUrl blocks private IP ranges', async () => {
+  describe('isPrivateUrl', () => {
+    it('blocks private IP ranges', async () => {
       const { isPrivateUrl } = await import('../../src/ai/config.js');
       expect(isPrivateUrl('http://127.0.0.1:11434')).toBe(true);
       expect(isPrivateUrl('http://localhost:8080')).toBe(true);

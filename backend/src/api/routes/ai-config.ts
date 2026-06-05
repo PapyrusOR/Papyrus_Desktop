@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { aiConfig } from '../../ai/config-instance.js';
 import { isPrivateUrl } from '../../ai/config.js';
-import { getProviderApiKeyFromDB, getProviderConfigFromDB, syncDBToAIConfig } from '../../ai/db-sync.js';
+import { getProviderApiKeyFromDB, getProviderConfigFromDB, loadAIConfigFromDb } from '../../ai/db-sync.js';
 import { loadAllProviders } from '../../db/database.js';
 import { fetchWithProxy } from '../../utils/proxy.js';
 import { isKeylessProvider } from './ai-common.js';
@@ -79,7 +79,7 @@ export default async function aiConfigRoutes(fastify: FastifyInstance): Promise<
   fastify.post('/config/ai/test', async (_request, reply) => {
     try {
       // 在处理请求前，同步最新的配置
-      syncDBToAIConfig(aiConfig);
+      loadAIConfigFromDb(aiConfig);
       
       const providerName = aiConfig.config.current_provider;
       const providerConfig = getProviderConfigFromDB(providerName);
