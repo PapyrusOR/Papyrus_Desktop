@@ -47,12 +47,20 @@ describe('AIConfig', () => {
   it('getMaskedConfig should return empty providers', () => {
     const config = new AIConfig(tempDir);
     const masked = config.getMaskedConfig();
+<<<<<<< HEAD
     expect(masked.providers).toEqual({});
     expect(masked.current_provider).toBe('liyuan-deepseek');
+=======
+<<<<<<< Updated upstream
     const maskedOpenai = masked.providers['openai'];
     if (!maskedOpenai) throw new Error('expected masked openai provider to exist');
     expect(maskedOpenai.api_key).not.toBe('sk-test12345');
     expect(maskedOpenai.api_key).toContain('*');
+=======
+    expect(masked.providers).toEqual({});
+    expect(masked.current_provider).toBe('');
+>>>>>>> Stashed changes
+>>>>>>> codex/LA17
   });
 
   it('getProviderConfig should read from DB', () => {
