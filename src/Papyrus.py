@@ -600,8 +600,12 @@ class PapyrusApp:
             elif repetitions == 1:
                 interval_days = 6
             else:
-                # 使用EF计算新间隔
-                interval_days = (card.get("interval", 86400) / 86400) * ef
+                # 使用EF计算新间隔。card.get("interval", 86400) 只在键缺失时兜底，
+                # 但旧数据/损坏数据可能把 interval 显式存成 0，导致新间隔恒为 0、
+                # 卡片永远立即到期、复习队列清不空。用 `or 86400` 把 0/None 一并
+                # 兜底为 1 天基量。
+                prev_interval = card.get("interval") or 86400
+                interval_days = (prev_interval / 86400) * ef
 
             repetitions += 1
         else:  # 回答错误（忘记）

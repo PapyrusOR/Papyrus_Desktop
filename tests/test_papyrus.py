@@ -214,6 +214,24 @@ class TestPapyrusApp(unittest.TestCase):
         self.assertEqual(card["repetitions"], 2)
         self.assertAlmostEqual(card["interval"], 86400 * 6, delta=1)
 
+    def test_rate_card_legacy_zero_interval(self):
+        """旧数据 interval=0 且 repetitions>=2 时，新间隔不应为 0（回归：卡片永远到期）"""
+        card = self._make_card(ef=2.5, repetitions=2, interval=0)
+        self.app.cards = [card]
+        self.app.current_card_index = 0
+        self.app.is_showing_answer = True
+        self.app.answer_shown_time = 0
+
+        with patch.object(self.app, "save_data"), \
+             patch.object(self.app, "next_card"):
+            self.app.rate_card(3)
+
+        # 核心回归点：间隔被兜底为 1 天基量 × EF，绝不为 0
+        self.assertGreater(card["interval"], 0)
+        self.assertAlmostEqual(card["interval"], 86400 * 2.5, delta=1)
+        # 下次复习时间也必须落在未来
+        self.assertGreater(card["next_review"], time.time())
+
     def test_rate_card_ef_minimum(self):
         """EF 值不应低于 1.3"""
         card = self._make_card(ef=1.3)
