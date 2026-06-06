@@ -297,26 +297,40 @@ class TestPapyrusApp(unittest.TestCase):
 
     # ---------- import_from_txt 解析逻辑 ----------
     def test_import_txt_parsing(self):
-        """验证 TXT 导入的解析逻辑"""
-        content = "题目1===答案1\n\n题目2===答案2\n\n无效行"
-        self.app.cards = []
+        """TXT 导入解析（真正调用源码 parse_cards_from_text，而非在测试里复刻一份逻辑）"""
+        from Papyrus import parse_cards_from_text
 
-        count = 0
-        for block in content.split("\n\n"):
-            if "===" in block:
-                parts = block.split("===", 1)
-                if len(parts) >= 2:
-                    q = parts[0].strip()
-                    a = parts[1].strip()
-                    if q and a:
-                        self.app.cards.append(
-                            {"q": q, "a": a, "next_review": 0, "interval": 0}
-                        )
-                        count += 1
+        content = "题目1===答案1\n\n题目2===答案2\n\n无效行没有分隔符"
+        cards = parse_cards_from_text(content)
 
-        self.assertEqual(count, 2)
-        self.assertEqual(self.app.cards[0]["q"], "题目1")
-        self.assertEqual(self.app.cards[1]["a"], "答案2")
+        self.assertEqual(len(cards), 2)
+        self.assertEqual(cards[0]["q"], "题目1")
+        self.assertEqual(cards[1]["a"], "答案2")
+        # 新卡片应带有正确的初始 SRS 字段
+        self.assertEqual(cards[0]["next_review"], 0)
+        self.assertEqual(cards[0]["interval"], 0)
+
+    def test_parse_cards_edge_cases(self):
+        """TXT 解析边界：空内容 / 无分隔符 / 答案含 === / 题目或答案为空 / 首尾空白"""
+        from Papyrus import parse_cards_from_text
+
+        # 空内容、纯空白
+        self.assertEqual(parse_cards_from_text(""), [])
+        self.assertEqual(parse_cards_from_text("   \n\n   "), [])
+        # 完全没有分隔符
+        self.assertEqual(parse_cards_from_text("一段没有等号的文字\n\n另一段"), [])
+        # 答案中包含 ===，只按第一个切分
+        cards = parse_cards_from_text("公式===a===b===c")
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]["q"], "公式")
+        self.assertEqual(cards[0]["a"], "a===b===c")
+        # 题目为空 / 答案为空 → 跳过
+        self.assertEqual(parse_cards_from_text("===只有答案"), [])
+        self.assertEqual(parse_cards_from_text("只有题目==="), [])
+        # 块内首尾空白被 strip
+        cards = parse_cards_from_text("  题目  ===  答案  ")
+        self.assertEqual(cards[0]["q"], "题目")
+        self.assertEqual(cards[0]["a"], "答案")
 
 
 if __name__ == "__main__":

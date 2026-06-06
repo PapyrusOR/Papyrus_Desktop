@@ -82,6 +82,28 @@ def resource_path(relative_path: str) -> str:
     return os.path.join(ASSETS_DIR, relative_path)
 
 
+def parse_cards_from_text(content: str) -> list:
+    """从批量导入的 TXT 文本解析卡片列表。
+
+    格式约定：每张卡片写成 `题目===答案`，卡片之间用空行分隔。
+    - 只按第一个 `===` 切分，因此答案中可以包含 `===`；
+    - 题目或答案 strip 后为空的块会被跳过；
+    - 不含 `===` 的块会被忽略。
+
+    返回新卡片列表（不写盘），抽成纯函数便于单元测试与复用。
+    """
+    cards = []
+    for block in content.split("\n\n"):
+        if "===" not in block:
+            continue
+        question, answer = block.split("===", 1)
+        question = question.strip()
+        answer = answer.strip()
+        if question and answer:
+            cards.append({"q": question, "a": answer, "next_review": 0, "interval": 0})
+    return cards
+
+
 class PapyrusApp:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -677,23 +699,14 @@ class PapyrusApp:
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            count = 0
-            for block in content.split("\n\n"):
-                if "===" in block:
-                    parts = block.split("===", 1)
-                    if len(parts) >= 2:
-                        question = parts[0].strip()
-                        answer = parts[1].strip()
-                        if question and answer:
-                            self.cards.append(
-                                {"q": question, "a": answer, "next_review": 0, "interval": 0}
-                            )
-                            count += 1
+            new_cards = parse_cards_from_text(content)
+            count = len(new_cards)
 
             if count == 0:
                 messagebox.showwarning("导入失败", "未找到有效卡片，请确认格式为：\n题目===答案")
                 return
 
+            self.cards.extend(new_cards)
             self.save_data()
             if self.logger:
                 self.logger.info(f"批量导入成功，共 {count} 张卡片")
