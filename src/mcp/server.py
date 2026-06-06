@@ -100,6 +100,7 @@ class MCPServer:
     def stop(self):
         """关闭服务器"""
         if self._httpd:
-            self._httpd.shutdown()
+            self._httpd.shutdown()       # 停止 serve_forever 循环
+            self._httpd.server_close()   # 释放监听 socket，否则 fd 泄漏（ResourceWarning）
             if self.logger:
                 self.logger.info("MCP 服务器已停止")
