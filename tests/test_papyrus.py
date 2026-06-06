@@ -246,6 +246,49 @@ class TestPapyrusApp(unittest.TestCase):
 
         self.assertGreaterEqual(card["ef"], 1.3)
 
+    # ---------- SM-2 第3次及以后的递推（此前完全无覆盖）----------
+    def _rate(self, card, grade):
+        self.app.cards = [card]
+        self.app.current_card_index = 0
+        self.app.is_showing_answer = True
+        self.app.answer_shown_time = 0
+        with patch.object(self.app, "save_data"), patch.object(self.app, "next_card"):
+            self.app.rate_card(grade)
+
+    def test_rate_card_third_repetition_uses_ef(self):
+        """第3次正确：间隔 = 上次间隔(天) × EF（SM-2 递推核心，此前 0 覆盖）"""
+        # repetitions=2, interval=6天, ef=2.5 → 第3次秒杀 = 6 × 2.5 = 15 天
+        card = self._make_card(ef=2.5, repetitions=2, interval=86400 * 6)
+        self._rate(card, 3)
+        self.assertEqual(card["repetitions"], 3)
+        # 实现用更新前的 EF(2.5) 计算间隔
+        self.assertAlmostEqual(card["interval"], 86400 * 6 * 2.5, delta=1)
+
+    def test_rate_card_fourth_repetition_keeps_growing(self):
+        """第4次正确：间隔在第3次结果上继续按 EF 放大"""
+        card = self._make_card(ef=2.6, repetitions=3, interval=86400 * 15)
+        self._rate(card, 3)
+        self.assertEqual(card["repetitions"], 4)
+        self.assertAlmostEqual(card["interval"], 86400 * 15 * 2.6, delta=1)
+
+    def test_rate_card_ef_exact_increment_on_perfect(self):
+        """秒杀 quality=5：EF 应精确 +0.1"""
+        card = self._make_card(ef=2.5)
+        self._rate(card, 3)
+        self.assertAlmostEqual(card["ef"], 2.6, delta=0.001)
+
+    def test_rate_card_ef_exact_decrement_on_fuzzy(self):
+        """模糊 quality=3：EF 应精确 -0.14"""
+        card = self._make_card(ef=2.5)
+        self._rate(card, 2)
+        self.assertAlmostEqual(card["ef"], 2.36, delta=0.001)
+
+    def test_rate_card_ef_exact_decrement_on_forget(self):
+        """忘记 quality=1：EF 应精确 -0.54"""
+        card = self._make_card(ef=2.5)
+        self._rate(card, 1)
+        self.assertAlmostEqual(card["ef"], 1.96, delta=0.001)
+
     def test_rate_card_no_card_selected(self):
         """没有选中卡片时 rate_card 应直接返回"""
         self.app.current_card_index = -1
