@@ -78,7 +78,8 @@ class TestMCPErrorPaths(unittest.TestCase):
         self.assertEqual(status, 404)
 
     def test_unknown_post_path_returns_404(self):
-        status, _ = _request(self.port, "POST", "/does-not-exist")
+        # 带 body 命中未知路径：服务端应先读完 body 再返回 404，而不是重置连接
+        status, _ = _request(self.port, "POST", "/does-not-exist", {"tool": "x"})
         self.assertEqual(status, 404)
 
 

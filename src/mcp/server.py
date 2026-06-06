@@ -46,6 +46,12 @@ class _MCPHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "未知路径"}, 404)
 
     def do_POST(self):
+        # 无论后续走哪个分支，都先把请求体读完。否则命中提前返回（404/503）时
+        # 客户端仍在发送 body，连接被关闭会触发 Connection reset（macOS/Windows 上
+        # 尤其明显），客户端拿不到我们本想返回的状态码。
+        length = int(self.headers.get("Content-Length", 0))
+        raw_body = self.rfile.read(length) if length > 0 else b""
+
         if self.path != "/call":
             self._send_json({"error": "未知路径"}, 404)
             return
@@ -56,8 +62,7 @@ class _MCPHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            body = json.loads(raw_body.decode("utf-8"))
         except (json.JSONDecodeError, ValueError):
             self._send_json({"error": "请求体不是合法 JSON"}, 400)
             return
