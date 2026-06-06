@@ -234,6 +234,24 @@ class TestPapyrusApp(unittest.TestCase):
         # 不应抛出异常
         self.app.rate_card(1)
 
+    def test_rate_card_invalid_grade(self):
+        """非法评分值应被忽略，而不是抛 KeyError（回归：quality_map[grade]）"""
+        card = self._make_card(repetitions=2, interval=86400 * 6)
+        self.app.cards = [card]
+        self.app.current_card_index = 0
+        self.app.is_showing_answer = True
+        self.app.answer_shown_time = 0
+
+        with patch.object(self.app, "save_data") as mock_save, \
+             patch.object(self.app, "next_card"):
+            for bad in (0, 4, 5, -1):
+                self.app.rate_card(bad)  # 不应抛出 KeyError
+            # 非法评分既不保存也不改写卡片状态
+            mock_save.assert_not_called()
+
+        self.assertEqual(card["repetitions"], 2)
+        self.assertEqual(card["interval"], 86400 * 6)
+
     # ---------- get_current_card_context ----------
     def test_get_context_no_card(self):
         """没有选中卡片时返回 None"""

@@ -585,6 +585,12 @@ class PapyrusApp:
         # 2=模糊 → quality 3 (一般)
         # 3=秒杀 → quality 5 (完美)
         quality_map = {1: 1, 2: 3, 3: 5}
+        if grade not in quality_map:
+            # 非法评分（非 1/2/3）：UI 只会传 1-3，但本方法是 public，
+            # AI/MCP 调用或未来新增评分键都可能传入越界值，直接忽略避免 KeyError。
+            if self.logger:
+                self.logger.warning(f"非法评分 grade={grade}，已忽略")
+            return
         quality = quality_map[grade]
 
         # SM-2算法核心逻辑
