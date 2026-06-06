@@ -94,6 +94,23 @@ class TestCardToolsImmediateWrite(unittest.TestCase):
         self.assertEqual(res["count"], 1)
         self.assertEqual(res["results"][0]["index"], 0)
 
+    def test_search_cards_tolerates_missing_fields(self):
+        """卡片缺少 q 或 a 字段时不应崩溃（回归：search_cards 曾用 card["a"] 硬索引抛 KeyError）"""
+        self.app.cards = [
+            {"q": "只有题目"},                   # 缺 a
+            {"a": "只有答案"},                   # 缺 q
+            {"q": "完整卡片", "a": "完整答案"},
+        ]
+        # 命中完整卡片，且不会因前两张缺字段的卡片抛 KeyError
+        res = self.tools.search_cards("完整")
+        self.assertTrue(res["success"])
+        self.assertEqual(res["count"], 1)
+        self.assertEqual(res["results"][0]["question"], "完整卡片")
+
+        # 仅有题目/仅有答案的卡片也能各自被关键词命中
+        self.assertEqual(self.tools.search_cards("只有题目")["count"], 1)
+        self.assertEqual(self.tools.search_cards("只有答案")["count"], 1)
+
     def test_get_card_stats(self):
         self.app.cards = [
             {"q": "Q1", "a": "A1", "next_review": 0, "interval": 0, "ef": 2.5, "repetitions": 0},

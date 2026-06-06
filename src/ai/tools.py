@@ -146,12 +146,13 @@ class CardTools:
         results = []
 
         for i, card in enumerate(self.app.cards):
-            if keyword in card["q"].lower() or keyword in card["a"].lower():
-                ans = card["a"]
+            q = card.get("q", "")
+            ans = card.get("a", "")
+            if keyword in q.lower() or keyword in ans.lower():
                 results.append(
                     {
                         "index": i,
-                        "question": card["q"],
+                        "question": q,
                         "answer": ans[:100] + "..." if len(ans) > 100 else ans,
                     }
                 )
