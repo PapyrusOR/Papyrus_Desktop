@@ -214,6 +214,24 @@ class TestPapyrusApp(unittest.TestCase):
         self.assertEqual(card["repetitions"], 2)
         self.assertAlmostEqual(card["interval"], 86400 * 6, delta=1)
 
+    def test_rate_card_legacy_zero_interval(self):
+        """旧数据 interval=0 且 repetitions>=2 时，新间隔不应为 0（回归：卡片永远到期）"""
+        card = self._make_card(ef=2.5, repetitions=2, interval=0)
+        self.app.cards = [card]
+        self.app.current_card_index = 0
+        self.app.is_showing_answer = True
+        self.app.answer_shown_time = 0
+
+        with patch.object(self.app, "save_data"), \
+             patch.object(self.app, "next_card"):
+            self.app.rate_card(3)
+
+        # 核心回归点：间隔被兜底为 1 天基量 × EF，绝不为 0
+        self.assertGreater(card["interval"], 0)
+        self.assertAlmostEqual(card["interval"], 86400 * 2.5, delta=1)
+        # 下次复习时间也必须落在未来
+        self.assertGreater(card["next_review"], time.time())
+
     def test_rate_card_ef_minimum(self):
         """EF 值不应低于 1.3"""
         card = self._make_card(ef=1.3)
@@ -228,11 +246,72 @@ class TestPapyrusApp(unittest.TestCase):
 
         self.assertGreaterEqual(card["ef"], 1.3)
 
+    # ---------- SM-2 第3次及以后的递推（此前完全无覆盖）----------
+    def _rate(self, card, grade):
+        self.app.cards = [card]
+        self.app.current_card_index = 0
+        self.app.is_showing_answer = True
+        self.app.answer_shown_time = 0
+        with patch.object(self.app, "save_data"), patch.object(self.app, "next_card"):
+            self.app.rate_card(grade)
+
+    def test_rate_card_third_repetition_uses_ef(self):
+        """第3次正确：间隔 = 上次间隔(天) × EF（SM-2 递推核心，此前 0 覆盖）"""
+        # repetitions=2, interval=6天, ef=2.5 → 第3次秒杀 = 6 × 2.5 = 15 天
+        card = self._make_card(ef=2.5, repetitions=2, interval=86400 * 6)
+        self._rate(card, 3)
+        self.assertEqual(card["repetitions"], 3)
+        # 实现用更新前的 EF(2.5) 计算间隔
+        self.assertAlmostEqual(card["interval"], 86400 * 6 * 2.5, delta=1)
+
+    def test_rate_card_fourth_repetition_keeps_growing(self):
+        """第4次正确：间隔在第3次结果上继续按 EF 放大"""
+        card = self._make_card(ef=2.6, repetitions=3, interval=86400 * 15)
+        self._rate(card, 3)
+        self.assertEqual(card["repetitions"], 4)
+        self.assertAlmostEqual(card["interval"], 86400 * 15 * 2.6, delta=1)
+
+    def test_rate_card_ef_exact_increment_on_perfect(self):
+        """秒杀 quality=5：EF 应精确 +0.1"""
+        card = self._make_card(ef=2.5)
+        self._rate(card, 3)
+        self.assertAlmostEqual(card["ef"], 2.6, delta=0.001)
+
+    def test_rate_card_ef_exact_decrement_on_fuzzy(self):
+        """模糊 quality=3：EF 应精确 -0.14"""
+        card = self._make_card(ef=2.5)
+        self._rate(card, 2)
+        self.assertAlmostEqual(card["ef"], 2.36, delta=0.001)
+
+    def test_rate_card_ef_exact_decrement_on_forget(self):
+        """忘记 quality=1：EF 应精确 -0.54"""
+        card = self._make_card(ef=2.5)
+        self._rate(card, 1)
+        self.assertAlmostEqual(card["ef"], 1.96, delta=0.001)
+
     def test_rate_card_no_card_selected(self):
         """没有选中卡片时 rate_card 应直接返回"""
         self.app.current_card_index = -1
         # 不应抛出异常
         self.app.rate_card(1)
+
+    def test_rate_card_invalid_grade(self):
+        """非法评分值应被忽略，而不是抛 KeyError（回归：quality_map[grade]）"""
+        card = self._make_card(repetitions=2, interval=86400 * 6)
+        self.app.cards = [card]
+        self.app.current_card_index = 0
+        self.app.is_showing_answer = True
+        self.app.answer_shown_time = 0
+
+        with patch.object(self.app, "save_data") as mock_save, \
+             patch.object(self.app, "next_card"):
+            for bad in (0, 4, 5, -1):
+                self.app.rate_card(bad)  # 不应抛出 KeyError
+            # 非法评分既不保存也不改写卡片状态
+            mock_save.assert_not_called()
+
+        self.assertEqual(card["repetitions"], 2)
+        self.assertEqual(card["interval"], 86400 * 6)
 
     # ---------- get_current_card_context ----------
     def test_get_context_no_card(self):
@@ -261,26 +340,40 @@ class TestPapyrusApp(unittest.TestCase):
 
     # ---------- import_from_txt 解析逻辑 ----------
     def test_import_txt_parsing(self):
-        """验证 TXT 导入的解析逻辑"""
-        content = "题目1===答案1\n\n题目2===答案2\n\n无效行"
-        self.app.cards = []
+        """TXT 导入解析（真正调用源码 parse_cards_from_text，而非在测试里复刻一份逻辑）"""
+        from Papyrus import parse_cards_from_text
 
-        count = 0
-        for block in content.split("\n\n"):
-            if "===" in block:
-                parts = block.split("===", 1)
-                if len(parts) >= 2:
-                    q = parts[0].strip()
-                    a = parts[1].strip()
-                    if q and a:
-                        self.app.cards.append(
-                            {"q": q, "a": a, "next_review": 0, "interval": 0}
-                        )
-                        count += 1
+        content = "题目1===答案1\n\n题目2===答案2\n\n无效行没有分隔符"
+        cards = parse_cards_from_text(content)
 
-        self.assertEqual(count, 2)
-        self.assertEqual(self.app.cards[0]["q"], "题目1")
-        self.assertEqual(self.app.cards[1]["a"], "答案2")
+        self.assertEqual(len(cards), 2)
+        self.assertEqual(cards[0]["q"], "题目1")
+        self.assertEqual(cards[1]["a"], "答案2")
+        # 新卡片应带有正确的初始 SRS 字段
+        self.assertEqual(cards[0]["next_review"], 0)
+        self.assertEqual(cards[0]["interval"], 0)
+
+    def test_parse_cards_edge_cases(self):
+        """TXT 解析边界：空内容 / 无分隔符 / 答案含 === / 题目或答案为空 / 首尾空白"""
+        from Papyrus import parse_cards_from_text
+
+        # 空内容、纯空白
+        self.assertEqual(parse_cards_from_text(""), [])
+        self.assertEqual(parse_cards_from_text("   \n\n   "), [])
+        # 完全没有分隔符
+        self.assertEqual(parse_cards_from_text("一段没有等号的文字\n\n另一段"), [])
+        # 答案中包含 ===，只按第一个切分
+        cards = parse_cards_from_text("公式===a===b===c")
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]["q"], "公式")
+        self.assertEqual(cards[0]["a"], "a===b===c")
+        # 题目为空 / 答案为空 → 跳过
+        self.assertEqual(parse_cards_from_text("===只有答案"), [])
+        self.assertEqual(parse_cards_from_text("只有题目==="), [])
+        # 块内首尾空白被 strip
+        cards = parse_cards_from_text("  题目  ===  答案  ")
+        self.assertEqual(cards[0]["q"], "题目")
+        self.assertEqual(cards[0]["a"], "答案")
 
 
 if __name__ == "__main__":

@@ -82,6 +82,28 @@ def resource_path(relative_path: str) -> str:
     return os.path.join(ASSETS_DIR, relative_path)
 
 
+def parse_cards_from_text(content: str) -> list:
+    """从批量导入的 TXT 文本解析卡片列表。
+
+    格式约定：每张卡片写成 `题目===答案`，卡片之间用空行分隔。
+    - 只按第一个 `===` 切分，因此答案中可以包含 `===`；
+    - 题目或答案 strip 后为空的块会被跳过；
+    - 不含 `===` 的块会被忽略。
+
+    返回新卡片列表（不写盘），抽成纯函数便于单元测试与复用。
+    """
+    cards = []
+    for block in content.split("\n\n"):
+        if "===" not in block:
+            continue
+        question, answer = block.split("===", 1)
+        question = question.strip()
+        answer = answer.strip()
+        if question and answer:
+            cards.append({"q": question, "a": answer, "next_review": 0, "interval": 0})
+    return cards
+
+
 class PapyrusApp:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -585,6 +607,12 @@ class PapyrusApp:
         # 2=模糊 → quality 3 (一般)
         # 3=秒杀 → quality 5 (完美)
         quality_map = {1: 1, 2: 3, 3: 5}
+        if grade not in quality_map:
+            # 非法评分（非 1/2/3）：UI 只会传 1-3，但本方法是 public，
+            # AI/MCP 调用或未来新增评分键都可能传入越界值，直接忽略避免 KeyError。
+            if self.logger:
+                self.logger.warning(f"非法评分 grade={grade}，已忽略")
+            return
         quality = quality_map[grade]
 
         # SM-2算法核心逻辑
@@ -594,8 +622,12 @@ class PapyrusApp:
             elif repetitions == 1:
                 interval_days = 6
             else:
-                # 使用EF计算新间隔
-                interval_days = (card.get("interval", 86400) / 86400) * ef
+                # 使用EF计算新间隔。card.get("interval", 86400) 只在键缺失时兜底，
+                # 但旧数据/损坏数据可能把 interval 显式存成 0，导致新间隔恒为 0、
+                # 卡片永远立即到期、复习队列清不空。用 `or 86400` 把 0/None 一并
+                # 兜底为 1 天基量。
+                prev_interval = card.get("interval") or 86400
+                interval_days = (prev_interval / 86400) * ef
 
             repetitions += 1
         else:  # 回答错误（忘记）
@@ -667,23 +699,14 @@ class PapyrusApp:
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            count = 0
-            for block in content.split("\n\n"):
-                if "===" in block:
-                    parts = block.split("===", 1)
-                    if len(parts) >= 2:
-                        question = parts[0].strip()
-                        answer = parts[1].strip()
-                        if question and answer:
-                            self.cards.append(
-                                {"q": question, "a": answer, "next_review": 0, "interval": 0}
-                            )
-                            count += 1
+            new_cards = parse_cards_from_text(content)
+            count = len(new_cards)
 
             if count == 0:
                 messagebox.showwarning("导入失败", "未找到有效卡片，请确认格式为：\n题目===答案")
                 return
 
+            self.cards.extend(new_cards)
             self.save_data()
             if self.logger:
                 self.logger.info(f"批量导入成功，共 {count} 张卡片")
